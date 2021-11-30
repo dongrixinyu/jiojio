@@ -2,9 +2,10 @@ from __future__ import print_function
 import sys
 
 if sys.version_info[0] < 3:
-    print("pkuseg does not support python2", file=sys.stderr)
+    print("jiojio does not support python2", file=sys.stderr)
     sys.exit(1)
 
+__doc__ = 'this is valid.'
 import os
 import time
 import pickle as pkl
@@ -12,14 +13,14 @@ import multiprocessing
 
 from multiprocessing import Process, Queue
 
-import pkuseg.trainer as trainer
-import pkuseg.inference as _inf
+import jiojio.trainer as trainer
+import jiojio.inference as _inf
 
-from pkuseg.config import config
-from pkuseg.feature_extractor import FeatureExtractor
-from pkuseg.model import Model
-from pkuseg.download import download_model
-from pkuseg.postag import Postag
+from jiojio.config import config
+from jiojio.feature_extractor import FeatureExtractor
+from jiojio.model import Model
+from jiojio.download import download_model
+from jiojio.postag import Postag
 
 
 class TrieNode:
@@ -57,8 +58,8 @@ class Preprocesser:
                     t = ''
                 else:
                     assert isinstance(w_t, tuple)
-                    assert len(w_t)==2
-                    w, t = map(lambda x:x.strip(), w_t)
+                    assert len(w_t) == 2
+                    w, t = map(lambda x: x.strip(), w_t)
                 self.insert(w, t)
 
     def insert(self, word, usertag):
@@ -86,7 +87,7 @@ class Preprocesser:
             j = i
             found = False
             usertag = ''
-            last_word_idx = -1 # 表示从当前位置i往后匹配，最长匹配词词尾的idx
+            last_word_idx = -1  # 表示从当前位置i往后匹配，最长匹配词词尾的idx
             while True:
                 c = txt[j]
                 if not c in now.children and last_word_idx != -1:
@@ -101,7 +102,7 @@ class Preprocesser:
                 j += 1
                 if j == l and last_word_idx == -1:
                     break
-                if j == l and last_word_idx != -1 :
+                if j == l and last_word_idx != -1:
                     j = last_word_idx + 1
                     found = True
                     break
@@ -126,6 +127,7 @@ class Preprocesser:
 
 class Postprocesser:
     """对分词结果后处理"""
+
     def __init__(self, common_name, other_names):
         if common_name is None and other_names is None:
             self.do_process = False
@@ -153,7 +155,7 @@ class Postprocesser:
                 self.other_words.update(set(all_words))
 
     def post_process(self, sent, check_seperated):
-        for m in reversed(range(2, 8)): 
+        for m in reversed(range(2, 8)):
             end = len(sent)-m
             if end < 0:
                 continue
@@ -164,8 +166,8 @@ class Postprocesser:
                     do_seg = True
                 elif merged_words in self.other_words:
                     if check_seperated:
-                        seperated = all(((w in self.common_words) 
-                            or (w in self.other_words)) for w in sent[i:i+m])
+                        seperated = all(((w in self.common_words)
+                                         or (w in self.other_words)) for w in sent[i:i+m])
                     else:
                         seperated = False
                     if seperated:
@@ -181,7 +183,7 @@ class Postprocesser:
                     i += 1
                     end = len(sent) - m
                 else:
-                    i += 1 
+                    i += 1
         return sent
 
     def __call__(self, sent):
@@ -190,7 +192,7 @@ class Postprocesser:
         return self.post_process(sent, check_seperated=True)
 
 
-class pkuseg:
+class jiojio:
     def __init__(self, model_name="default", user_dict="default", postag=False):
         """初始化函数，加载模型及用户词典"""
         # print("loading model")
@@ -205,10 +207,11 @@ class pkuseg:
             )
         elif model_name in config.available_models:
             config.modelDir = os.path.join(
-                config.pkuseg_home,
+                config.jiojio_home,
                 model_name,
             )
-            download_model(config.model_urls[model_name], config.pkuseg_home, config.model_hash[model_name])
+            download_model(
+                config.model_urls[model_name], config.jiojio_home, config.model_hash[model_name])
         else:
             config.modelDir = model_name
 
@@ -223,7 +226,7 @@ class pkuseg:
                 file_name = None
             if model_name in config.models_with_dict:
                 other_name = os.path.join(
-                    config.pkuseg_home,
+                    config.jiojio_home,
                     model_name,
                     model_name+"_dict.pkl",
                 )
@@ -254,11 +257,9 @@ class pkuseg:
         self.n_tag = len(self.feature_extractor.tag_to_idx)
 
         if postag:
-            download_model(config.model_urls["postag"], config.pkuseg_home, config.model_hash["postag"])
-            postag_dir = os.path.join(
-                config.pkuseg_home,
-                "postag",
-            )
+            download_model(
+                config.model_urls["postag"], config.jiojio_home, config.model_hash["postag"])
+            postag_dir = os.path.join(config.jiojio_home, "postag")
             self.tagger = Postag(postag_dir)
 
         # print("finish")
@@ -340,7 +341,7 @@ class pkuseg:
                 post_output = self.postprocesser(output)
                 ret.extend(post_output)
                 usertags.extend(['']*len(post_output))
-        
+
         if self.postag:
             tags = self.tagger.tag(ret.copy())
             for i, usertag in enumerate(usertags):
@@ -358,10 +359,10 @@ def train(trainFile, testFile, savedir, train_iter=20, init_model=None):
         raise Exception("trainfile does not exist.")
     if not os.path.exists(testFile):
         raise Exception("testfile does not exist.")
-    if not os.path.exists(config.tempFile):
-        os.makedirs(config.tempFile)
-    if not os.path.exists(config.tempFile + "/output"):
-        os.mkdir(config.tempFile + "/output")
+    if not os.path.exists(config.temp_dir):
+        os.makedirs(config.temp_dir)
+    if not os.path.exists(config.temp_dir + "/output"):
+        os.mkdir(config.temp_dir + "/output")
 
     # config.runMode = "train"
     config.trainFile = trainFile
@@ -376,8 +377,8 @@ def train(trainFile, testFile, savedir, train_iter=20, init_model=None):
 
     trainer.train(config)
 
-    # pkuseg.main.run(config)
-    # clearDir(config.tempFile)
+    # jiojio.main.run(config)
+    # clearDir(config.temp_dir)
     print("Total time: " + str(time.time() - starttime))
 
 
@@ -386,7 +387,7 @@ def _test_single_proc(input_file, output_file, model_name="default",
 
     times = []
     times.append(time.time())
-    seg = pkuseg(model_name, user_dict, postag=postag)
+    seg = jiojio(model_name, user_dict, postag=postag)
 
     times.append(time.time())
     if not os.path.exists(input_file):
@@ -400,7 +401,7 @@ def _test_single_proc(input_file, output_file, model_name="default",
         if not postag:
             results.append(" ".join(seg.cut(line)))
         else:
-            results.append(" ".join(map(lambda x:"/".join(x), seg.cut(line))))
+            results.append(" ".join(map(lambda x: "/".join(x), seg.cut(line))))
 
     times.append(time.time())
     with open(output_file, "w", encoding="utf-8") as f:
@@ -418,13 +419,6 @@ def _test_single_proc(input_file, output_file, model_name="default",
             print("{}:\t{:.3f}".format(key, value))
 
 
-def _proc_deprecated(seg, lines, start, end, q):
-    for i in range(start, end):
-        l = lines[i].strip()
-        ret = seg.cut(l)
-        q.put((i, " ".join(ret)))
-
-
 def _proc(seg, in_queue, out_queue):
     # TODO: load seg (json or pickle serialization) in sub_process
     #       to avoid pickle seg online when using start method other
@@ -437,12 +431,12 @@ def _proc(seg, in_queue, out_queue):
         if not seg.postag:
             output_str = " ".join(seg.cut(line))
         else:
-            output_str = " ".join(map(lambda x:"/".join(x), seg.cut(line)))
+            output_str = " ".join(map(lambda x: "/".join(x), seg.cut(line)))
         out_queue.put((idx, output_str))
 
 
 def _proc_alt(model_name, user_dict, postag, in_queue, out_queue):
-    seg = pkuseg(model_name, user_dict, postag=postag)
+    seg = jiojio(model_name, user_dict, postag=postag)
     while True:
         item = in_queue.get()
         if item is None:
@@ -451,19 +445,18 @@ def _proc_alt(model_name, user_dict, postag, in_queue, out_queue):
         if not postag:
             output_str = " ".join(seg.cut(line))
         else:
-            output_str = " ".join(map(lambda x:"/".join(x), seg.cut(line)))
+            output_str = " ".join(map(lambda x: "/".join(x), seg.cut(line)))
         out_queue.put((idx, output_str))
 
 
 def _test_multi_proc(
-    input_file,
-    output_file,
-    nthread,
-    model_name="default",
-    user_dict="default",
-    postag=False,
-    verbose=False,
-):
+        input_file,
+        output_file,
+        nthread,
+        model_name="default",
+        user_dict="default",
+        postag=False,
+        verbose=False):
 
     alt = multiprocessing.get_start_method() == "spawn"
 
@@ -473,7 +466,7 @@ def _test_multi_proc(
     if alt:
         seg = None
     else:
-        seg = pkuseg(model_name, user_dict, postag)
+        seg = jiojio(model_name, user_dict, postag)
 
     times.append(time.time())
     if not os.path.exists(input_file):
@@ -542,21 +535,17 @@ def _test_multi_proc(
 
 
 def test(
-    input_file,
-    output_file,
-    model_name="default",
-    user_dict="default",
-    nthread=10,
-    postag=False,
-    verbose=False,
-):
+        input_file,
+        output_file,
+        model_name="default",
+        user_dict="default",
+        nthread=10,
+        postag=False,
+        verbose=False):
 
     if nthread > 1:
-        _test_multi_proc(
-            input_file, output_file, nthread, model_name, user_dict, postag, verbose
-        )
+        _test_multi_proc(input_file, output_file, nthread,
+                         model_name, user_dict, postag, verbose)
     else:
-        _test_single_proc(
-            input_file, output_file, model_name, user_dict, postag, verbose
-        )
-
+        _test_single_proc(input_file, output_file, model_name,
+                          user_dict, postag, verbose)

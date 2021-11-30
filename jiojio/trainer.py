@@ -6,29 +6,19 @@ import os
 import time
 from multiprocessing import Process, Queue
 
-from pkuseg import res_summarize
+from jiojio import res_summarize
 
 # from .inference import *
 # from .config import Config
-from pkuseg.config import Config, config
-from pkuseg.data import DataSet
-from pkuseg.feature_extractor import FeatureExtractor
+from jiojio.config import Config, config
+from jiojio.data import DataSet
+from jiojio.feature_extractor import FeatureExtractor
 
 # from .feature_generator import *
-from pkuseg.model import Model
-import pkuseg.inference as _inf
-
-# from .inference import *
-# from .gradient import *
-from pkuseg.optimizer import ADF
-from pkuseg.scorer import getFscore
-
-# from typing import TextIO
-
-# from .res_summarize import summarize
-# from .res_summarize import write as reswrite
-
-# from pkuseg.trainer import Trainer
+from jiojio.model import Model
+from jiojio.inference import decodeViterbi_fast
+from jiojio.optimizer import ADF
+from jiojio.scorer import getFscore
 
 
 def train(config=None):
@@ -59,37 +49,38 @@ def train(config=None):
     config.swResRaw = open(os.path.join(config.outDir, config.fResRaw), "w")
     config.swTune = open(os.path.join(config.outDir, config.fTune), "w")
 
-    print("\nstart training...")
-    config.swLog.write("\nstart training...\n")
+    print("\nstart training ...")
+    config.swLog.write("\nstart training ...\n")
 
-    print("\nreading training & test data...")
-    config.swLog.write("\nreading training & test data...\n")
+    print("\nreading training & test data ...")
+    config.swLog.write("\nreading training & test data ...\n")
 
     trainset = DataSet.load(config.fFeatureTrain, config.fGoldTrain)
     testset = DataSet.load(config.fFeatureTest, config.fGoldTest)
 
+    # 复制扩展训练数据集
     trainset = trainset.resize(config.trainSizeScale)
 
     print("done! train/test data sizes: {}/{}".format(len(trainset), len(testset)))
     config.swLog.write("done! train/test data sizes: {}/{}\n".format(
         len(trainset), len(testset)))
 
-    config.swLog.write("\nr: {}\n".format(config.reg))
-    print("\nr: {}".format(config.reg))
+    config.swLog.write("\nregularization: {}\n".format(config.regularization))
+    print("\nr: {}".format(config.regularization))
     if config.rawResWrite:
-        config.swResRaw.write("\n%r: {}\n".format(config.reg))
+        config.swResRaw.write("\n%r: {}\n".format(config.regularization))
 
     trainer = Trainer(config, trainset, feature_extractor)
 
-    time_list = []
-    err_list = []
-    diff_list = []
-    score_list_list = []
+    time_list = list()
+    err_list = list()
+    diff_list = list()
+    score_list_list = list()
 
     for i in range(config.ttlIter):
         # config.glbIter += 1
         time_s = time.time()
-        err, sample_size, diff = trainer.train_epoch()
+        err, diff = trainer.train_epoch()
         time_t = time.time() - time_s
         time_list.append(time_t)
         err_list.append(err)
@@ -102,11 +93,13 @@ def train(config=None):
         logstr = "iter{}  diff={:.2e}  train-time(sec)={:.2f}  {}={:.2f}%".format(
             i, diff, time_t, config.metric, score)
         config.swLog.write(logstr + "\n")
-        config.swLog.write("------------------------------------------------\n")
+        config.swLog.write(
+            "------------------------------------------------\n")
         config.swLog.flush()
         print(logstr)
 
-    res_summarize.write(config, time_list, err_list, diff_list, score_list_list)
+    res_summarize.write(config, time_list, err_list,
+                        diff_list, score_list_list)
     if config.save == 1:
         trainer.model.save()
 
@@ -154,7 +147,6 @@ class Trainer:
         return self.optim.optimize()
 
     def test(self, testset, iteration):
-
         outfile = os.path.join(config.outDir, config.fOutput.format(iteration))
 
         func_mapping = {
@@ -164,7 +156,8 @@ class Trainer:
         }
 
         with open(outfile, "w", encoding="utf8") as writer:
-            score_list = func_mapping[config.evalMetric](testset, self.model, writer)
+            score_list = func_mapping[config.evalMetric](
+                testset, self.model, writer)
 
         for example in testset:
             example.predicted_tags = None
@@ -180,7 +173,7 @@ class Trainer:
     def _decode_single(self, testset: DataSet, model: Model):
         # n_tag = model.n_tag
         for example in testset:
-            _, tags = _inf.decodeViterbi_fast(example.features, model)
+            tags = decodeViterbi_fast(example.features, model)
             example.predicted_tags = tags
 
     @staticmethod
@@ -191,7 +184,7 @@ class Trainer:
                 return
 
             idx, features = item
-            _, tags = _inf.decodeViterbi_fast(features, model)
+            tags = decodeViterbi_fast(features, model)
             out_queue.put((idx, tags))
 
     def _decode_multi_proc(self, testset: DataSet, model: Model):
@@ -365,92 +358,3 @@ class Trainer:
             )
         )
         return scoreList
-
-    #     acc = correct / total * 100.0
-    #     config.swLog.write(
-    #         "total-tag-strings={}  correct-tag-strings={}  string-accuracy={}%".format(
-    #             total, correct, acc
-    #         )
-    #     )
-
-    #     goldTagList = []
-    #     resTagList = []
-    #     for x in X2:
-    #         res = ""
-    #         for im in x._yOutput:
-    #             res += str(im) + ","
-    #         resTagList.append(res)
-    #         # if not dynamic:
-    #         if writer is not None:
-    #             for i in range(len(x._yOutput)):
-    #                 writer.write(str(x._yOutput[i]) + ",")
-    #             writer.write("\n")
-    #         goldTags = x._x.getTags()
-    #         gold = ""
-    #         for im in goldTags:
-    #             gold += str(im) + ","
-    #         goldTagList.append(gold)
-    #     # if dynamic:
-    #     #     return resTagList
-    #     scoreList = []
-
-    #     if config.runMode == "train":
-    #         infoList = []
-    #         scoreList = getFscore(
-    #             goldTagList, resTagList, infoList, self.idx_to_chunk_tag
-    #         )
-    #         config.swLog.write(
-    #             "#gold-chunk={}  #output-chunk={}  #correct-output-chunk={}  precision={:.2f}  recall={:.2f}  f-score={:.2f}\n".format(
-    #                 infoList[0],
-    #                 infoList[1],
-    #                 infoList[2],
-    #                 "%.2f" % scoreList[1],
-    #                 "%.2f" % scoreList[2],
-    #                 "%.2f" % scoreList[0],
-    #             )
-    #         )
-    #     return scoreList
-
-    # # def multiThreading(self, X, X2):
-    #     config = self.config
-    #     # if dynamic:
-    #     #     for i in range(len(X)):
-    #     #         X2.append(dataSeqTest(X[i], []))
-    #     #     for k, x in enumerate(X2):
-    #     #         tags = []
-    #     #         prob = self.Inf.decodeViterbi_fast(self.Model, x._x, tags)
-    #     #         X2[k]._yOutput.clear()
-    #     #         X2[k]._yOutput.extend(tags)
-    #     #     return
-
-    #     for i in range(len(X)):
-    #         X2.append(dataSeqTest(X[i], []))
-    #     if len(X) < config.nThread:
-    #         config.nThread = len(X)
-    #     interval = (len(X2) + config.nThread - 1) // config.nThread
-    #     procs = []
-    #     Q = Queue(5000)
-    #     for i in range(config.nThread):
-    #         start = i * interval
-    #         end = min(start + interval, len(X2))
-    #         proc = Process(
-    #             target=Trainer.taskRunner_test,
-    #             args=(self.Inf, self.Model, X2, start, end, Q),
-    #         )
-    #         proc.start()
-    #         procs.append(proc)
-    #     for i in range(len(X2)):
-    #         t = Q.get()
-    #         k, tags = t
-    #         X2[k]._yOutput.clear()
-    #         X2[k]._yOutput.extend(tags)
-    #     for proc in procs:
-    #         proc.join()
-
-    # @staticmethod
-    # def taskRunner_test(Inf, Model, X2, start, end, Q):
-    #     for k in range(start, end):
-    #         x = X2[k]
-    #         tags = []
-    #         prob = Inf.decodeViterbi_fast(Model, x._x, tags)
-    #         Q.put((k, tags))
