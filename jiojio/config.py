@@ -81,8 +81,8 @@ class Config:
 
         self.fTune = "tune.txt"
         self.fLog = "trainLog.txt"
-        self.fResSum = "summarizeResult.txt"
-        self.fResRaw = "rawResult.txt"
+        self.fResSum = "summarize_result.txt"
+        self.fResRaw = "raw_result.txt"
         self.fOutput = "outputTag-{}.txt"
 
         self.fFeatureTrain = os.path.join(self.temp_dir, "ftrain.txt")

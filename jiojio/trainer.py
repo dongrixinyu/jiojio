@@ -3,13 +3,10 @@
 # from .data_format import *
 # from .toolbox import *
 import os
+import pdb
 import time
 from multiprocessing import Process, Queue
 
-from jiojio import res_summarize
-
-# from .inference import *
-# from .config import Config
 from jiojio.config import Config, config
 from jiojio.data import DataSet
 from jiojio.feature_extractor import FeatureExtractor
@@ -19,6 +16,25 @@ from jiojio.model import Model
 from jiojio.inference import decodeViterbi_fast
 from jiojio.optimizer import ADF
 from jiojio.scorer import getFscore
+
+
+def log_write(config, timeList, errList, diffList, scoreListList):
+
+    print("% training results:" + config.metric + "\n")
+    for i in range(config.ttlIter):
+        it = i
+        print("# iter#={}  ".format(it))
+        lst = scoreListList[i]
+        if config.evalMetric == "f1":
+            print("# f-score={:.2f}%  precision={:.2f}%  recall={:.2f}%  ".format(
+                lst[0], lst[1], lst[2]))
+        else:
+            print("# {}={:.2f}%  ".format(config.metric, lst[0]))
+        time = 0
+        for k in range(i + 1):
+            time += timeList[k]
+        print("cumulative-time(sec)={:.2f}  objective={:.2f}  diff={:.2f}\n".format(
+            time, errList[i], diffList[i]))
 
 
 def train(config=None):
@@ -45,30 +61,23 @@ def train(config=None):
 
     config.globalCheck()
 
-    config.swLog = open(os.path.join(config.outDir, config.fLog), "w")
-    config.swResRaw = open(os.path.join(config.outDir, config.fResRaw), "w")
-    config.swTune = open(os.path.join(config.outDir, config.fTune), "w")
-
     print("\nstart training ...")
-    config.swLog.write("\nstart training ...\n")
-
     print("\nreading training & test data ...")
-    config.swLog.write("\nreading training & test data ...\n")
 
     trainset = DataSet.load(config.fFeatureTrain, config.fGoldTrain)
     testset = DataSet.load(config.fFeatureTest, config.fGoldTest)
 
+    return
+    pdb.set_trace()
     # 复制扩展训练数据集
     trainset = trainset.resize(config.trainSizeScale)
 
     print("done! train/test data sizes: {}/{}".format(len(trainset), len(testset)))
-    config.swLog.write("done! train/test data sizes: {}/{}\n".format(
+    print("done! train/test data sizes: {}/{}\n".format(
         len(trainset), len(testset)))
 
-    config.swLog.write("\nregularization: {}\n".format(config.regularization))
+    print("\nregularization: {}\n".format(config.regularization))
     print("\nr: {}".format(config.regularization))
-    if config.rawResWrite:
-        config.swResRaw.write("\n%r: {}\n".format(config.regularization))
 
     trainer = Trainer(config, trainset, feature_extractor)
 
@@ -92,22 +101,14 @@ def train(config=None):
 
         logstr = "iter{}  diff={:.2e}  train-time(sec)={:.2f}  {}={:.2f}%".format(
             i, diff, time_t, config.metric, score)
-        config.swLog.write(logstr + "\n")
-        config.swLog.write(
-            "------------------------------------------------\n")
-        config.swLog.flush()
+        print(logstr + "\n")
+        print("-" * 50 + "\n")
         print(logstr)
 
-    res_summarize.write(config, time_list, err_list,
-                        diff_list, score_list_list)
+    log_write(config, time_list, err_list,
+              diff_list, score_list_list)
     if config.save == 1:
         trainer.model.save()
-
-    config.swLog.close()
-    config.swResRaw.close()
-    config.swTune.close()
-
-    res_summarize.summarize(config)
 
     print("finished.")
 
@@ -147,17 +148,14 @@ class Trainer:
         return self.optim.optimize()
 
     def test(self, testset, iteration):
-        outfile = os.path.join(config.outDir, config.fOutput.format(iteration))
-
         func_mapping = {
             "tok.acc": self._decode_tokAcc,
             "str.acc": self._decode_strAcc,
             "f1": self._decode_fscore,
         }
 
-        with open(outfile, "w", encoding="utf8") as writer:
-            score_list = func_mapping[config.evalMetric](
-                testset, self.model, writer)
+        score_list = func_mapping[config.evalMetric](
+            testset, self.model)
 
         for example in testset:
             example.predicted_tags = None
@@ -213,8 +211,7 @@ class Trainer:
             p.join()
 
     # token accuracy
-    def _decode_tokAcc(self, dataset, model, writer):
-        config = self.config
+    def _decode_tokAcc(self, dataset, model):
 
         self._decode(dataset, model)
         n_tag = model.n_tag
@@ -226,9 +223,8 @@ class Trainer:
             pred = example.predicted_tags
             gold = example.tags
 
-            if writer is not None:
-                writer.write(",".join(map(str, pred)))
-                writer.write("\n")
+            print(",".join(map(str, pred)))
+            print()
 
             for pred_tag, gold_tag in zip(pred, gold):
                 all_pred[pred_tag] += 1
@@ -236,16 +232,14 @@ class Trainer:
                 if pred_tag == gold_tag:
                     all_correct[gold_tag] += 1
 
-        config.swLog.write(
-            "% tag-type  #gold  #output  #correct-output  token-precision  token-recall  token-f-score\n"
-        )
+        print("% tag-type  #gold  #output  #correct-output  token-precision  "
+              "token-recall  token-f-score\n")
         sumGold = 0
         sumOutput = 0
         sumCorrOutput = 0
 
         for i, (correct, gold, pred) in enumerate(
-            zip(all_correct, all_gold, all_pred)
-        ):
+                zip(all_correct, all_gold, all_pred)):
             sumGold += gold
             sumOutput += pred
             sumCorrOutput += correct
@@ -260,17 +254,9 @@ class Trainer:
             else:
                 prec = correct * 100.0 / pred
 
-            config.swLog.write(
-                "% {}:  {}  {}  {}  {:.2f}  {:.2f}  {:.2f}\n".format(
-                    i,
-                    gold,
-                    pred,
-                    correct,
-                    prec,
-                    rec,
-                    (2 * prec * rec / (prec + rec)),
-                )
-            )
+            print("% {}:  {}  {}  {}  {:.2f}  {:.2f}  {:.2f}\n".format(
+                i, gold, pred, correct, prec, rec,
+                (2 * prec * rec / (prec + rec))))
 
         if sumGold == 0:
             rec = 0
@@ -286,17 +272,11 @@ class Trainer:
         else:
             fscore = 2 * prec * rec / (prec + rec)
 
-        config.swLog.write(
-            "% overall-tags:  {}  {}  {}  {:.2f}  {:.2f}  {:.2f}\n".format(
-                sumGold, sumOutput, sumCorrOutput, prec, rec, fscore
-            )
-        )
-        config.swLog.flush()
+        print("% overall-tags:  {}  {}  {}  {:.2f}  {:.2f}  {:.2f}\n".format(
+            sumGold, sumOutput, sumCorrOutput, prec, rec, fscore))
         return [fscore]
 
-    def _decode_strAcc(self, dataset, model, writer):
-
-        config = self.config
+    def _decode_strAcc(self, dataset, model):
 
         self._decode(dataset, model)
 
@@ -307,9 +287,8 @@ class Trainer:
             pred = example.predicted_tags
             gold = example.tags
 
-            if writer is not None:
-                writer.write(",".join(map(str, pred)))
-                writer.write("\n")
+            print(",".join(map(str, pred)))
+            print()
 
             for pred_tag, gold_tag in zip(pred, gold):
                 if pred_tag != gold_tag:
@@ -318,16 +297,11 @@ class Trainer:
                 correct += 1
 
         acc = correct / total * 100.0
-        config.swLog.write(
-            "total-tag-strings={}  correct-tag-strings={}  string-accuracy={}%".format(
-                total, correct, acc
-            )
-        )
+        print("total-tag-strings={}  correct-tag-strings={}  string-accuracy={}%".format(
+            total, correct, acc))
         return [acc]
 
-    def _decode_fscore(self, dataset, model, writer):
-        config = self.config
-
+    def _decode_fscore(self, dataset, model):
         self._decode(dataset, model)
 
         gold_tags = []
@@ -339,22 +313,15 @@ class Trainer:
 
             pred_str = ",".join(map(str, pred))
             pred_tags.append(pred_str)
-            if writer is not None:
-                writer.write(pred_str)
-                writer.write("\n")
+            print(pred_str)
+            print()
             gold_tags.append(",".join(map(str, gold)))
 
         scoreList, infoList = getFscore(
             gold_tags, pred_tags, self.idx_to_chunk_tag
         )
-        config.swLog.write(
-            "#gold-chunk={}  #output-chunk={}  #correct-output-chunk={}  precision={:.2f}  recall={:.2f}  f-score={:.2f}\n".format(
-                infoList[0],
-                infoList[1],
-                infoList[2],
-                scoreList[1],
-                scoreList[2],
-                scoreList[0],
-            )
-        )
+        print("#gold-chunk={}  #output-chunk={}  #correct-output-chunk={}  precision={:.2f}"
+              "  recall={:.2f}  f-score={:.2f}\n".format(
+                  infoList[0], infoList[1], infoList[2],
+                  scoreList[1], scoreList[2], scoreList[0]))
         return scoreList
