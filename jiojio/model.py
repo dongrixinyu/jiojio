@@ -102,9 +102,3 @@ class Model:
             model_dir = config.modelDir
         sizes = np.array([self.n_tag, self.n_feature])
         np.savez(os.path.join(model_dir, "weights.npz"), sizes=sizes, w=self.w)
-
-        # np.save
-        # with open(file, "w", encoding="utf-8") as f:
-        #     f.write("{}\n{}\n".format(self.n_tag, self.w.shape[0]))
-        #     for value in self.w:
-        #         f.write("{:.4f}\n".format(value))

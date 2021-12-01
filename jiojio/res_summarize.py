@@ -18,16 +18,12 @@ def tomatrix(s):
 
 
 def summarize(config):
-    with open(
-        os.path.join(config.outDir, config.fResRaw), encoding="utf-8"
-    ) as sr:
+    with open(os.path.join(config.outDir, config.fResRaw), encoding="utf-8") as sr:
         txt = sr.read()
     txt = txt.replace("\r", "")
     regions = txt.split(config.triLineEnd)
 
-    with open(
-        os.path.join(config.outDir, config.fResSum), "w", encoding="utf-8"
-    ) as sw:
+    with open(os.path.join(config.outDir, config.fResSum), "w", encoding="utf-8") as sw:
         for region in regions:
             if region == "":
                 continue
@@ -49,74 +45,23 @@ def summarize(config):
 
             deviM = (sqravgM - avgM * avgM) ** 0.5
 
-            sw.write("%averaged values:\n")
+            sw.write("#averaged values:\n")
             for i in range(avgM.shape[0]):
                 for j in range(avgM.shape[1]):
                     sw.write("{:.2f},".format(avgM[i, j]))
                 sw.write("\n")
 
-            sw.write("\n%deviations:\n")
+            sw.write("\n#deviations:\n")
             for i in range(deviM.shape[0]):
                 for j in range(deviM.shape[1]):
                     sw.write("{:.2f},".format(deviM[i, j]))
                     # sw.write(("%.2f" % deviM[i, j]) + ",")
                 sw.write("\n")
 
-            sw.write("\n%avg & devi:\n")
+            sw.write("\n#avg & devi:\n")
             for i in range(avgM.shape[0]):
                 for j in range(avgM.shape[1]):
                     sw.write("{:.2f}+-{:,2f},".format(avgM[i, j], deviM[i, j]))
                 sw.write("\n")
 
             sw.write("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\n\n")
-
-
-def write(config, timeList, errList, diffList, scoreListList):
-    def log(message):
-        if config.rawResWrite:
-            config.swResRaw.write(message)
-
-    log("% training results:" + config.metric + "\n")
-    for i in range(config.ttlIter):
-        it = i
-        log("% iter#={}  ".format(it))
-        lst = scoreListList[i]
-        if config.evalMetric == "f1":
-            log(
-                "% f-score={:.2f}%  precision={:.2f}%  recall={:.2f}%  ".format(
-                    lst[0], lst[1], lst[2]
-                )
-            )
-        else:
-            log("% {}={:.2f}%  ".format(config.metric, lst[0]))
-        time = 0
-        for k in range(i + 1):
-            time += timeList[k]
-        log(
-            "cumulative-time(sec)={:.2f}  objective={:.2f}  diff={:.2f}\n".format(
-                time, errList[i], diffList[i]
-            )
-        )
-
-    # #ttlScore = 0
-    # for i in range(config.ttlIter):
-    #     it = i + 1
-    #     log("% iter#={}  ".format(it))
-    #     lst = scoreListList[i]
-    #    # ttlScore += lst[0]
-    #     if config.evalMetric == "f1":
-    #         log(
-    #             "% f-score={:.2f}%  precision={:.2f}%  recall={:.2f}%  ".format(
-    #                 lst[0], lst[1], lst[2]
-    #             )
-    #         )
-    #     else:
-    #         log("% {}={:.2f}%  ".format(config.metric, lst[0]))
-    #     time = 0
-    #     for k in range(i + 1):
-    #         time += timeList[k]
-    #     log(
-    #         "cumulative-time(sec)={:.2f}  objective={:.2f}  diff={:.2f}\n".format(
-    #             time, errList[i], diffList[i]
-    #         )
-    #     )

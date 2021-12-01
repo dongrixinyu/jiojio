@@ -3,6 +3,7 @@
 # cython: language_level=3
 
 import json
+import pdb
 import os
 import sys
 import pickle
@@ -92,7 +93,7 @@ def __get_node_features_idx(config, idx, nodes, feature_to_idx, unigram):
     # 2 * (wordMax-wordMin+1) word features (default: 2*(6-2+1)=10 )
     # the character starts or ends a word
 
-    pre_list_in = []
+    pre_list_in = list()
     for l in range(word_max, word_min - 1, -1):
         # length 6 ... 2 (default)
         # "prefix including current c" token_list[n-l+1, n]
@@ -108,7 +109,7 @@ def __get_node_features_idx(config, idx, nodes, feature_to_idx, unigram):
         else:
             pre_list_in.append("**noWord")
 
-    post_list_in = []
+    post_list_in = list()
     for l in range(word_max, word_min - 1, -1):
         # "suffix" token_list[n, n+l-1]
         # current character starts word
@@ -199,16 +200,35 @@ class FeatureExtractor:
         self.feature_to_idx = dict()  # Dict[str, int]
         self.tag_to_idx = dict()  # Dict[str, int]
 
+        self.empty = "/"
+        self.delim = '.'
+        self.default_feature = '$$'
+
+        self.char_current = 'c.'
+        self.char_before = 'c-1.'
+        self.char_next = 'c1.'
+        self.char_before_2 = 'c-2.'
+        self.char_next_2 = 'c2.'
+        self.char_before_current = 'c-1c.'
+        self.char_current_next = 'cc1.'
+        self.char_before_2_1 = "c-2c-1."
+        self.char_next_1_2 = "c1c2."
+
+        self.word_before = "w-1."
+        self.word_after = "w1."
+        self.word_2_left = "ww.l."
+        self.word_2_right = "ww.r."
+
+        self.no_word = "**noWord"
+
     def build(self, train_file):
         examples = list()  # List[List[List[str]]]
 
-        # first pass to collect unigram and bigram and tag info
+        # 1. pass to collect unigram and bigram and tag info
         word_length_info = Counter()
         specials = set()
         for words in jio.read_file_by_iter(train_file):
-
             # line = self.keyword_rename(line)
-            # e.g., '\ra \t　b \r\n'.split() = ['a', 'b']
 
             word_length_info.update(map(len, words))
             specials.update(word for word in words if len(word) >= 10)
@@ -224,11 +244,9 @@ class FeatureExtractor:
         max_word_length = max(word_length_info.keys())
         for length in range(1, max_word_length + 1):
             print("length = {} : {}".format(length, word_length_info[length]))
-        # print('special words: {}'.format(', '.join(specials)))
-        # second pass to get features
 
+        # 2. pass to get features
         feature_freq = Counter()
-
         for example in examples:
             for i, _ in enumerate(example):
                 node_features = self.get_node_features(i, example)
@@ -280,47 +298,63 @@ class FeatureExtractor:
         feature_list = list()
 
         # 1 start feature
-        feature_list.append("$$")
+        feature_list.append(self.default_feature)
 
         # 8 unigram/bgiram feature
         # 当前字特征
-        feature_list.append(''.join(['c.', w]))
+        feature_list.append(self.char_current + w)
 
         # 前一个字特征
         if idx > 0:
-            feature_list.append(''.join(['c-1.', token_list[idx - 1]]))
+            feature_list.append(self.char_before + token_list[idx - 1])
+        else:
+            feature_list.append(self.empty)
 
         # 后一个字特征
         if idx < len(token_list) - 1:
-            feature_list.append(''.join(['c1.', token_list[idx + 1]]))
+            feature_list.append(self.char_next + token_list[idx + 1])
+        else:
+            feature_list.append(self.empty)
 
         # 前第二字特征
         if idx > 1:
-            feature_list.append(''.join(['c-2.', token_list[idx - 2]]))
+            feature_list.append(self.char_before_2 + token_list[idx - 2])
+        else:
+            feature_list.append(self.empty)
 
         # 后第二字特征
         if idx < len(token_list) - 2:
-            feature_list.append(''.join(['c2.', token_list[idx + 2]]))
+            feature_list.append(self.char_next_2 + token_list[idx + 2])
+        else:
+            feature_list.append(self.empty)
 
         # 当前字和前一字组合特征
         if idx > 0:
-            feature_list.append(
-                ''.join(['c-1c.', token_list[idx - 1], config.delimInFeature, w]))
+            feature_list.append(self.char_before_current +
+                                token_list[idx - 1] + self.delim + w)
+        else:
+            feature_list.append(self.empty)
 
         # 当前字和后一字组合特征
         if idx < len(token_list) - 1:
-            feature_list.append(
-                ''.join(['cc1.', w, config.delimInFeature, token_list[idx + 1]]))
+            feature_list.append(self.char_current_next +
+                                w + self.delim + token_list[idx + 1])
+        else:
+            feature_list.append(self.empty)
 
         # 前一字和前第二字组合
         if idx > 1:
-            feature_list.append(
-                ''.join(["c-2c-1.", token_list[idx - 2], config.delimInFeature, token_list[idx - 1]]))
+            feature_list.append(self.char_before_2_1 + token_list[idx - 2] +
+                                self.delim + token_list[idx - 1])
+        else:
+            feature_list.append(self.empty)
 
         # 后一字和后第二字组合
         if idx < len(token_list) - 2:
-            feature_list.append(
-                ''.join(["c1c2.", token_list[idx + 1], config.delimInFeature, token_list[idx + 2]]))
+            feature_list.append(self.char_next_1_2 + token_list[idx + 1] +
+                                self.delim + token_list[idx + 2])
+        else:
+            feature_list.append(self.empty)
 
         # no num/letter based features
         if not config.wordFeature:
@@ -328,7 +362,6 @@ class FeatureExtractor:
 
         # 2 * (wordMax-wordMin+1) word features (default: 2*(6-2+1)=10 )
         # the character starts or ends a word
-
         # 寻找该字前一个词汇特征(包含该字)
         pre_list_in = list()
         for l in range(config.wordMax, config.wordMin - 1, -1):
@@ -337,22 +370,24 @@ class FeatureExtractor:
             # current character ends word
             tmp = get_slice_str(token_list, idx - l + 1, l, length)
             if tmp != "" and (tmp in self.unigram):
-                feature_list.append("w-1." + tmp)
+                # pdb.set_trace()
+                feature_list.append(self.word_before + tmp)
                 pre_list_in.append(tmp)
             else:
-                pre_list_in.append("**noWord")
+                feature_list.append(self.empty)
+                pre_list_in.append(self.no_word)
 
         # 寻找该字后一个词汇特征(包含该字)
         post_list_in = list()
         for l in range(config.wordMax, config.wordMin - 1, -1):
             # "suffix" token_list[n, n+l-1]
-            # current character starts word
             tmp = get_slice_str(token_list, idx, l, length)
             if tmp != "" and (tmp in self.unigram):
-                feature_list.append("w1." + tmp)
+                feature_list.append(self.word_after + tmp)
                 post_list_in.append(tmp)
             else:
-                post_list_in.append("**noWord")
+                feature_list.append(self.empty)
+                post_list_in.append(self.no_word)
 
         # 寻找该字前一个词汇特征(不包含该字)
         pre_list_ex = list()
@@ -362,7 +397,7 @@ class FeatureExtractor:
             if tmp != "" and (tmp in self.unigram):
                 pre_list_ex.append(tmp)
             else:
-                pre_list_ex.append("**noWord")
+                pre_list_ex.append(self.no_word)
 
         # 寻找该字后一个词汇特征(不包含该字)
         post_list_ex = list()  # 其中个数由 wordMax 决定
@@ -372,24 +407,27 @@ class FeatureExtractor:
             if tmp != "" and (tmp in self.unigram):
                 post_list_ex.append(tmp)
             else:
-                post_list_ex.append("**noWord")
+                post_list_ex.append(self.no_word)
 
         # this character is in the middle of a word
         # 2 * (wordMax - wordMin + 1) ^ 2 (default: 2 * (6 -2 + 1) ^ 2 = 50)
-
         # 寻找连续两个词汇特征(该字在右侧词汇中)
         for pre in pre_list_ex:
             for post in post_list_in:
-                bigram = pre + "*" + post
+                bigram = ''.join([pre, '*', post])
                 if bigram in self.bigram:
-                    feature_list.append("ww.l." + bigram)
+                    feature_list.append(self.word_2_left + bigram)
+                else:
+                    feature_list.append(self.empty)
 
         # 寻找连续两个词汇特征(该字在左侧词汇中)
         for pre in pre_list_in:
             for post in post_list_ex:
-                bigram = pre + "*" + post
+                bigram = ''.join([pre, '*', post])
                 if bigram in self.bigram:
-                    feature_list.append("ww.r." + bigram)
+                    feature_list.append(self.word_2_right + bigram)
+                else:
+                    feature_list.append(self.empty)
 
         return feature_list
 
@@ -397,16 +435,14 @@ class FeatureExtractor:
             self, feature_file, feature_idx_file, tag_idx_file):
 
         with open(feature_file, "r", encoding="utf8") as reader:
-            # lines = reader.readlines()
-
             with open(feature_idx_file, "w", encoding="utf8") as f_writer, \
                     open(tag_idx_file, "w", encoding="utf8") as t_writer:
 
                 f_writer.write("{}\n\n".format(len(self.feature_to_idx)))
                 t_writer.write("{}\n\n".format(len(self.tag_to_idx)))
 
-                tags_idx = list()  # List[str]
-                features_idx = list()  # List[List[str]]
+                tags_idx = list()
+                features_idx = list()
                 while True:
                     line = reader.readline()
                     if line == '':
@@ -501,11 +537,7 @@ class FeatureExtractor:
         with open(os.path.join(model_dir, 'features.pkl'), 'wb') as fw:
             pickle.dump(data, fw, protocol=pickle.HIGHEST_PROTOCOL)
 
-        # with open(os.path.join(config.modelDir, "features.json"), "w",
-        #           encoding="utf8") as writer:
-        #     json.dump(data, writer, ensure_ascii=False)
-
-    @ classmethod
+    @classmethod
     def load(cls, model_dir=None):
         if model_dir is None:
             model_dir = config.modelDir
