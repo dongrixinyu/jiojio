@@ -1,4 +1,6 @@
 # -*- coding=utf-8 -*-
+
+import pdb
 import copy
 import random
 
@@ -48,16 +50,16 @@ class DataSet(object):
     def load(cls, feature_idx_file, tag_idx_file):
         dataset = cls.__new__(cls)
 
-        # def load(self, fileFeature, fileTag):
-        with open(feature_idx_file, encoding="utf-8") as f_reader, \
-                open(tag_idx_file, encoding="utf-8") as t_reader:
-
+        with open(feature_idx_file, encoding="utf-8") as f_reader:
             example_strs = f_reader.read().split("\n\n")[:-1]
+
+        with open(tag_idx_file, encoding="utf-8") as t_reader:
             tags_strs = t_reader.read().split("\n\n")[:-1]
 
         assert len(example_strs) == len(tags_strs), \
             "lengths do not match:\t{}\n{}\n".format(example_strs, tags_strs)
 
+        pdb.set_trace()
         n_feature = int(example_strs[0])
         n_tag = int(tags_strs[0])
 

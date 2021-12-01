@@ -1,10 +1,6 @@
 from __future__ import print_function
 import sys
 
-if sys.version_info[0] < 3:
-    print("jiojio does not support python2", file=sys.stderr)
-    sys.exit(1)
-
 __doc__ = 'this is valid.'
 import os
 import time
@@ -19,7 +15,6 @@ import jiojio.inference as _inf
 from jiojio.config import config
 from jiojio.feature_extractor import FeatureExtractor
 from jiojio.model import Model
-from jiojio.download import download_model
 from jiojio.postag import Postag
 
 
@@ -404,8 +399,8 @@ def _test_single_proc(input_file, output_file, model_name="default",
             results.append(" ".join(map(lambda x: "/".join(x), seg.cut(line))))
 
     times.append(time.time())
-    with open(output_file, "w", encoding="utf-8") as f:
-        f.write("\n".join(results))
+
+    print("\n".join(results))
     times.append(time.time())
 
     print("total_time:\t{:.3f}".format(times[-1] - times[0]))
@@ -449,14 +444,8 @@ def _proc_alt(model_name, user_dict, postag, in_queue, out_queue):
         out_queue.put((idx, output_str))
 
 
-def _test_multi_proc(
-        input_file,
-        output_file,
-        nthread,
-        model_name="default",
-        user_dict="default",
-        postag=False,
-        verbose=False):
+def _test_multi_proc(input_file, nthread, model_name="default",
+                     user_dict="default", postag=False, verbose=False):
 
     alt = multiprocessing.get_start_method() == "spawn"
 
@@ -506,21 +495,14 @@ def _test_multi_proc(
         p.join()
 
     times.append(time.time())
-    with open(output_file, "w", encoding="utf-8") as f:
-        f.write("\n".join(result))
+    print("， ".join(result))
     times.append(time.time())
 
     print("total_time:\t{:.3f}".format(times[-1] - times[0]))
 
     if verbose:
         time_strs = [
-            "load_model",
-            "read_file",
-            "start_proc",
-            "word_seg",
-            "join_proc",
-            "write_file",
-        ]
+            "load_model", "read_file", "start_proc", "word_seg", "join_proc", "write_file"]
 
         if alt:
             times = times[1:]
@@ -534,14 +516,8 @@ def _test_multi_proc(
             print("{}:\t{:.3f}".format(key, value))
 
 
-def test(
-        input_file,
-        output_file,
-        model_name="default",
-        user_dict="default",
-        nthread=10,
-        postag=False,
-        verbose=False):
+def test(input_file, output_file, model_name="default", user_dict="default",
+         nthread=10, postag=False, verbose=False):
 
     if nthread > 1:
         _test_multi_proc(input_file, output_file, nthread,
