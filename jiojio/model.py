@@ -5,10 +5,11 @@ import numpy as np
 from .config import config
 
 
-class Model:
+class Model(object):
     def __init__(self, n_feature, n_tag):
         self.n_tag = n_tag
         self.n_feature = n_feature
+        self.offset = self.n_tag * self.n_feature
         self.n_transition_feature = n_tag * (n_feature + n_tag)
         if config.random:
             # 均值为 0 的均匀分布
@@ -35,6 +36,7 @@ class Model:
         new_w[-n_edge:] = self.w[-n_edge:]
         self.n_tag = n_tag
         self.n_feature = n_feature
+        self.offset = self.n_tag * self.n_feature
         self.n_transition_feature = new_transition_feature
         self.w = new_w
 
@@ -42,12 +44,13 @@ class Model:
         return feature_id * self.n_tag + tag_id
 
     def _get_tag_tag_feature_id(self, pre_tag_id, tag_id):
-        return self.n_feature * self.n_tag + tag_id * self.n_tag + pre_tag_id
+        return self.offset + tag_id * self.n_tag + pre_tag_id
 
     @classmethod
     def load(cls, model_dir=None):
         if model_dir is None:
             model_dir = config.modelDir
+
         model_path = os.path.join(model_dir, "weights.npz")
         if os.path.exists(model_path):
             npz = np.load(model_path)
@@ -56,32 +59,14 @@ class Model:
             model = cls.__new__(cls)
             model.n_tag = int(sizes[0])
             model.n_feature = int(sizes[1])
+            model.offset = model.n_tag * model.n_feature
             model.n_transition_feature = model.n_tag * \
                 (model.n_feature + model.n_tag)
             model.w = w
             assert model.w.shape[0] == model.n_transition_feature
             return model
 
-        print("WARNING: weights.npz does not exist, try loading using old format",
-              file=sys.stderr,)
-
-        model_path = os.path.join(model_dir, "model.txt")
-        with open(model_path, encoding="utf-8") as f:
-            ary = f.readlines()
-
-        model = cls.__new__(cls)
-        model.n_tag = int(ary[0].strip())
-        wsize = int(ary[1].strip())
-        w = np.zeros(wsize)
-        for i in range(2, wsize):
-            w[i - 2] = float(ary[i].strip())
-        model.w = w
-        model.n_feature = wsize // model.n_tag - model.n_tag
-        model.n_transition_feature = wsize
-
-        model.save(model_dir)
-
-        return model
+        raise FileNotFoundError('the file {} does not exist.'.format(model_path))
 
     @classmethod
     def new(cls, model, copy_weight=True):
@@ -94,6 +79,7 @@ class Model:
 
         new_model.n_feature = (
             new_model.w.shape[0] // new_model.n_tag - new_model.n_tag)
+        new_model.offset = new_model.n_tag * new_model.n_feature
         new_model.n_transition_feature = new_model.w.shape[0]
         return new_model
 
