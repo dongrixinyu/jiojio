@@ -1,91 +1,64 @@
+import pdb
 from jiojio.config import Config
 
 
-def getFscore(goldTagList, resTagList, idx_to_chunk_tag):
-    scoreList = []
-    assert len(resTagList) == len(goldTagList)
-    getNewTagList(idx_to_chunk_tag, goldTagList)
-    getNewTagList(idx_to_chunk_tag, resTagList)
-    goldChunkList = getChunks(goldTagList)
-    resChunkList = getChunks(resTagList)
-    gold_chunk = 0
-    res_chunk = 0
-    correct_chunk = 0
-    for i in range(len(goldChunkList)):
-        res = resChunkList[i]
-        gold = goldChunkList[i]
-        resChunkAry = res.split(Config.comma)
-        tmp = []
-        for t in resChunkAry:
-            if len(t) > 0:
-                tmp.append(t)
-        resChunkAry = tmp
-        goldChunkAry = gold.split(Config.comma)
-        tmp = []
-        for t in goldChunkAry:
-            if len(t) > 0:
-                tmp.append(t)
-        goldChunkAry = tmp
-        gold_chunk += len(goldChunkAry)
-        res_chunk += len(resChunkAry)
-        goldChunkSet = set()
-        for im in goldChunkAry:
-            goldChunkSet.add(im)
-        for im in resChunkAry:
-            if im in goldChunkSet:
-                correct_chunk += 1
-    pre = correct_chunk / res_chunk * 100
-    rec = correct_chunk / gold_chunk * 100
-    f1 = 0 if correct_chunk == 0 else 2 * pre * rec / (pre + rec)
-    scoreList.append(f1)
-    scoreList.append(pre)
-    scoreList.append(rec)
-    infoList = []
-    infoList.append(gold_chunk)
-    infoList.append(res_chunk)
-    infoList.append(correct_chunk)
-    return scoreList, infoList
+def F1_score(gold_tags_list, pred_tags_list, idx_to_chunk_tag):
+    """ 计算 序列标注的 F1 值 """
+    assert len(pred_tags_list) == len(gold_tags_list)
+
+    gold_tags_list = tag_idx_2_token(idx_to_chunk_tag, gold_tags_list)
+    pred_tags_list = tag_idx_2_token(idx_to_chunk_tag, pred_tags_list)
+
+    gold_chunk_list = get_chunks(gold_tags_list)
+    pred_chunk_list = get_chunks(pred_tags_list)
+
+    gold_chunk_num = 0
+    pred_chunk_num = 0
+    correct_chunk_num = 0
+    for i in range(len(gold_chunk_list)):
+        gold_chunk_num += len(gold_chunk_list[i])
+        pred_chunk_num += len(pred_chunk_list[i])
+
+        for im in pred_chunk_list[i]:
+            if im in gold_chunk_list[i]:
+                correct_chunk_num += 1
+
+    precision = correct_chunk_num / pred_chunk_num * 100
+    recall = correct_chunk_num / gold_chunk_num * 100
+    f1 = 0 if correct_chunk_num == 0 else 2 * precision * recall / (precision + recall)
+
+    score_list = [f1, precision, recall]
+    info_list = [gold_chunk_num, pred_chunk_num, correct_chunk_num]
+
+    return score_list, info_list
 
 
-def getNewTagList(tagMap, tagList):
-    tmpList = []
-    for im in tagList:
-        tagAry = im.split(Config.comma)
-        for i in range(len(tagAry)):
-            if tagAry[i] == "":
-                continue
-            index = int(tagAry[i])
-            if not index in tagMap:
-                raise Exception("Error")
-            tagAry[i] = tagMap[index]
-        newTags = ",".join(tagAry)
-        tmpList.append(newTags)
-    tagList.clear()
-    for im in tmpList:
-        tagList.append(im)
+def tag_idx_2_token(tag_map, tags_list):
+    res_list = list()
+    for tags in tags_list:
+        sample_list = list()
+        for tag in tags:
+            sample_list.append(tag_map[tag])
+        res_list.append(sample_list)
+
+    return res_list
+    # return [[tag_map[tag] for tag in tags] for tags in tags_list]
 
 
-def getChunks(tagList):
-    tmpList = []
-    for im in tagList:
-        tagAry = im.split(Config.comma)
-        tmp = []
-        for t in tagAry:
-            if t != "":
-                tmp.append(t)
-        tagAry = tmp
-        chunks = ""
-        for i in range(len(tagAry)):
-            if tagAry[i].startswith("B"):
+def get_chunks(tags_list):
+    chunks_list = list()
+    for tags in tags_list:
+        chunks = list()
+        for i in range(len(tags)):
+            if tags[i] == "B":
                 pos = i
                 length = 1
-                ty = tagAry[i]
-                for j in range(i + 1, len(tagAry)):
-                    if tagAry[j] == "I":
+                for j in range(i + 1, len(tags)):
+                    if tags[j] == "I":
                         length += 1
                     else:
                         break
-                chunk = ty + "*" + str(length) + "*" + str(pos)
-                chunks = chunks + chunk + ","
-        tmpList.append(chunks)
-    return tmpList
+
+                chunks.append(str(length) + "*" + str(pos))
+        chunks_list.append(chunks)
+    return chunks_list

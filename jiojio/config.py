@@ -28,35 +28,30 @@ class Config:
 
     def __init__(self):
 
-        temp_dir = '/home/ubuntu/github/jiojio/train_dir'
+        self.train_dir = '/home/cuichengyu/github/jiojio/train_dir'
         # main setting
         self.jiojio_home = os.path.expanduser('~/.jiojio')
-        self.trainFile = os.path.join("data", "small_training.utf8")
-        self.testFile = os.path.join("data", "small_test.utf8")
-        self._tmp_dir = tempfile.TemporaryDirectory()
-        self.homepath = self._tmp_dir.name
-        # self.temp_dir = os.path.join(self.homepath, ".pkuseg", "temp")
-        self.temp_dir = os.path.join(temp_dir, 'temp')
+        # self.trainFile = os.path.join("data", "small_training.utf8")
+        # self.testFile = os.path.join("data", "small_test.utf8")
+        self.temp_dir = os.path.join(self.train_dir, 'temp')
         self.readFile = os.path.join("data", "small_test.utf8")
         self.outputFile = os.path.join("data", "small_test_output.utf8")
 
         self.modelOptimizer = "crf.adf"
-        self.rate0 = 0.05  # 梯度初始值
-        self.rate1 = 0.6  # 梯度的下降率
-        # self.reg = 1
-        # self.regs = [1]
-        # self.regList = self.regs.copy()
+        self.initial_learning_rate = 0.05  # 梯度初始值
+        self.dropping_rate = 0.94  # 维持学习速率，越大则下降越快(0~1)
+
         # 0 for 0-initialization of model weights, 1 for random init of model weights
         self.random = 1
         # tok.acc (token accuracy), str.acc (string accuracy), f1 (F1-score)
-        self.evalMetric = ("f1")
+        self.evalMetric = "f1"
         self.trainSizeScale = 1  # for scaling the size of training data
-        self.ttlIter = 20  # of training iterations
+        self.train_epoch = 20  # of training iterations
         # self.nUpdate = 10  # for ADF training，样本分 10 份
         self.outFolder = os.path.join(self.temp_dir, "output")
         self.save = 1  # save model file
         self.rawResWrite = True
-        self.miniBatch = 99  # mini-batch in stochastic training
+        self.miniBatch = 2000  # mini-batch in stochastic training
         self.nThread = 10  # number of processes
         # ADF training
         self.upper = 0.995  # was tuned for nUpdate = 10
@@ -64,8 +59,7 @@ class Config:
 
         # global variables
         self.metric = 'f1'
-        self.regularization = 1
-        self.outDir = self.outFolder
+        self.regularization = 2
         self.testrawDir = "rawinputs/"
         self.testinputDir = "inputs/"
         self.testoutputDir = "entityoutputs/"
@@ -90,19 +84,17 @@ class Config:
         self.fFeatureTest = os.path.join(self.temp_dir, "ftest.txt")
         self.fGoldTest = os.path.join(self.temp_dir, "gtest.txt")
 
-        self.modelDir = os.path.join(temp_dir, "models", "ctb8")
-
-        self.fModel = os.path.join(self.modelDir, "model.txt")
+        self.modelDir = os.path.join(self.temp_dir, "models", "ctb8")
 
         # start and end token
         self.start_token = '[START]'
         self.end_token = '[END]'
 
         # feature
-        self.numLetterNorm = True  # 将所有的 数字、字母，正规化，即用统一字符替代
-        self.featureTrim = 0  # 特征出现频次过低则丢弃，当数据量超大时使用
+        self.numLetterNorm = False  # 将所有的 数字、字母，正规化，即用统一字符替代
+        self.feature_trim = 5  # 特征出现频次过低则丢弃，当数据量超大时使用
         self.wordFeature = True  # 需要返回 词汇 特征
-        self.wordMax = 6
+        self.wordMax = 5
         self.wordMin = 2
         self.nLabel = 2
         self.order = 1
@@ -117,11 +109,12 @@ class Config:
         else:
             raise Exception("invalid eval metric")
 
-        assert self.rate0 > 0
+        assert self.initial_learning_rate > 0
         assert self.trainSizeScale > 0
-        assert self.ttlIter > 0
+        assert self.train_epoch > 0
         assert self.miniBatch > 0
         assert self.regularization > 0
 
 
 config = Config()
+config.globalCheck()

@@ -1,3 +1,4 @@
+import pdb
 import jiojio.model
 from typing import List
 
@@ -7,19 +8,27 @@ import jiojio.data
 
 def get_grad_SGD_minibatch(grad: List[float], model: jiojio.model.Model,
                            X: List[jiojio.data.Example]):
-    all_id_set = set()
+    feature_id_dict = dict()
     errors = 0
     for x in X:
-        error, id_set = get_grad_CRF(grad, model, x)
+        error, feature_id_set = get_grad_CRF(grad, model, x)
         errors += error
-        all_id_set.update(id_set)
 
-    return errors, all_id_set
+        for i in feature_id_set:
+            if i in feature_id_dict:
+                feature_id_dict[i] += 1
+            else:
+                feature_id_dict.update({i: 1})
+
+    for feature_id, num in feature_id_dict.items():
+        grad[feature_id] /= num
+
+    return errors / len(X), feature_id_dict
 
 
 def get_grad_CRF(grad: List[float], model: jiojio.model.Model,
                  x: jiojio.data.Example):
-    id_set = set()
+    feature_id_set = set()
 
     n_tag = model.n_tag
     belief = Belief(len(x), n_tag)
@@ -32,13 +41,13 @@ def get_grad_CRF(grad: List[float], model: jiojio.model.Model,
 
     for i, node_feature_list in enumerate(x.features):
         for feature_id in node_feature_list:
-            trans_id = model._get_node_tag_feature_id(feature_id, 0)
-            id_set.update(range(trans_id, trans_id + n_tag))  # 需要更新梯度值的特征值索引
+            trans_id = feature_id * n_tag
+            feature_id_set.update(range(trans_id, trans_id + n_tag))  # 需要更新梯度值的特征值索引
+
             grad[trans_id: trans_id + n_tag] += belief.node_states[i] - \
                 belief_masked.node_states[i]  # 概率应为 0 或 1，根据得到的概率值进行更改
 
-    backoff = model.n_feature * n_tag
-    grad[backoff:] += sum_edge - sum_edge_masked  # 更新转移概率梯度
-    id_set.update(range(backoff, backoff + n_tag * n_tag))
+    grad[model.offset:] += sum_edge - sum_edge_masked  # 更新转移概率梯度
+    feature_id_set.update(range(model.offset, model.offset + n_tag * n_tag))
 
-    return Z - ZGold, id_set
+    return Z - ZGold, feature_id_set

@@ -1,3 +1,4 @@
+import pdb
 import random
 
 import numpy as np
@@ -9,8 +10,8 @@ class Optimizer(object):
         self._pre_values = list()
 
     def converge_test(self, err):
-        val = 1e100
-        if len(self._pre_values) > 1:
+        val = err
+        if len(self._pre_values) > 0:
             if len(self._pre_values) == 10:  # 超出长度，弹出第一个值
                 self._pre_values.pop(0)
 
@@ -33,9 +34,9 @@ class ADF(Optimizer):
 
         self._model = model
         self.dataset = dataset
-        # self.decay_list = np.ones_like(self._model.w) * config.rate0  # 梯度下降步长
-        self.decay_rate = config.rate0
-        self.epoch_num = 0  # 计算训练第几轮
+        self.decay_rate = config.initial_learning_rate
+        # self.training_batch_num = 0  # 计算训练 batch 数
+        self.training_epoch_num = 0  # 计算训练轮数
 
     def _tune_reshuffle_samples(self, config):
         # 调整样本，打乱样本
@@ -52,10 +53,10 @@ class ADF(Optimizer):
 
     def optimize(self):
         config = self.config
-        w = self._model.w
-        feature_num = w.shape[0]  # 特征参数量
+        print('model w init: ', self._model.w[:3], '...', self._model.w[-2:])
+        feature_num = self._model.w.shape[0]  # 特征参数量
         grad = np.zeros(feature_num)  # 梯度值
-        error = 0
+        error_list = list()
 
         sample_num, random_index = self._tune_reshuffle_samples(config)
 
@@ -64,32 +65,30 @@ class ADF(Optimizer):
             for i in random_index[t: t + config.miniBatch]:
                 XX.append(self.dataset[i])  # 小 batch 样本
 
-            err, feature_set = get_grad_SGD_minibatch(grad, self._model, XX)
-            error += err
-
-            feature_set = list(feature_set)
+            error, feature_set = get_grad_SGD_minibatch(grad, self._model, XX)
+            error_list.append(error)
 
             # update decay rates
-            # self.decay_rate *= (config.upper - (config.upper -
-            #                     config.lower) / config.miniBatch)
-            self.decay_rate = config.rate0 * \
-                np.exp(- self.epoch_num * config.rate1)
-            self.epoch_num += 1
-
+            self.decay_rate = config.initial_learning_rate * \
+                np.exp((- self.training_epoch_num - t / sample_num) * config.dropping_rate)
+            if t / config.miniBatch == 50:
+                print('\tlr: {:.5f}, grad {}: '.format(self.decay_rate, t),
+                      grad[:3], '...', grad[-1])
             # update weights
-            w[feature_set] -= self.decay_rate * \
-                grad[feature_set] / config.miniBatch
+            self._model.w -= self.decay_rate * grad
 
             # regularization
             if config.regularization != 0:
                 # 参数正则化，该公式，对大参数值的惩罚越大
-                w -= self.decay_rate * (
-                    w / (config.regularization ^ 2) * config.miniBatch / sample_num)
+                r2 = self.decay_rate * self._model.w
+                # print('\tsum(abs(regular)): {:.4f}'.format(abs(r2).sum()))
+                # print('\tsum(abs(weight)):  {:.4f}'.format(abs(self._model.w).sum()))
+                self._model.w -= r2
 
-            if config.regularization != 0:
-                s = (w * w).sum()
-                error += s / (2.0 * (config.regularization ^ 2))  # 对误差加正则参数
+        diff = self.converge_test(sum(error_list) / len(error_list))
 
-        diff = self.converge_test(error)
+        print('err/diff: {:.4f}/{:.4f}'.format(sum(error_list) / len(error_list), diff))
+        print('model w change: ', self._model.w[:3], '...', self._model.w[-2:])
 
+        self.training_epoch_num += 1
         return error, diff

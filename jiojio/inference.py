@@ -12,15 +12,65 @@
 
 """
 
-
+import pdb
 import numpy as np
 
 
 class Belief:
     def __init__(self, nNodes, nStates):
-        self.node_states = np.zeros((nNodes, nStates))
-        self.transition_states = np.zeros((nNodes, nStates * nStates))
+        self.node_states = np.empty((nNodes, nStates))
+        self.transition_states = np.empty((nNodes, nStates * nStates))
         self.Z = 0
+
+
+def log_sum(a):
+    """ 计算 np.log(np.sum(np.exp))
+
+    即 log(sum(exp([a_1, a_2 ... a_i ... a_n]))
+    通过迭代的方式将问题转化
+    """
+    _sum = a[0]
+    for i in range(1, a.shape[0]):
+        if _sum > a[i]:  # 防止计算爆炸
+            m1, m2 = _sum, a[i]
+        else:
+            m1, m2 = a[i], _sum
+
+        _sum = m1 + np.log(1 + np.exp(m2 - m1))
+
+    return _sum
+
+
+def log_multiply(A, B):
+    """ A 为状态转移矩阵，B 为初始化的节点特征，计算下一个节点的状态特征。A 和 B 均为 log 化的矩阵。
+
+    公式为：
+    针对某时刻 t 的节点特征状态，计算其 t+1 时刻的节点特征状态：
+    alpha_t+1(j) = SIGMA_s_1_I(exp(phi(y_t=s)) * alpha_t(i))
+
+    即公式：
+    np.log(np.sum(np.exp(A) * np.exp(B), axis=1))
+    其中：
+        A: [state * state]
+        B: [state]
+        ret: [state]
+        np.log 是为了便于将乘法转为加法的折中。
+
+    """
+    # return np.log(np.sum(np.exp(A) * np.exp(B), axis=1))
+
+    # to_sum_list = np.zeros(A.shape)
+    # ret = np.zeros(A.shape[0])
+    # for row in range(A.shape[0]):
+    #     for col in range(A.shape[1]):
+    #         to_sum_list[row, col] = A[row, col] + B[col]
+
+    ret = np.empty(A.shape[0])
+    to_sum_list = A + B
+    for row in range(A.shape[0]):
+        ret[row] = log_sum(to_sum_list[row])
+
+    return ret
 
 
 def get_beliefs(bel, Y, YY):
@@ -59,13 +109,16 @@ def get_beliefs(bel, Y, YY):
     tag_num = YY.shape[0]
 
     Z = 0
-    alpha_Y = np.zeros(tag_num)  # 表示当前节点 t 处，状态 s 为 i 的概率，此处为各个状态的矩阵形式
-    new_alpha_Y = np.zeros(tag_num)
+    # alpha_Y = np.zeros(tag_num)  # 表示当前节点 t 处，状态 s 为 i 的概率，此处为各个状态的矩阵形式
+    alpha_Y = np.empty(tag_num)  # 加速计算
+    # new_alpha_Y = np.zeros(tag_num)
+    new_alpha_Y = np.empty(tag_num)  # 加速计算
     # tmp_Y = np.zeros(tag_num)
     YY_trans = YY.transpose()
     YY_t_r = YY_trans.reshape(-1)
     sum_edge = np.zeros(tag_num * tag_num)
 
+    node_states[node_num - 1] = 0
     for i in range(node_num - 1, 0, -1):
         # 此时为逆序，即计算 beta_t(i) 的状态值，方便后续计算
         # 对当前的初始状态 bel_state，加上当前状态 Y，乘以转移概率 YY，形成前一个标签的状态
@@ -74,8 +127,8 @@ def get_beliefs(bel, Y, YY):
 
     for i in range(node_num):  # 正序计算
         if i > 0:
-            tmp_Y = alpha_Y.copy()
-            new_alpha_Y = log_multiply(YY_trans, tmp_Y) + Y[i]  # 公式 (F1)
+            # tmp_Y = alpha_Y.copy()
+            new_alpha_Y = log_multiply(YY_trans, alpha_Y) + Y[i]  # 公式 (F1)
         else:
             new_alpha_Y = Y[i].copy()
 
@@ -91,10 +144,11 @@ def get_beliefs(bel, Y, YY):
         node_states[i] = node_states[i] + new_alpha_Y
         alpha_Y = new_alpha_Y
 
-    Z = log_sum_exp(alpha_Y)
+    Z = log_sum(alpha_Y)
 
     for i in range(node_num):
         node_states[i] = np.exp(node_states[i] - Z)  # 转换为真实概率值
+
     for i in range(1, node_num):
         sum_edge += np.exp(transition_states[i] - Z)  # 转移概率转换为真实概率值，加和
 
@@ -102,41 +156,37 @@ def get_beliefs(bel, Y, YY):
 
 
 def run_viterbi(node_score, edge_score):
-    # i, y, y_pre, i_pre, tag = 0, 0, 0, 0, 0
-    w = node_score.shape[0]
-    h = node_score.shape[1]
+    w, h = node_score.shape
     max_score = np.zeros((w, h), dtype=np.float64)
     pre_tag = np.zeros((w, h), dtype=np.int8)
-    init_check = np.zeros((w, h), dtype=np.uint8)
-    states = np.zeros(w, dtype=np.int32)
+    states = np.empty(w, dtype=np.int8)
 
     max_score[w-1] = node_score[w-1]
 
     for i in range(w - 2, -1, -1):
         for y in range(h):
+            flag = True
+
             for y_pre in range(h):
                 i_pre = i + 1
                 sc = max_score[i_pre, y_pre] + \
                     node_score[i, y] + edge_score[y, y_pre]
-                if not init_check[i, y]:
-                    init_check[i, y] = 1
+                if flag:
+                    flag = False
                     max_score[i, y] = sc
                     pre_tag[i, y] = y_pre
-                elif sc >= max_score[i, y]:
+                elif sc > max_score[i, y]:
                     max_score[i, y] = sc
                     pre_tag[i, y] = y_pre
 
     tag = np.argmax(max_score[0])
-    ma = np.max(max_score[0])
+    # ma = np.max(max_score[0])
 
     states[0] = tag
     for i in range(1, w):
         states[i] = pre_tag[i-1, tag]
 
     return states
-    # if ma > 100:
-    #     ma = 100
-    # return np.exp(ma), states
 
 
 def get_log_Y_YY(sequence_feature_list, tag_num, offset, w, scalar):
@@ -166,16 +216,15 @@ def get_log_Y_YY(sequence_feature_list, tag_num, offset, w, scalar):
     edge_score = np.ones((tag_num, tag_num), dtype=np.float64)
 
     for i in range(node_num):
-        node_feature_list = sequence_feature_list[i]
         for s in range(tag_num):
-            for node_feature in node_feature_list:
+            for node_feature in sequence_feature_list[i]:
                 f = node_feature * tag_num + s  # 找到特征在 w 中的位置
-                node_score[i, s] += w[f] * scalar
+                node_score[i, s] += w[f]  # * scalar
 
     for s in range(tag_num):
         for s_pre in range(tag_num):
             f = offset + s * tag_num + s_pre  # 找到转移特征在 w 中的位置
-            edge_score[s_pre, s] += w[f] * scalar  # 由于特征参数只有一个，所以只累加一次
+            edge_score[s_pre, s] += w[f]  # * scalar  # 由于特征参数只有一个，所以只累加一次
 
     return node_score, edge_score
 
@@ -191,35 +240,14 @@ def mask_Y(tags, node_num, tag_num, Y):
 
     """
     mask_Yi = Y.copy()  # numpy.Array 类型
-    # maskValue = -1e100  # 负无穷
     mask_value = -np.inf
-    # tagList = tags
-    # i = 0
+
     for i in range(node_num):
         for s in range(tag_num):
             if tags[i] != s:  # 将不符合标注序列的部分置为负无穷
                 mask_Yi[i, s] = mask_value
 
     return mask_Yi
-
-
-def log_multiply(A, B):
-    """ A 为状态转移矩阵，B 为初始化的节点特征，计算下一个节点的状态特征。A 和 B 均为 log 化的矩阵。
-
-    公式为：
-    针对某时刻 t 的节点特征状态，计算其 t+1 时刻的节点特征状态：
-    alpha_t+1(j) = SIGMA_s_1_I(exp(phi(y_t=s)) * alpha_t(i))
-
-    即公式：
-    np.log(np.sum(np.exp(A) * np.exp(B), axis=1))
-    其中：
-        A: [state * state]
-        B: [state]
-        ret: [state]
-        np.log 是为了便于将乘法转为加法的折中。
-
-    """
-    return np.log(np.sum(np.exp(A) * np.exp(B), axis=1))
 
 
 def log_sum_exp(a):
@@ -230,11 +258,11 @@ def log_sum_exp(a):
     return np.log(np.sum(np.exp(a)))
 
 
-def decodeViterbi_fast(feature_temp, model):
-    Y, YY = get_log_Y_YY(feature_temp, model.n_tag,
-                         model.n_feature*model.n_tag, model.w, 1.0)
+def decodeViterbi_fast(features_list, model):
+    Y, YY = get_log_Y_YY(features_list, model.n_tag,
+                         model.offset, model.w, 1.0)
     tags = run_viterbi(Y, YY)
-    tags = list(tags)
+    # tags = list(tags)
     return tags
 
 
@@ -249,7 +277,7 @@ def get_Y_YY(model, example):
 
     """
     Y, YY = get_log_Y_YY(example.features, model.n_tag,
-                         model.n_feature * model.n_tag, model.w, 1.0)
+                         model.offset, model.w, 1.0)
     masked_Y = mask_Y(example.tags, len(example), model.n_tag, Y)
     masked_YY = YY  # 对某些标注系统，某个标签转移到另一个标签的概率为 0，此时需要做掩码。但一般情况下，不需要做，模型自己可以学习。
     return Y, YY, masked_Y, masked_YY

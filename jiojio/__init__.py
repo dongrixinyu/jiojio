@@ -9,6 +9,8 @@ import multiprocessing
 
 from multiprocessing import Process, Queue
 
+import jionlp as jio
+
 import jiojio.trainer as trainer
 import jiojio.inference as _inf
 
@@ -127,6 +129,7 @@ class Postprocesser:
         if common_name is None and other_names is None:
             self.do_process = False
             return
+
         self.do_process = True
         if common_name is None:
             self.common_words = set()
@@ -310,8 +313,8 @@ class jiojio:
 
         txt = txt.strip()
 
-        ret = []
-        usertags = []
+        ret = list()
+        usertags = list()
 
         if not txt:
             return ret
@@ -346,7 +349,7 @@ class jiojio:
         return ret
 
 
-def train(trainFile, testFile, savedir, train_iter=20, init_model=None):
+def train(trainFile, testFile, savedir, train_epoch=20, init_model=None):
     """用于训练模型"""
     # config = Config()
     starttime = time.time()
@@ -359,28 +362,25 @@ def train(trainFile, testFile, savedir, train_iter=20, init_model=None):
     if not os.path.exists(config.temp_dir + "/output"):
         os.mkdir(config.temp_dir + "/output")
 
-    # config.runMode = "train"
     config.trainFile = trainFile
     config.testFile = testFile
     config.modelDir = savedir
     # config.fModel = os.path.join(config.modelDir, "model.txt")
     config.nThread = 1
-    config.ttlIter = train_iter
+    config.train_epoch = train_epoch
     config.init_model = init_model
 
     os.makedirs(config.modelDir, exist_ok=True)
 
     trainer.train(config)
 
-    # jiojio.main.run(config)
-    # clearDir(config.temp_dir)
     print("Total time: " + str(time.time() - starttime))
 
 
 def _test_single_proc(input_file, output_file, model_name="default",
                       user_dict="default", postag=False, verbose=False):
 
-    times = []
+    times = list()
     times.append(time.time())
     seg = jiojio(model_name, user_dict, postag=postag)
 
@@ -518,6 +518,7 @@ def _test_multi_proc(input_file, nthread, model_name="default",
 
 def test(input_file, output_file, model_name="default", user_dict="default",
          nthread=10, postag=False, verbose=False):
+    config.nThread = 1
 
     if nthread > 1:
         _test_multi_proc(input_file, output_file, nthread,
