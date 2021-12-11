@@ -3,6 +3,7 @@ import sys
 
 __doc__ = 'this is valid.'
 import os
+import pdb
 import time
 import pickle as pkl
 import multiprocessing
@@ -11,8 +12,18 @@ from multiprocessing import Process, Queue
 
 import jionlp as jio
 
+from .logger import set_logger
+
+
+logging = set_logger(level='INFO', log_dir_name='.jiojio_logs')
+
+
+from .zip_file import unzip_file
+from jiojio.tag_words_converter import tag2word
+from jiojio.lexicon_cut import LexiconCut
+from jiojio.pre_processor import PreProcessor
 import jiojio.trainer as trainer
-import jiojio.inference as _inf
+from jiojio.inference import decodeViterbi_fast
 
 from jiojio.config import config
 from jiojio.feature_extractor import FeatureExtractor
@@ -21,108 +32,14 @@ from jiojio.postag import Postag
 
 
 class TrieNode:
-    """建立词典的Trie树节点"""
-
-    def __init__(self, isword):
-        self.isword = isword
-        self.usertag = ''
-        self.children = {}
-
-
-class Preprocesser:
-    """预处理器，在用户词典中的词强制分割"""
-
-    def __init__(self, dict_file):
-        """初始化建立Trie树"""
-        if dict_file is None:
-            dict_file = []
-        self.dict_data = dict_file
-        if isinstance(dict_file, str):
-            with open(dict_file, encoding="utf-8") as f:
-                lines = f.readlines()
-
-            self.trie = TrieNode(False)
-            for line in lines:
-                fields = line.strip().split('\t')
-                word = fields[0].strip()
-                usertag = fields[1].strip() if len(fields) > 1 else ''
-                self.insert(word, usertag)
-        else:
-            self.trie = TrieNode(False)
-            for w_t in dict_file:
-                if isinstance(w_t, str):
-                    w = w_t.strip()
-                    t = ''
-                else:
-                    assert isinstance(w_t, tuple)
-                    assert len(w_t) == 2
-                    w, t = map(lambda x: x.strip(), w_t)
-                self.insert(w, t)
-
-    def insert(self, word, usertag):
-        """Trie树中插入单词"""
-        l = len(word)
-        now = self.trie
-        for i in range(l):
-            c = word[i]
-            if not c in now.children:
-                now.children[c] = TrieNode(False)
-            now = now.children[c]
-        now.isword = True
-        now.usertag = usertag
-
-    def solve(self, txt):
-        """对文本进行预处理"""
-        outlst = []
-        iswlst = []
-        taglst = []
-        l = len(txt)
-        last = 0
-        i = 0
-        while i < l:
-            now = self.trie
-            j = i
-            found = False
-            usertag = ''
-            last_word_idx = -1  # 表示从当前位置i往后匹配，最长匹配词词尾的idx
-            while True:
-                c = txt[j]
-                if not c in now.children and last_word_idx != -1:
-                    found = True
-                    break
-                if not c in now.children and last_word_idx == -1:
-                    break
-                now = now.children[c]
-                if now.isword:
-                    last_word_idx = j
-                    usertag = now.usertag
-                j += 1
-                if j == l and last_word_idx == -1:
-                    break
-                if j == l and last_word_idx != -1:
-                    j = last_word_idx + 1
-                    found = True
-                    break
-            if found:
-                if last != i:
-                    outlst.append(txt[last:i])
-                    iswlst.append(False)
-                    taglst.append('')
-                outlst.append(txt[i:j])
-                iswlst.append(True)
-                taglst.append(usertag)
-                last = j
-                i = j
-            else:
-                i += 1
-        if last < l:
-            outlst.append(txt[last:l])
-            iswlst.append(False)
-            taglst.append('')
-        return outlst, iswlst, taglst
+    """建立词典的 Trie 树节点"""
+    def __init__(self, is_word):
+        self.is_word = is_word
+        self.user_tag = ''
+        self.children = dict()
 
 
-class Postprocesser:
+class PostProcessor(object):
     """对分词结果后处理"""
 
     def __init__(self, common_name, other_names):
@@ -190,69 +107,26 @@ class Postprocesser:
         return self.post_process(sent, check_seperated=True)
 
 
-class jiojio:
-    def __init__(self, model_name="default", user_dict="default", postag=False):
+class jiojio(object):
+    def __init__(self, model_name="default_model", user_dict="default", postag=False):
         """初始化函数，加载模型及用户词典"""
-        # print("loading model")
-        # config = Config()
-        # self.config = config
         self.postag = postag
-        if model_name in ["default"]:
-            config.modelDir = os.path.join(
-                os.path.dirname(os.path.realpath(__file__)),
-                "models",
-                model_name,
-            )
-        elif model_name in config.available_models:
-            config.modelDir = os.path.join(
-                config.jiojio_home,
-                model_name,
-            )
-            download_model(
-                config.model_urls[model_name], config.jiojio_home, config.model_hash[model_name])
+
+        if model_name in ["default_model"]:
+            config.train_dir = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+                "models", model_name)
         else:
-            config.modelDir = model_name
-
-        # config.fModel = os.path.join(config.modelDir, "model.txt")
-        if user_dict is None:
-            file_name = None
-            other_names = None
-        else:
-            if user_dict not in config.available_models:
-                file_name = user_dict
-            else:
-                file_name = None
-            if model_name in config.models_with_dict:
-                other_name = os.path.join(
-                    config.jiojio_home,
-                    model_name,
-                    model_name+"_dict.pkl",
-                )
-                default_name = os.path.join(
-                    os.path.dirname(os.path.realpath(__file__)),
-                    "dicts", "default.pkl",
-                )
-                other_names = [other_name, default_name]
-            else:
-                default_name = os.path.join(
-                    os.path.dirname(os.path.realpath(__file__)),
-                    "dicts", "default.pkl",
-                )
-                other_names = [default_name]
-
-        self.preprocesser = Preprocesser(file_name)
-        # self.preprocesser = Preprocesser([])
-        self.postprocesser = Postprocesser(None, other_names)
-
-        self.feature_extractor = FeatureExtractor.load()
+            config.train_dir = model_name
+        # pdb.set_trace()
+        self.feature_extractor = FeatureExtractor.load(model_dir=config.train_dir)
         self.model = Model.load()
 
         self.idx_to_tag = {
-            idx: tag for tag, idx in self.feature_extractor.tag_to_idx.items()
-        }
+            idx: tag for tag, idx in self.feature_extractor.tag_to_idx.items()}
 
-        self.n_feature = len(self.feature_extractor.feature_to_idx)
-        self.n_tag = len(self.feature_extractor.tag_to_idx)
+        self.pre_processor = PreProcessor()
+
 
         if postag:
             download_model(
@@ -260,93 +134,52 @@ class jiojio:
             postag_dir = os.path.join(config.jiojio_home, "postag")
             self.tagger = Postag(postag_dir)
 
-        # print("finish")
-
     def _cut(self, text):
-        """
-        直接对文本分词
-        """
-
-        examples = list(self.feature_extractor.normalize_text(text))
+        examples = self.pre_processor(text)
         length = len(examples)
 
-        all_feature = []  # type: List[List[int]]
+        all_features = list()
         for idx in range(length):
-            node_feature_idx = self.feature_extractor.get_node_features_idx(
-                idx, examples
-            )
-            # node_feature = self.feature_extractor.get_node_features(
-            #     idx, examples
-            # )
+            node_features = self.feature_extractor.get_node_features(idx, examples)
 
-            # node_feature_idx = []
-            # for feature in node_feature:
-            #     feature_idx = self.feature_extractor.feature_to_idx.get(feature)
-            #     if feature_idx is not None:
-            #         node_feature_idx.append(feature_idx)
-            # if not node_feature_idx:
-            #     node_feature_idx.append(0)
+            # 此处考虑，通用未匹配特征 “/”，即索引未 0 的特征
+            # 该行较为耗时
+            # node_feature_idx = [self.feature_extractor.feature_to_idx.get(node_feature, 0)
+            #                     for node_feature in node_features]
+            node_feature_idx = map(lambda i:self.feature_extractor.feature_to_idx.get(i, 0),
+                                   node_features)
+            # pdb.set_trace()
+            all_features.append(node_feature_idx)
 
-            all_feature.append(node_feature_idx)
+        tags_idx = decodeViterbi_fast(all_features, self.model)
 
-        _, tags = _inf.decodeViterbi_fast(all_feature, self.model)
+        # tags = [self.idx_to_tag[tag_idx] for tag_idx in tags_idx]
+        tags = map(lambda i:self.idx_to_tag[i], tags_idx)
 
-        words = []
-        current_word = None
-        is_start = True
-        for tag, char in zip(tags, text):
-            if is_start:
-                current_word = char
-                is_start = False
-            elif "B" in self.idx_to_tag[tag]:
-                words.append(current_word)
-                current_word = char
-            else:
-                current_word += char
-        if current_word:
-            words.append(current_word)
+        return tags
 
-        return words
+    def cut(self, text, convert_num_letter=True, normalize_num_letter=True,
+            convert_exception=True):
 
-    def cut(self, txt):
-        """分词，结果返回一个list"""
-
-        txt = txt.strip()
-
-        ret = list()
-        usertags = list()
-
-        if not txt:
+        if not text:
             return ret
 
-        imary = txt.split()  # 根据空格分为多个片段
+        norm_text = self.pre_processor(
+            text, convert_num_letter=convert_num_letter,
+            normalize_num_letter=normalize_num_letter,
+            convert_exception=convert_exception)
 
-        # 对每个片段分词
-        for w0 in imary:
-            if not w0:
-                continue
+        tags = self._cut(norm_text)
 
-            # 根据用户词典拆成更多片段
-            lst, isword, taglst = self.preprocesser.solve(w0)
-
-            for w, isw, usertag in zip(lst, isword, taglst):
-                if isw:
-                    ret.append(w)
-                    usertags.append(usertag)
-                    continue
-
-                output = self._cut(w)
-                post_output = self.postprocesser(output)
-                ret.extend(post_output)
-                usertags.extend(['']*len(post_output))
-
+        words_list = tag2word(text, tags)
         if self.postag:
             tags = self.tagger.tag(ret.copy())
-            for i, usertag in enumerate(usertags):
-                if usertag:
-                    tags[i] = usertag
+            for i, user_tag in enumerate(user_tags):
+                if user_tag:
+                    tags[i] = user_tag
             ret = list(zip(ret, tags))
-        return ret
+
+        return words_list
 
 
 def train(trainFile, testFile, savedir, train_epoch=20, init_model=None):
@@ -364,54 +197,53 @@ def train(trainFile, testFile, savedir, train_epoch=20, init_model=None):
 
     config.trainFile = trainFile
     config.testFile = testFile
-    config.modelDir = savedir
-    # config.fModel = os.path.join(config.modelDir, "model.txt")
+    config.train_dir = savedir
+
     config.nThread = 1
     config.train_epoch = train_epoch
     config.init_model = init_model
 
-    os.makedirs(config.modelDir, exist_ok=True)
+    os.makedirs(config.train_dir, exist_ok=True)
 
     trainer.train(config)
 
     print("Total time: " + str(time.time() - starttime))
 
 
-def _test_single_proc(input_file, output_file, model_name="default",
-                      user_dict="default", postag=False, verbose=False):
+def _test_single_proc(input_file, output_file, model_name="default_model",
+                      user_dict="default_dict", postag=False, verbose=False):
 
-    times = list()
-    times.append(time.time())
-    seg = jiojio(model_name, user_dict, postag=postag)
+    start_time = time.time()
+    with jio.TimeIt('# loading model'):
+        seg = jiojio(model_name, user_dict, postag=postag)
 
-    times.append(time.time())
     if not os.path.exists(input_file):
         raise Exception("input_file {} does not exist.".format(input_file))
-    with open(input_file, "r", encoding="utf-8") as f:
-        lines = f.readlines()
 
-    times.append(time.time())
-    results = []
-    for line in lines:
-        if not postag:
-            results.append(" ".join(seg.cut(line)))
-        else:
-            results.append(" ".join(map(lambda x: "/".join(x), seg.cut(line))))
+    total_token_num = 0
+    total_sample_num = 0
+    with jio.TimeIt('# cutting text'):
+        diff_results = list()
+        for line in jio.read_file_by_iter(input_file, line_num=100000):
+            text = ''.join(line)
 
-    times.append(time.time())
+            # print(text)
+            total_sample_num += 1
+            total_token_num += len(text)
 
-    print("\n".join(results))
-    times.append(time.time())
+            words_list = seg.cut(text, normalize_num_letter=False)
+            # if words_list != line:
+            #     diff_results.append(line)
 
-    print("total_time:\t{:.3f}".format(times[-1] - times[0]))
+            # print(line)
+            # print(words_list)
+            # pdb.set_trace()
+    print("# total_time:\t{:.3f}".format(time.time() - start_time))
+    print("# total sample:{:},\t average {:} chars per sample ".format(
+        total_sample_num, total_token_num / total_sample_num))
+    print("# {} chars per second".format(total_token_num / (time.time() - start_time)))
 
-    if verbose:
-        time_strs = ["load_model", "read_file", "word_seg", "write_file"]
-        for key, value in zip(
-            time_strs,
-            [end - start for start, end in zip(times[:-1], times[1:])],
-        ):
-            print("{}:\t{:.3f}".format(key, value))
+    jio.write_file_by_line(diff_results, '/home/cuichengyu/dataset/diff_cws_samples.txt')
 
 
 def _proc(seg, in_queue, out_queue):
@@ -444,8 +276,8 @@ def _proc_alt(model_name, user_dict, postag, in_queue, out_queue):
         out_queue.put((idx, output_str))
 
 
-def _test_multi_proc(input_file, nthread, model_name="default",
-                     user_dict="default", postag=False, verbose=False):
+def _test_multi_proc(input_file, nthread, model_name="default_model",
+                     user_dict="default_dict", postag=False, verbose=False):
 
     alt = multiprocessing.get_start_method() == "spawn"
 
@@ -516,10 +348,9 @@ def _test_multi_proc(input_file, nthread, model_name="default",
             print("{}:\t{:.3f}".format(key, value))
 
 
-def test(input_file, output_file, model_name="default", user_dict="default",
+def test(input_file, output_file, model_name="default_model", user_dict="default_dict",
          nthread=10, postag=False, verbose=False):
-    config.nThread = 1
-
+    nthread = 1
     if nthread > 1:
         _test_multi_proc(input_file, output_file, nthread,
                          model_name, user_dict, postag, verbose)

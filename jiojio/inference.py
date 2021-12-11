@@ -49,7 +49,8 @@ def log_multiply(A, B):
     alpha_t+1(j) = SIGMA_s_1_I(exp(phi(y_t=s)) * alpha_t(i))
 
     即公式：
-    np.log(np.sum(np.exp(A) * np.exp(B), axis=1))
+    np.log(np.sum(np.exp(A) * np.exp(B), axis=1)) 或
+    np.log(np.matmul(np.exp(A), np.exp(B)))
     其中：
         A: [state * state]
         B: [state]
@@ -108,12 +109,9 @@ def get_beliefs(bel, Y, YY):
     node_num = Y.shape[0]  # 序列节点个数
     tag_num = YY.shape[0]
 
-    Z = 0
     # alpha_Y = np.zeros(tag_num)  # 表示当前节点 t 处，状态 s 为 i 的概率，此处为各个状态的矩阵形式
     alpha_Y = np.empty(tag_num)  # 加速计算
-    # new_alpha_Y = np.zeros(tag_num)
-    new_alpha_Y = np.empty(tag_num)  # 加速计算
-    # tmp_Y = np.zeros(tag_num)
+    new_alpha_Y = np.empty(tag_num)
     YY_trans = YY.transpose()
     YY_t_r = YY_trans.reshape(-1)
     sum_edge = np.zeros(tag_num * tag_num)
@@ -138,6 +136,7 @@ def get_beliefs(bel, Y, YY):
             for yPre in range(tag_num):
                 for y in range(tag_num):
                     # 将 beta 值和 alpha 值相加，实为相乘
+                    # 转移概率计算公式：alpha_t-1(y_t-1=i) * phi(y_t-1=i, y_t=j) * beta(y_t=j) / Z
                     transition_states[i, y * tag_num + yPre] += \
                         tmp_Y[y] + alpha_Y[yPre]
 
@@ -156,34 +155,35 @@ def get_beliefs(bel, Y, YY):
 
 
 def run_viterbi(node_score, edge_score):
-    w, h = node_score.shape
-    max_score = np.zeros((w, h), dtype=np.float64)
-    pre_tag = np.zeros((w, h), dtype=np.int8)
-    states = np.empty(w, dtype=np.int8)
+    node_num, tag_num = node_score.shape
+    max_score = np.empty((node_num, tag_num), dtype=np.float64)
+    pre_tag = np.empty((node_num, tag_num), dtype=np.int8)
 
-    max_score[w-1] = node_score[w-1]
+    max_score[node_num - 1] = node_score[node_num - 1]
 
-    for i in range(w - 2, -1, -1):
-        for y in range(h):
+    for i in range(node_num - 2, -1, -1):
+        i_pre = i + 1
+        for y in range(tag_num):
             flag = True
 
-            for y_pre in range(h):
-                i_pre = i + 1
-                sc = max_score[i_pre, y_pre] + \
+            for y_pre in range(tag_num):
+                cur_score = max_score[i_pre, y_pre] + \
                     node_score[i, y] + edge_score[y, y_pre]
+
                 if flag:
                     flag = False
-                    max_score[i, y] = sc
+                    max_score[i, y] = cur_score
                     pre_tag[i, y] = y_pre
-                elif sc > max_score[i, y]:
-                    max_score[i, y] = sc
+                elif cur_score > max_score[i, y]:
+                    max_score[i, y] = cur_score
                     pre_tag[i, y] = y_pre
 
     tag = np.argmax(max_score[0])
-    # ma = np.max(max_score[0])
+    # ma = np.max(max_score[0])  计算损失值
 
+    states = np.empty(node_num, dtype=np.int8)
     states[0] = tag
-    for i in range(1, w):
+    for i in range(1, node_num):
         states[i] = pre_tag[i-1, tag]
 
     return states
@@ -214,6 +214,7 @@ def get_log_Y_YY(sequence_feature_list, tag_num, offset, w, scalar):
     node_score = np.zeros((node_num, tag_num), dtype=np.float64)
     # 转移矩阵的得分，base 为 1
     edge_score = np.ones((tag_num, tag_num), dtype=np.float64)
+    # edge_score = np.empty((tag_num, tag_num), dtype=np.float64)
 
     for i in range(node_num):
         for s in range(tag_num):
@@ -224,8 +225,9 @@ def get_log_Y_YY(sequence_feature_list, tag_num, offset, w, scalar):
     for s in range(tag_num):
         for s_pre in range(tag_num):
             f = offset + s * tag_num + s_pre  # 找到转移特征在 w 中的位置
-            edge_score[s_pre, s] += w[f]  # * scalar  # 由于特征参数只有一个，所以只累加一次
-
+            # edge_score[s_pre, s] += w[f]  # * scalar  # 由于特征参数只有一个，所以只累加一次
+            edge_score[s_pre, s] = w[f]
+    # pdb.set_trace()
     return node_score, edge_score
 
 

@@ -49,7 +49,7 @@ class Model(object):
     @classmethod
     def load(cls, model_dir=None):
         if model_dir is None:
-            model_dir = config.modelDir
+            model_dir = config.model_dir
 
         model_path = os.path.join(model_dir, "weights.npz")
         if os.path.exists(model_path):
@@ -85,6 +85,7 @@ class Model(object):
 
     def save(self, model_dir=None):
         if model_dir is None:
-            model_dir = config.modelDir
+            model_dir = config.model_dir
+
         sizes = np.array([self.n_tag, self.n_feature])
         np.savez(os.path.join(model_dir, "weights.npz"), sizes=sizes, w=self.w)
