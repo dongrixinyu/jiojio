@@ -23,8 +23,6 @@ class Config:
     model_hash = {
         "postag": "afdf15f4e39bc47a39be4c37e3761b0c8f6ad1783f3cd3aff52984aebc0a1da9",
     }
-    available_models = ["default"]
-    models_with_dict = ["medicine", "tourism"]
 
     def __init__(self):
 
@@ -84,18 +82,20 @@ class Config:
         self.fFeatureTest = os.path.join(self.temp_dir, "ftest.txt")
         self.fGoldTest = os.path.join(self.temp_dir, "gtest.txt")
 
-        self.modelDir = os.path.join(self.temp_dir, "models", "ctb8")
-
+        self.model_dir = os.path.join(os.path.dirname(self.train_dir),
+                                      "models/default_model")
+        self.available_models = ['default']
+        self.models_with_dict = ['default']
         # start and end token
         self.start_token = '[START]'
         self.end_token = '[END]'
 
         # feature
-        self.numLetterNorm = False  # 将所有的 数字、字母，正规化，即用统一字符替代
+        self.norm_text = False  # 将所有的 数字、字母，正规化，即用统一字符替代
         self.feature_trim = 5  # 特征出现频次过低则丢弃，当数据量超大时使用
         self.wordFeature = True  # 需要返回 词汇 特征
-        self.wordMax = 5
-        self.wordMin = 2
+        self.word_max = 5
+        self.word_min = 2
         self.nLabel = 2
         self.order = 1
 

@@ -10,58 +10,42 @@ from collections import Counter
 
 import jionlp as jio
 
+from jiojio import logging
+from jiojio import unzip_file
 from jiojio.config import config
+from jiojio.pre_processor import PreProcessor
 
 
 def get_slice_str(iterator_obj, start, length, all_len):
     # 截取字符串，其中，iterable 为字、词列表
+
     if start < 0 or start >= all_len:
         return ""
     if start + length > all_len:
         return ""
 
-    return "".join(iterator_obj[start: start + length])
+    if type(iterator_obj) is str:
+        return iterator_obj[start: start + length]
+    else:
+        return "".join(iterator_obj[start: start + length])
 
 
-class FeatureExtractor:
-    keywords = "-._,|/*:"
-
-    num = set("0123456789." "几二三四五六七八九十千万亿兆零" "１２３４５６７８９０％")
-    letter = set(
-        "ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ" "ａｂｃｄｅｆｇｈｉｇｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ" "／・－"
-    )
-
-    keywords_translate_table = str.maketrans("-._,|/*:", "&&&&&&&&")
-
-    @classmethod
-    def keyword_rename(cls, text):
-        return text.translate(cls.keywords_translate_table)
-
-    @classmethod
-    def _num_letter_normalize_char(cls, character):
-        if character in cls.num:
-            return "**Num"
-        if character in cls.letter:
-            return "**Letter"
-        return character
-
-    @classmethod
-    def normalize_text(cls, text):
-        text = cls.keyword_rename(text)
-        for character in text:
-            if config.numLetterNorm:
-                yield cls._num_letter_normalize_char(character)
-            else:
-                yield character
+class FeatureExtractor(object):
 
     def __init__(self):
         self.unigram = set()
         self.bigram = set()
         self.feature_to_idx = dict()
         self.tag_to_idx = dict()
+        self.pre_processor = PreProcessor()
 
-        self.start_token = '[START]'
-        self.end_token = '[END]'
+        self._create_features()
+
+    def _create_features(self):
+        self.start_feature = '[START]'
+        self.end_feature = '[END]'
+        self.norm_num = '7'  # 与 pre_processor.py文件中定义一致
+        self.norm_letter = 'Z'  # 与 pre_processor.py文件中定义一致
 
         self.delim = '.'
         self.empty_feature = '/'
@@ -87,8 +71,10 @@ class FeatureExtractor:
     def build(self, train_file):
         word_length_info = Counter()
         # specials = set()
-        feature_freq = Counter()
+        feature_freq = Counter()  # 计算各个特征的出现次数，减少罕见 token 计数
 
+        unigrams = Counter()  # 计算各个 unigrams 出现次数，避免罕见 unigram 进入计数
+        bigrams = Counter()  # 计算各个 bigrams 出现次数，避免罕见 bigram 进入计数
         for sample_idx, words in enumerate(jio.read_file_by_iter(train_file)):
             # line = self.keyword_rename(line)
             if sample_idx % 10000 == 0:
@@ -96,27 +82,37 @@ class FeatureExtractor:
             # first pass to collect unigram and bigram and tag info
             word_length_info.update(map(len, words))
             # specials.update(word for word in words if len(word) >= 10)
-            self.unigram.update(words)
+
+            # 对文本进行归一化和整理
+            if config.norm_text:
+                words = [self.pre_processor(word, convert_exception=True,
+                            convert_num_letter=True, normalize_num_letter=False)
+                            for word in words]
+
+            example = ''.join(words)
+            unigrams.update(words)
 
             for pre, suf in zip(words[:-1], words[1:]):
-                self.bigram.add("{}*{}".format(pre, suf))
-
-            if config.numLetterNorm:
-                example = [self._num_letter_normalize_char(character)
-                           for word in words for character in word]
-            else:
-                example = ''.join(words)
+                # self.bigram.add("{}*{}".format(pre, suf))
+                bigrams.update("{}*{}".format(pre, suf))
 
             # second pass to get features
             for idx in range(len(example)):
                 node_features = self.get_node_features(idx, example)
                 feature_freq.update(feature for feature in node_features)
 
+        # 对 self.unigram 的清理和整理
+        # 若 self.unigram 中的频次都不足 feature_trim 则，在后续特征删除时必然频次不足
+        self.unigram = set([unigram for unigram, freq in unigrams.most_common()
+                            if freq > config.feature_trim])
         if '' in self.unigram:  # 删除错误 token
             self.unigram.remove('')
 
+        # 对 self.bigram 的清理和整理
+        self.bigram = set([bigram for bigram, freq in bigrams.most_common()
+                           if freq > config.feature_trim])
+
         # print token length counter
-        # max_word_length = max(word_length_info.keys())
         short_token_total_length = 0
         total_length = sum(list(word_length_info.values()))
         print("token length\ttoken num\ratio:")
@@ -149,6 +145,7 @@ class FeatureExtractor:
         B, B_single, I_first, I, I_end = FeatureExtractor._create_label()
         tag_set = {B, B_single, I_first, I, I_end}
         self.tag_to_idx = {tag: idx for idx, tag in enumerate(sorted(tag_set))}
+        # self.idx_to_tag = FeatureExtractor._reverse_dict(self.tag_to_idx)
 
     def get_node_features(self, idx, token_list):
         # 给定一个  token_list，找出其中 token_list[idx] 匹配到的所有特征
@@ -166,10 +163,16 @@ class FeatureExtractor:
         # 前一个字特征
         if idx > 0:
             feature_list.append(self.char_before + token_list[idx - 1])
+        else:
+            # 字符为起始位特征
+            feature_list.append(self.start_feature)
 
         # 后一个字特征
         if idx < len(token_list) - 1:
             feature_list.append(self.char_next + token_list[idx + 1])
+        else:
+            # 字符为终止位特征
+            feature_list.append(self.end_feature)
 
         # 前第二字特征
         if idx > 1:
@@ -204,7 +207,7 @@ class FeatureExtractor:
 
         # 寻找该字前一个词汇特征(包含该字)
         pre_list_in = list()
-        for l in range(config.wordMax, config.wordMin - 1, -1):
+        for l in range(config.word_max, config.word_min - 1, -1):
             # length 6 ... 2 (default)
             # "prefix including current c" token_list[n-l+1, n]
             # current character ends word
@@ -218,7 +221,7 @@ class FeatureExtractor:
 
         # 寻找该字后一个词汇特征(包含该字)
         post_list_in = list()
-        for l in range(config.wordMax, config.wordMin - 1, -1):
+        for l in range(config.word_max, config.word_min - 1, -1):
             # "suffix" token_list[n, n+l-1]
             # current character starts word
             tmp = get_slice_str(token_list, idx, l, length)
@@ -231,7 +234,7 @@ class FeatureExtractor:
 
         # 寻找该字前一个词汇特征(不包含该字)
         pre_list_ex = list()
-        for l in range(config.wordMax, config.wordMin - 1, -1):
+        for l in range(config.word_max, config.word_min - 1, -1):
             # "prefix excluding current c" token_list[n-l, n-1]
             tmp = get_slice_str(token_list, idx - l, l, length)
             if tmp in self.unigram:
@@ -241,8 +244,8 @@ class FeatureExtractor:
             #     pre_list_ex.append(self.no_word)
 
         # 寻找该字后一个词汇特征(不包含该字)
-        post_list_ex = list()  # 其中个数由 wordMax 决定
-        for l in range(config.wordMax, config.wordMin - 1, -1):
+        post_list_ex = list()  # 其中个数由 word_max 决定
+        for l in range(config.word_max, config.word_min - 1, -1):
             # "suffix excluding current c" token_list[n+1, n+l]
             tmp = get_slice_str(token_list, idx + 1, l, length)
             if tmp in self.unigram:
@@ -269,8 +272,8 @@ class FeatureExtractor:
 
         return feature_list
 
-    def convert_feature_file_to_idx_file(
-            self, feature_file, feature_idx_file, tag_idx_file):
+    def convert_feature_file_to_idx_file(self, feature_file,
+                                         feature_idx_file, tag_idx_file):
 
         with open(feature_file, "r", encoding="utf8") as reader:
             with open(feature_idx_file, "w", encoding="utf8") as f_writer, \
@@ -332,6 +335,10 @@ class FeatureExtractor:
 
         return B, B_single, I_first, I, I_end
 
+    @staticmethod
+    def _reverse_dict(dict_obj):
+        return dict([(v, k) for k, v in dict_obj.items()])
+
     def convert_text_file_to_feature_file(
             self, text_file, conll_file, feature_file):
         # 从文本中，构建所有的特征和训练标注数据
@@ -346,7 +353,7 @@ class FeatureExtractor:
                 tags = list()
                 example, tags = jio.cws.word2tag(words)
 
-                if config.numLetterNorm:
+                if config.norm_text:
                     example = [self._num_letter_normalize_char(c) for c in example]
 
                 c_writer.write(json.dumps([example, tags], ensure_ascii=False) + "\n")
@@ -375,8 +382,7 @@ class FeatureExtractor:
         data["feature_to_idx"] = self.feature_to_idx
         data["tag_to_idx"] = self.tag_to_idx
 
-        with open(os.path.join(model_dir, "features.json"), "w",
-                  encoding="utf8") as f_w:
+        with open(os.path.join(model_dir, "features.json"), "w", encoding="utf8") as f_w:
             json.dump(data, f_w, ensure_ascii=False, indent=4, separators=(',', ':'))
 
     @classmethod
@@ -385,6 +391,7 @@ class FeatureExtractor:
             model_dir = config.temp_dir
 
         extractor = cls.__new__(cls)
+        extractor._create_features()
 
         feature_path = os.path.join(model_dir, "features.pkl")
         if os.path.exists(feature_path):
@@ -395,20 +402,28 @@ class FeatureExtractor:
             extractor.bigram = set(data["bigram"])
             extractor.feature_to_idx = data["feature_to_idx"]
             extractor.tag_to_idx = data["tag_to_idx"]
+            # extractor.idx_to_tag = extractor._reverse_dict(extractor.tag_to_idx)
 
             return extractor
 
         print("WARNING: features.pkl does not exist, try loading features.json", file=sys.stderr)
         feature_path = os.path.join(model_dir, "features.json")
+        zip_feature_path = os.path.join(model_dir, "features.zip")
+
+        if (not os.path.exists(feature_path)) and os.path.exists(zip_feature_path):
+            logging.info('unzipping `{}` to `{}`.'.format(
+                zip_feature_path, feature_path))
+            unzip_file([zip_feature_path])
 
         if os.path.exists(feature_path):
             with open(feature_path, "r", encoding="utf8") as reader:
                 data = json.load(reader)
+
             extractor.unigram = set(data["unigram"])
             extractor.bigram = set(data["bigram"])
             extractor.feature_to_idx = data["feature_to_idx"]
             extractor.tag_to_idx = data["tag_to_idx"]
-
+            # extractor.idx_to_tag = extractor._reverse_dict(extractor.tag_to_idx)
             return extractor
 
         print("WARNING: features.json does not exist, try loading using old format", file=sys.stderr)
@@ -418,7 +433,7 @@ class FeatureExtractor:
         with open(os.path.join(model_dir, "bigram_word.txt"), "r", encoding="utf8") as reader:
             extractor.bigram = set(line.strip() for line in reader)
 
-        extractor.feature_to_idx = {}
+        extractor.feature_to_idx = dict()
         feature_base_name = os.path.join(model_dir, "featureIndex.txt")
         for i in range(10):
             with open("{}_{}".format(feature_base_name, i), "r", encoding="utf8") as reader:
@@ -427,7 +442,7 @@ class FeatureExtractor:
                     feature = ".".join(feature.split(".")[1:])
                     extractor.feature_to_idx[feature] = int(index)
 
-        extractor.tag_to_idx = {}
+        extractor.tag_to_idx = dict()
         with open(os.path.join(model_dir, "tagIndex.txt"), "r", encoding="utf8") as reader:
             for line in reader:
                 tag, index = line.split(" ")
