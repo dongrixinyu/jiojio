@@ -8,5 +8,5 @@
 build
 tmp/
 data/
-models/
+
 *stats
