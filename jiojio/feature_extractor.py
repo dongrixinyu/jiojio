@@ -13,6 +13,7 @@ import jionlp as jio
 from jiojio import logging
 from jiojio import unzip_file
 from jiojio.config import config
+from jiojio.tag_words_converter import tag2word
 from jiojio.pre_processor import PreProcessor
 
 
@@ -76,7 +77,7 @@ class FeatureExtractor(object):
         unigrams = Counter()  # 计算各个 unigrams 出现次数，避免罕见 unigram 进入计数
         bigrams = Counter()  # 计算各个 bigrams 出现次数，避免罕见 bigram 进入计数
         for sample_idx, words in enumerate(jio.read_file_by_iter(train_file)):
-            # line = self.keyword_rename(line)
+
             if sample_idx % 10000 == 0:
                 print(sample_idx)
             # first pass to collect unigram and bigram and tag info
@@ -115,7 +116,7 @@ class FeatureExtractor(object):
         # print token length counter
         short_token_total_length = 0
         total_length = sum(list(word_length_info.values()))
-        print("token length\ttoken num\ratio:")
+        print("token length\ttoken num\tratio:")
         for length in range(1, 12):
             if length <= 10:
                 short_token_total_length += word_length_info[length]
@@ -138,7 +139,7 @@ class FeatureExtractor(object):
                        if freq > config.feature_trim)
 
         self.feature_to_idx = {feature: idx for idx, feature in enumerate(feature_set, 1)}
-        self.feature_to_idx.update({self.empty_feature: 0})
+        self.feature_to_idx.update({self.empty_feature: 0})  # 空特征更新为第一个
         print('# true feature_num: {}'.format(len(self.feature_to_idx)))
 
         # create tag map
@@ -347,14 +348,13 @@ class FeatureExtractor(object):
         with open(conll_file, "w", encoding="utf8") as c_writer, \
                 open(feature_file, "w", encoding="utf8") as f_writer:
             for words in jio.read_file_by_iter(text_file):
-
-                # words = self.keyword_rename(line).split()
-                example = list()
-                tags = list()
-                example, tags = jio.cws.word2tag(words)
-
+                # 对文本进行归一化和整理
                 if config.norm_text:
-                    example = [self._num_letter_normalize_char(c) for c in example]
+                    words = [self.pre_processor(word, convert_exception=True,
+                                convert_num_letter=True, normalize_num_letter=False)
+                                for word in words]
+
+                example, tags = word2tag(words)
 
                 c_writer.write(json.dumps([example, tags], ensure_ascii=False) + "\n")
 
@@ -365,16 +365,13 @@ class FeatureExtractor(object):
                     if len(norm_features) < len(features):
                         norm_features.append(self.empty_feature)
 
-                    # features = [(feature if feature in self.feature_to_idx else self.empty_feature)
-                    #             for feature in features]
-
                     norm_features.append(tag)
                     f_writer.write(json.dumps(norm_features, ensure_ascii=False) + '\n')
                 f_writer.write("\n")
 
     def save(self, model_dir=None):
         if model_dir is None:
-            model_dir = config.temp_dir
+            model_dir = config.model_dir
 
         data = dict()
         data["unigram"] = sorted(list(self.unigram))
@@ -388,7 +385,7 @@ class FeatureExtractor(object):
     @classmethod
     def load(cls, model_dir=None):
         if model_dir is None:
-            model_dir = config.temp_dir
+            model_dir = config.model_dir
 
         extractor = cls.__new__(cls)
         extractor._create_features()

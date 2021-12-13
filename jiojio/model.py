@@ -56,6 +56,7 @@ class Model(object):
             npz = np.load(model_path)
             sizes = npz["sizes"]
             w = npz["w"]
+
             model = cls.__new__(cls)
             model.n_tag = int(sizes[0])
             model.n_feature = int(sizes[1])
@@ -63,6 +64,7 @@ class Model(object):
             model.n_transition_feature = model.n_tag * \
                 (model.n_feature + model.n_tag)
             model.w = w
+
             assert model.w.shape[0] == model.n_transition_feature
             return model
 
@@ -81,6 +83,7 @@ class Model(object):
             new_model.w.shape[0] // new_model.n_tag - new_model.n_tag)
         new_model.offset = new_model.n_tag * new_model.n_feature
         new_model.n_transition_feature = new_model.w.shape[0]
+
         return new_model
 
     def save(self, model_dir=None):

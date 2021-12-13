@@ -16,11 +16,15 @@ import pdb
 import numpy as np
 
 
-class Belief:
+class Belief(object):
     def __init__(self, nNodes, nStates):
         self.node_states = np.empty((nNodes, nStates))
         self.transition_states = np.empty((nNodes, nStates * nStates))
         self.Z = 0
+
+class MaskedBelief(object):
+    def __init__(self, nNodes, nStates):
+        self.node_states = np.zeros((nNodes, nStates))
 
 
 def log_sum(a):
@@ -111,7 +115,7 @@ def get_beliefs(bel, Y, YY):
 
     # alpha_Y = np.zeros(tag_num)  # 表示当前节点 t 处，状态 s 为 i 的概率，此处为各个状态的矩阵形式
     alpha_Y = np.empty(tag_num)  # 加速计算
-    new_alpha_Y = np.empty(tag_num)
+    # new_alpha_Y = np.empty(tag_num)
     YY_trans = YY.transpose()
     YY_t_r = YY_trans.reshape(-1)
     sum_edge = np.zeros(tag_num * tag_num)
@@ -152,6 +156,57 @@ def get_beliefs(bel, Y, YY):
         sum_edge += np.exp(transition_states[i] - Z)  # 转移概率转换为真实概率值，加和
 
     return Z, sum_edge
+
+
+def get_masked_beliefs(bel, Y):
+    """该方法为使用 get_beliefs 求解 masked_Y, YY 对应的 node_states,
+    transition_states 的简便方法。
+
+    原因在于，根据 masked_Y 的特征，node_states 求解结果类似于如下：
+    node_states = array([[0., 1.],
+                         [0., 1.],
+                         [0., 1.],
+                         [0., 1.],
+                         [1., 0.],
+                         [0., 1.]])
+    即标签的展开
+
+    transition_states 的求解结果类似于如下：
+    array([[1.03753192e-311, 1.03753191e-311, 1.03738966e-311, 1.03739026e-311],  # 此为第 0 个转移矩阵可忽略
+           [           -inf,            -inf,            -inf, 9.70485326e+001],
+           [           -inf,            -inf,            -inf, 9.70485326e+001],
+           [           -inf,            -inf,            -inf, 9.70485326e+001],
+           [           -inf, 9.70485326e+001,            -inf,            -inf]])
+
+    即其 Z 值为 9.70485326e+001，可求得 sum_edge 为各项加和，因此计算大大简化。
+
+    sum_edge = array([23, 34, 12, 34])
+
+    此时，由于不直接求 Z 与 transition_states，故无法计算损失函数，略过
+
+    Args:
+        bel: 条件转移概率的计算状态
+        Y: 根据特征权重计算得到的 节点特征值
+
+    """
+    node_states = bel.node_states
+    node_num = Y.shape[0]  # 序列节点个数
+    tag_num = Y.shape[1]
+
+    sum_edge = np.zeros(tag_num * tag_num)
+    # pdb.set_trace()
+    for i in range(node_num):
+
+        idx = np.argmax(Y[i])
+        node_states[i][idx] = 1  # 转换为真实概率值
+
+    for i in range(1, node_num):
+        y_pre_idx = np.argmax(node_states[i-1])
+        y_idx = np.argmax(node_states[i])
+
+        sum_edge[y_idx * tag_num + y_pre_idx] += 1
+
+    return sum_edge
 
 
 def run_viterbi(node_score, edge_score):
@@ -213,8 +268,8 @@ def get_log_Y_YY(sequence_feature_list, tag_num, offset, w, scalar):
     # 每个节点的得分，base 为 0
     node_score = np.zeros((node_num, tag_num), dtype=np.float64)
     # 转移矩阵的得分，base 为 1
-    edge_score = np.ones((tag_num, tag_num), dtype=np.float64)
-    # edge_score = np.empty((tag_num, tag_num), dtype=np.float64)
+    # edge_score = np.ones((tag_num, tag_num), dtype=np.float64)
+    edge_score = np.empty((tag_num, tag_num), dtype=np.float64)
 
     for i in range(node_num):
         for s in range(tag_num):
@@ -281,5 +336,5 @@ def get_Y_YY(model, example):
     Y, YY = get_log_Y_YY(example.features, model.n_tag,
                          model.offset, model.w, 1.0)
     masked_Y = mask_Y(example.tags, len(example), model.n_tag, Y)
-    masked_YY = YY  # 对某些标注系统，某个标签转移到另一个标签的概率为 0，此时需要做掩码。但一般情况下，不需要做，模型自己可以学习。
-    return Y, YY, masked_Y, masked_YY
+    # masked_YY = YY  # 对某些标注系统，某个标签转移到另一个标签的概率为 0，此时需要做掩码。但一般情况下，不需要做，模型自己可以学习。
+    return Y, YY, masked_Y
