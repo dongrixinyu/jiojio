@@ -39,87 +39,19 @@ class TrieNode:
         self.children = dict()
 
 
-class PostProcessor(object):
-    """对分词结果后处理"""
-
-    def __init__(self, common_name, other_names):
-        if common_name is None and other_names is None:
-            self.do_process = False
-            return
-
-        self.do_process = True
-        if common_name is None:
-            self.common_words = set()
-        else:
-            # with open(common_name, encoding='utf-8') as f:
-            #     lines = f.readlines()
-            # self.common_words = set(map(lambda x:x.strip(), lines))
-            with open(common_name, "rb") as f:
-                all_words = pkl.load(f).strip().split("\n")
-            self.common_words = set(all_words)
-        if other_names is None:
-            self.other_words = set()
-        else:
-            self.other_words = set()
-            for other_name in other_names:
-                # with open(other_name, encoding='utf-8') as f:
-                #     lines = f.readlines()
-                # self.other_words.update(set(map(lambda x:x.strip(), lines)))
-                with open(other_name, "rb") as f:
-                    all_words = pkl.load(f).strip().split("\n")
-                self.other_words.update(set(all_words))
-
-    def post_process(self, sent, check_seperated):
-        for m in reversed(range(2, 8)):
-            end = len(sent)-m
-            if end < 0:
-                continue
-            i = 0
-            while i < end + 1:
-                merged_words = ''.join(sent[i:i+m])
-                if merged_words in self.common_words:
-                    do_seg = True
-                elif merged_words in self.other_words:
-                    if check_seperated:
-                        seperated = all(((w in self.common_words)
-                                         or (w in self.other_words)) for w in sent[i:i+m])
-                    else:
-                        seperated = False
-                    if seperated:
-                        do_seg = False
-                    else:
-                        do_seg = True
-                else:
-                    do_seg = False
-                if do_seg:
-                    for k in range(m):
-                        del sent[i]
-                    sent.insert(i, merged_words)
-                    i += 1
-                    end = len(sent) - m
-                else:
-                    i += 1
-        return sent
-
-    def __call__(self, sent):
-        if not self.do_process:
-            return sent
-        return self.post_process(sent, check_seperated=True)
-
-
 class jiojio(object):
     def __init__(self, model_name="default_model", user_dict="default", postag=False):
         """初始化函数，加载模型及用户词典"""
         self.postag = postag
 
         if model_name in ["default_model"]:
-            config.train_dir = os.path.join(
+            config.model_dir = os.path.join(
                 os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
                 "models", model_name)
         else:
-            config.train_dir = model_name
+            config.model_dir = model_name
         # pdb.set_trace()
-        self.feature_extractor = FeatureExtractor.load(model_dir=config.train_dir)
+        self.feature_extractor = FeatureExtractor.load(model_dir=config.model_dir)
         self.model = Model.load()
 
         self.idx_to_tag = {
@@ -129,8 +61,7 @@ class jiojio(object):
 
 
         if postag:
-            download_model(
-                config.model_urls["postag"], config.jiojio_home, config.model_hash["postag"])
+            download_model(config.model_urls["postag"], config.jiojio_home)
             postag_dir = os.path.join(config.jiojio_home, "postag")
             self.tagger = Postag(postag_dir)
 
@@ -143,12 +74,16 @@ class jiojio(object):
             node_features = self.feature_extractor.get_node_features(idx, examples)
 
             # 此处考虑，通用未匹配特征 “/”，即索引未 0 的特征
-            # 该行较为耗时
-            # node_feature_idx = [self.feature_extractor.feature_to_idx.get(node_feature, 0)
-            #                     for node_feature in node_features]
-            node_feature_idx = map(lambda i:self.feature_extractor.feature_to_idx.get(i, 0),
-                                   node_features)
-            # pdb.set_trace()
+            node_feature_idx = [self.feature_extractor.feature_to_idx[node_feature]
+                                for node_feature in node_features
+                                if node_feature in self.feature_extractor.feature_to_idx]
+
+            if len(node_feature_idx) != len(node_features):
+                node_feature_idx.append(0)
+
+            # node_feature_idx = map(lambda i:self.feature_extractor.feature_to_idx.get(i, 0),
+            #                        node_features)
+
             all_features.append(node_feature_idx)
 
         tags_idx = decodeViterbi_fast(all_features, self.model)
@@ -162,7 +97,7 @@ class jiojio(object):
             convert_exception=True):
 
         if not text:
-            return ret
+            return list()
 
         norm_text = self.pre_processor(
             text, convert_num_letter=convert_num_letter,
@@ -182,22 +117,20 @@ class jiojio(object):
         return words_list
 
 
-def train(trainFile, testFile, savedir, train_epoch=20, init_model=None):
+def train(train_file, test_file, save_dir, train_epoch=20, init_model=None):
     """用于训练模型"""
     # config = Config()
     starttime = time.time()
-    if not os.path.exists(trainFile):
-        raise Exception("trainfile does not exist.")
-    if not os.path.exists(testFile):
-        raise Exception("testfile does not exist.")
-    if not os.path.exists(config.temp_dir):
-        os.makedirs(config.temp_dir)
-    if not os.path.exists(config.temp_dir + "/output"):
-        os.mkdir(config.temp_dir + "/output")
+    if not os.path.exists(train_file):
+        raise Exception("train_file does not exist.")
+    if not os.path.exists(test_file):
+        raise Exception("test_file does not exist.")
+    if not os.path.exists(config.model_dir):
+        os.makedirs(config.model_dir)
 
-    config.trainFile = trainFile
-    config.testFile = testFile
-    config.train_dir = savedir
+    config.train_file = train_file
+    config.test_file = test_file
+    config.train_dir = save_dir
 
     config.nThread = 1
     config.train_epoch = train_epoch

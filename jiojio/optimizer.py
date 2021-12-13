@@ -44,10 +44,10 @@ class ADF(Optimizer):
 
         random_index = list(range(sample_num))
         random.shuffle(random_index)  # 样本打乱
-        remainder = sample_num % config.miniBatch
+        remainder = sample_num % config.mini_batch
         if remainder != 0:
-            sample_num += (config.miniBatch - remainder)
-            random_index.extend(random_index[:(config.miniBatch - remainder)])
+            sample_num += (config.mini_batch - remainder)
+            random_index.extend(random_index[:(config.mini_batch - remainder)])
 
         return sample_num, random_index
 
@@ -60,9 +60,9 @@ class ADF(Optimizer):
 
         sample_num, random_index = self._tune_reshuffle_samples(config)
 
-        for t in range(0, sample_num, config.miniBatch):
+        for t in range(0, sample_num, config.mini_batch):
             XX = list()
-            for i in random_index[t: t + config.miniBatch]:
+            for i in random_index[t: t + config.mini_batch]:
                 XX.append(self.dataset[i])  # 小 batch 样本
 
             error, feature_set = get_grad_SGD_minibatch(grad, self._model, XX)
@@ -71,7 +71,7 @@ class ADF(Optimizer):
             # update decay rates
             self.decay_rate = config.initial_learning_rate * \
                 np.exp((- self.training_epoch_num - t / sample_num) * config.dropping_rate)
-            if t / config.miniBatch == 50:
+            if t / config.mini_batch == 20:
                 print('\tlr: {:.5f}, grad {}: '.format(self.decay_rate, t),
                       grad[:3], '...', grad[-1])
             # update weights

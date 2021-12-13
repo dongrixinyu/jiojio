@@ -28,19 +28,19 @@ def train(config=None):
 
     # ''' # 构建 特征数据集
     with jio.TimeIt('# build datasets'):
-        feature_extractor.build(config.trainFile)
+        feature_extractor.build(config.train_file)
         feature_extractor.save()
 
     with jio.TimeIt('# make feature files'):
         feature_extractor.convert_text_file_to_feature_file(
-            config.trainFile, config.c_train, config.f_train)
+            config.train_file, config.c_train, config.f_train)
         feature_extractor.convert_text_file_to_feature_file(
-            config.testFile, config.c_test, config.f_test)
+            config.test_file, config.c_test, config.f_test)
 
         feature_extractor.convert_feature_file_to_idx_file(
-            config.f_train, config.fFeatureTrain, config.fGoldTrain)
+            config.f_train, config.feature_train_file, config.gold_train_file)
         feature_extractor.convert_feature_file_to_idx_file(
-            config.f_test, config.fFeatureTest, config.fGoldTest)
+            config.f_test, config.feature_test_file, config.gold_test_file)
     # '''
     # feature_extractor.load(config.train_dir)
 
@@ -48,8 +48,8 @@ def train(config=None):
     print("\nreading training & test data ...")
 
     with jio.TimeIt('loading dataset'):
-        train_set = DataSet.load(config.fFeatureTrain, config.fGoldTrain)
-        test_set = DataSet.load(config.fFeatureTest, config.fGoldTest)
+        train_set = DataSet.load(config.feature_train_file, config.gold_train_file)
+        test_set = DataSet.load(config.feature_test_file, config.gold_test_file)
 
     print("train_set size: {}, test_set size: {}\n".format(len(train_set), len(test_set)))
 
@@ -75,7 +75,7 @@ def train(config=None):
                   train_score_list[0], config.metric, test_score_list[0]))
         print("-" * 50 + "\n")
 
-    if config.save == 1:
+    if config.save:
         trainer.model.save()
 
     print("finished.")
@@ -101,8 +101,7 @@ class Trainer:
 
     def _get_optimizer(self, dataset, model):
         config = self.config
-        if "adf" in config.modelOptimizer:
-            return ADF(config, dataset, model)
+        return ADF(config, dataset, model)
 
         raise ValueError("Invalid Optimizer")
 
@@ -110,12 +109,7 @@ class Trainer:
         return self.optim.optimize()
 
     def test(self, test_set, iteration):
-        func_mapping = {
-            "tok.acc": self._decode_tokAcc,
-            "str.acc": self._decode_strAcc,
-            "f1": self._decode_fscore}
-
-        score_list = func_mapping[config.evalMetric](test_set, self.model)
+        score_list = self._decode_fscore(test_set, self.model)
 
         return score_list
 
