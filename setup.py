@@ -5,47 +5,62 @@ from distutils.extension import Extension
 import numpy as np
 
 
+DIR_PATH = os.path.dirname(os.path.abspath(__file__))
+
+with open(os.path.join(DIR_PATH, 'README.md'),
+          'r', encoding='utf-8') as f:
+    readme_lines = f.readlines()
+    version_pattern = re.compile('badge/version-(\d\.\d+\.\d+)-')
+    for line in readme_lines:
+        result = version_pattern.search(line)
+        if result is not None:
+            __version__ = result.group(1)
+
+    LONG_DOC = '\n'.join(readme_lines)
+
+
 def is_source_release(path):
     return os.path.exists(os.path.join(path, "PKG-INFO"))
 
 
 def setup_package():
-    root = os.path.abspath(os.path.dirname(__file__))
 
-    long_description = "pkuseg-python"
+    with open('')
+    long_description = "jiojio: a convenient Chinese word segmentation tool"
 
+    '''
     extensions = [
         Extension(
-            "pkuseg.inference",
-            ["pkuseg/inference.pyx"],
+            "jiojio.inference",
+            ["jiojio/inference.pyx"],
             include_dirs=[np.get_include()],
             language="c++"
         ),
         Extension(
-            "pkuseg.feature_extractor",
-            ["pkuseg/feature_extractor.pyx"],
+            "jiojio.feature_extractor",
+            ["jiojio/feature_extractor.pyx"],
             include_dirs=[np.get_include()],
         ),
         Extension(
-            "pkuseg.postag.feature_extractor",
-            ["pkuseg/postag/feature_extractor.pyx"],
+            "jiojio.postag.feature_extractor",
+            ["jiojio/postag/feature_extractor.pyx"],
             include_dirs=[np.get_include()],
         ),
     ]
-    
-    if not is_source_release(root):
+
+    if not is_source_release(DIR_PATH):
         from Cython.Build import cythonize
         extensions = cythonize(extensions, annotate=True)
-
+    '''
     setuptools.setup(
-        name="pkuseg",
-        version="0.0.25",
-        author="Lanco",
-        author_email="luoruixuan97@pku.edu.cn",
-        description="A small package for Chinese word segmentation",
+        name="jiojio",
+        version="0.0.1",
+        author="dongrixinyu",
+        author_email="dongrixinyu.89@163.com",
+        description="jiojio: a convenient Chinese word segmentation tool",
         long_description=long_description,
         long_description_content_type="text/markdown",
-        url="https://github.com/lancopku/pkuseg-python",
+        url="https://github.com/dongrixinyu/jiojio",
         packages=setuptools.find_packages(),
         package_data={"": ["*.txt*", "*.pkl", "*.npz", "*.pyx", "*.pxd"]},
         classifiers=[
@@ -55,7 +70,7 @@ def setup_package():
         ],
         install_requires=["cython", "numpy>=1.16.0"],
         setup_requires=["cython", "numpy>=1.16.0"],
-        ext_modules=extensions,
+        # ext_modules=extensions,
         zip_safe=False,
     )
 

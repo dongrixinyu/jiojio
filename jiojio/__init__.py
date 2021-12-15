@@ -6,12 +6,9 @@ import sys
 import os
 import pdb
 import time
-import pickle as pkl
 import multiprocessing
 
 from multiprocessing import Process, Queue
-
-import jionlp as jio
 
 from .util import set_logger
 
@@ -23,6 +20,19 @@ import jiojio.trainer as trainer
 from jiojio.config import config
 # from jiojio.postag import Postag
 from jiojio.predict_text import PredictText
+
+
+global obj
+
+
+def init():
+    obj = PredictText()
+    return obj
+
+
+def cut(text):
+    words = obj.cut(text)
+    return words
 
 
 def train(train_file, test_file, train_dir, train_epoch=20):

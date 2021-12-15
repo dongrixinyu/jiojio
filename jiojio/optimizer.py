@@ -35,7 +35,6 @@ class SGD(Optimizer):
         self._model = model
         self.dataset = dataset
         self.decay_rate = config.initial_learning_rate
-        # self.training_batch_num = 0  # 计算训练 batch 数
         self.training_epoch_num = 0  # 计算训练轮数
 
     def _tune_reshuffle_samples(self, config):
