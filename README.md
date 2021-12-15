@@ -1,4 +1,17 @@
 # jiojio
+<p align="center">
+    <a alt="License">
+        <img src="https://img.shields.io/github/license/dongrixinyu/jiojio?color=crimson" /></a>
+    <a alt="Size">
+        <img src="https://img.shields.io/badge/size-30.1m-orange" /></a>
+    <a alt="Downloads">
+        <img src="https://img.shields.io/badge/downloads-10-yellow" /></a>
+    <a alt="Version">
+        <img src="https://img.shields.io/badge/version-0.0.1-green" /></a>
+    <a href="https://github.com/dongrixinyu/jiojio/pulse" alt="Activity">
+        <img src="https://img.shields.io/github/commit-activity/m/dongrixinyu/jiojio?color=blue" /></a>
+</p>
+
 a convenient Chinese word segmentation tool 简便中文分词器
 
 # 适用场景
