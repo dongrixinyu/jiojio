@@ -92,6 +92,8 @@ def tag2word(char_list: List[str], tags: List[str], verbose=False):
     Examples:
         >>> char_list = ['他', '指', '出', '：', '近', '几', '年', '来', '，', '足', '球', '场', '风', '气', '差', '劲', '。']
         >>> tags = ['B', 'B', 'I', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'I', 'I', 'B', 'I', 'B', 'I', 'B']
+        # for speeding up, `tags` been modified to the following format
+        >>> tags = [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0]
         >>> print(jio.cws.tag2word(char_list, tags))
 
         # ["他", "指出", "：", "近", "几", "年", "来", "，", "足球场", "风气", "差劲", "。"]
@@ -106,7 +108,7 @@ def tag2word(char_list: List[str], tags: List[str], verbose=False):
 
     for idx, (tag, char) in enumerate(zip(tags, char_list)):
 
-        if tag == 'I':
+        if tag == 1:  # tag == 'I'
             if idx == 0:
                 _wrong_message(idx, tags, verbose)
                 start = idx
@@ -115,7 +117,7 @@ def tag2word(char_list: List[str], tags: List[str], verbose=False):
                 word = ''.join(char_list[start:])
             else:
                 continue
-        elif tag == 'B':
+        elif tag == 0:  # tag == 'B'
             if idx == 0:
                 start = idx
                 continue
@@ -134,6 +136,6 @@ def tag2word(char_list: List[str], tags: List[str], verbose=False):
 
         word_list.append(word)
 
-    assert len(''.join(word_list)) == chars_length, \
-        'the length of char list must be same.'
+    # assert len(''.join(word_list)) == chars_length, \
+    #     'the length of char list must be same.'
     return word_list

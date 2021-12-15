@@ -40,12 +40,6 @@ class Model(object):
         self.n_transition_feature = new_transition_feature
         self.w = new_w
 
-    def _get_node_tag_feature_id(self, feature_id, tag_id):
-        return feature_id * self.n_tag + tag_id
-
-    def _get_tag_tag_feature_id(self, pre_tag_id, tag_id):
-        return self.offset + tag_id * self.n_tag + pre_tag_id
-
     @classmethod
     def load(cls, model_dir=None):
         if model_dir is None:

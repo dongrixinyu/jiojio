@@ -77,8 +77,7 @@ class ADF(Optimizer):
             # update weights
             self._model.w -= self.decay_rate * grad
 
-            # regularization
-            if config.regularization != 0:
+            if config.regularization:
                 # 参数正则化，该公式，对大参数值的惩罚越大
                 r2 = self.decay_rate * self._model.w
                 # print('\tsum(abs(regular)): {:.4f}'.format(abs(r2).sum()))
