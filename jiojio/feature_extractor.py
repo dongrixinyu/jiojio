@@ -11,7 +11,8 @@ from collections import Counter
 import jionlp as jio
 
 from jiojio import logging
-from jiojio import unzip_file
+from jiojio.tag_words_converter import word2tag
+from jiojio.util import unzip_file
 from jiojio.config import config
 from jiojio.tag_words_converter import tag2word
 from jiojio.pre_processor import PreProcessor
@@ -78,7 +79,7 @@ class FeatureExtractor(object):
         bigrams = Counter()  # 计算各个 bigrams 出现次数，避免罕见 bigram 进入计数
         for sample_idx, words in enumerate(jio.read_file_by_iter(train_file)):
 
-            if sample_idx % 10000 == 0:
+            if sample_idx % 100000 == 0:
                 print(sample_idx)
             # first pass to collect unigram and bigram and tag info
             word_length_info.update(map(len, words))
@@ -138,14 +139,19 @@ class FeatureExtractor(object):
         feature_set = (feature for feature, freq in feature_freq.most_common()
                        if freq > config.feature_trim)
 
-        self.feature_to_idx = {feature: idx for idx, feature in enumerate(feature_set, 1)}
+        self.feature_to_idx = {feature: idx for idx, feature in enumerate(feature_set, 3)}
+        # 特殊 token 须加入，如 空特征，起始特征，结束特征等
         self.feature_to_idx.update({self.empty_feature: 0})  # 空特征更新为第一个
+        self.feature_to_idx.update({self.start_feature: 1})
+        self.feature_to_idx.update({self.end_feature: 2})
         print('# true feature_num: {}'.format(len(self.feature_to_idx)))
 
         # create tag map
         B, B_single, I_first, I, I_end = FeatureExtractor._create_label()
         tag_set = {B, B_single, I_first, I, I_end}
         self.tag_to_idx = {tag: idx for idx, tag in enumerate(sorted(tag_set))}
+        assert self.tag_to_idx == {'B': 0, 'I': 1}, \
+            'tag map must be like this for speeding up inferencing.'
         # self.idx_to_tag = FeatureExtractor._reverse_dict(self.tag_to_idx)
 
     def get_node_features(self, idx, token_list):
@@ -200,7 +206,7 @@ class FeatureExtractor(object):
             feature_list.append(self.char_next_1_2 + token_list[idx + 1] + self.delim + token_list[idx + 2])
 
         # no num/letter based features
-        if not config.wordFeature:
+        if not config.word_feature:
             return feature_list
 
         # 2 * (wordMax-wordMin+1) word features (default: 2*(6-2+1)=10 )
@@ -315,19 +321,19 @@ class FeatureExtractor(object):
 
     @staticmethod
     def _create_label():
-        if config.nLabel == 2:
+        if config.label_num == 2:
             B = B_single = "B"
             I_first = I = I_end = "I"
-        elif config.nLabel == 3:
+        elif config.label_num == 3:
             B = B_single = "B"
             I_first = I = "I"
             I_end = "I_end"
-        elif config.nLabel == 4:
+        elif config.label_num == 4:
             B = "B"
             B_single = "B_single"
             I_first = I = "I"
             I_end = "I_end"
-        elif config.nLabel == 5:
+        elif config.label_num == 5:
             B = "B"
             B_single = "B_single"
             I_first = "I_first"

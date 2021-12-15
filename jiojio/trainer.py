@@ -75,8 +75,7 @@ def train(config=None):
                   train_score_list[0], config.metric, test_score_list[0]))
         print("-" * 50 + "\n")
 
-    if config.save:
-        trainer.model.save()
+    trainer.model.save()
 
     print("finished.")
 

@@ -217,12 +217,11 @@ def run_viterbi(node_score, edge_score):
     max_score[node_num - 1] = node_score[node_num - 1]
 
     for i in range(node_num - 2, -1, -1):
-        i_pre = i + 1
-        for y in range(tag_num):
+        for y in range(tag_num):  # tag 数量少有助于加速模型计算
             flag = True
 
             for y_pre in range(tag_num):
-                cur_score = max_score[i_pre, y_pre] + \
+                cur_score = max_score[i + 1, y_pre] + \
                     node_score[i, y] + edge_score[y, y_pre]
 
                 if flag:
@@ -244,7 +243,7 @@ def run_viterbi(node_score, edge_score):
     return states
 
 
-def get_log_Y_YY(sequence_feature_list, tag_num, offset, w, scalar):
+def get_log_Y_YY(sequence_feature_list, tag_num, offset, w):
     """根据模型的参数，以及 x 序列，匹配得到特征值，计算得到两个矩阵
     node_score 和 transition_score，即每个节点，对应各个标签的得分。
 
@@ -261,13 +260,12 @@ def get_log_Y_YY(sequence_feature_list, tag_num, offset, w, scalar):
         num_tag: 标签个数，比如，B、I，其标签数为 2
         offset: 特征数与标签数的乘积，为寻找转移特征的偏移量
         w: 模型参数
-        scalar: 尺度标量
 
     """
     node_num = len(sequence_feature_list)
     # 每个节点的得分，base 为 0
     node_score = np.zeros((node_num, tag_num), dtype=np.float64)
-    # 转移矩阵的得分，base 为 1
+    # 转移矩阵的得分，base 为 1，其实没必要
     # edge_score = np.ones((tag_num, tag_num), dtype=np.float64)
     edge_score = np.empty((tag_num, tag_num), dtype=np.float64)
 
@@ -275,7 +273,7 @@ def get_log_Y_YY(sequence_feature_list, tag_num, offset, w, scalar):
         for s in range(tag_num):
             for node_feature in sequence_feature_list[i]:
                 f = node_feature * tag_num + s  # 找到特征在 w 中的位置
-                node_score[i, s] += w[f]  # * scalar
+                node_score[i, s] += w[f]  # * scalar，尺度标量已被剔除，无用
 
     for s in range(tag_num):
         for s_pre in range(tag_num):
@@ -317,7 +315,7 @@ def log_sum_exp(a):
 
 def decodeViterbi_fast(features_list, model):
     Y, YY = get_log_Y_YY(features_list, model.n_tag,
-                         model.offset, model.w, 1.0)
+                         model.offset, model.w)
     tags = run_viterbi(Y, YY)
     # tags = list(tags)
     return tags
@@ -334,7 +332,7 @@ def get_Y_YY(model, example):
 
     """
     Y, YY = get_log_Y_YY(example.features, model.n_tag,
-                         model.offset, model.w, 1.0)
+                         model.offset, model.w)
     masked_Y = mask_Y(example.tags, len(example), model.n_tag, Y)
     # masked_YY = YY  # 对某些标注系统，某个标签转移到另一个标签的概率为 0，此时需要做掩码。但一般情况下，不需要做，模型自己可以学习。
     return Y, YY, masked_Y
