@@ -1,7 +1,5 @@
-# from .config import config
-# from .feature import *
-# from .data_format import *
-# from .toolbox import *
+# -*- coding=utf-8 -*-
+
 import os
 import pdb
 import time
@@ -10,13 +8,14 @@ from multiprocessing import Process, Queue
 import jionlp as jio
 
 from jiojio.config import Config, config
+from jiojio import TimeIt
 from jiojio.data import DataSet
 from jiojio.feature_extractor import FeatureExtractor
 
 # from .feature_generator import *
 from jiojio.model import Model
 from jiojio.inference import decodeViterbi_fast
-from jiojio.optimizer import ADF
+from jiojio.optimizer import SGD
 from jiojio.scorer import F1_score
 
 
@@ -45,7 +44,6 @@ def train(config=None):
     # feature_extractor.load(config.train_dir)
 
     print("\nstart training ...")
-    print("\nreading training & test data ...")
 
     with jio.TimeIt('loading dataset'):
         train_set = DataSet.load(config.feature_train_file, config.gold_train_file)
@@ -55,24 +53,33 @@ def train(config=None):
 
     trainer = Trainer(config, train_set, feature_extractor)
 
-    time_list = list()
-
     for i in range(config.train_epoch):
         print('- epoch {}:'.format(i))
-        with jio.TimeIt('training epoch {}'.format(i), no_print=True) as ti:
+        with jio.TimeIt('training epoch {}'.format(i)):
             err, diff = trainer.train_epoch()
-            time_list.append(ti.break_point())
 
         # 测试
-        print('# train_set:')
-        train_score_list = trainer.test(train_set, i)
-        print('# test_set:')
-        test_score_list = trainer.test(test_set, i)
+        with TimeIt('loading valid dataset'):
+            if i != config.train_epoch - 1:  # 最后一个 epoch 用全量
+                sample_ratio = 1
+            else:
+                sample_ratio = 0.1
 
-        print("- epoch {}  diff={:.4f}  error={:.4f} train-time(s)={:.2f} \n" \
-              "\ttrain {}={:.2f}%  test {}={:.2f}%".format(
-                  i, diff, err, time_list[-1], config.metric,
-                  train_score_list[0], config.metric, test_score_list[0]))
+            train_valid_set = DataSet.load(
+                config.feature_train_file, config.gold_train_file, sample_ratio=sample_ratio)
+            test_valid_set = DataSet.load(
+                config.feature_test_file, config.gold_test_file, sample_ratio=sample_ratio)
+
+        with TimeIt('Testing'):
+            print('# train_set:')
+            train_score_list = trainer.test(train_valid_set)
+            print('# test_set:')
+            test_score_list = trainer.test(test_valid_set)
+
+        print("- epoch {}  diff={:.4f}  error={:.4f} \n" \
+              "\tmetric={} train {:.2f}%  test {:.2f}%".format(
+                  i, diff, err, config.metric,
+                  train_score_list[0], test_score_list[0]))
         print("-" * 50 + "\n")
 
     trainer.model.save()
@@ -80,7 +87,8 @@ def train(config=None):
     print("finished.")
 
 
-class Trainer:
+class Trainer(object):
+
     def __init__(self, config, dataset, feature_extractor):
         self.config = config
         self.X = dataset
@@ -100,17 +108,10 @@ class Trainer:
 
     def _get_optimizer(self, dataset, model):
         config = self.config
-        return ADF(config, dataset, model)
-
-        raise ValueError("Invalid Optimizer")
+        return SGD(config, dataset, model)
 
     def train_epoch(self):
         return self.optim.optimize()
-
-    def test(self, test_set, iteration):
-        score_list = self._decode_fscore(test_set, self.model)
-
-        return score_list
 
     def _decode(self, test_set: DataSet, model: Model):
         if config.nThread == 1:
@@ -158,111 +159,36 @@ class Trainer:
         for p in procs:
             p.join()
 
-    # token accuracy
-    def _decode_tokAcc(self, dataset, model):
-
-        self._decode(dataset, model)
-        n_tag = model.n_tag
-        all_correct = [0] * n_tag
-        all_pred = [0] * n_tag
-        all_gold = [0] * n_tag
-
-        for example in dataset:
-            pred = example.predicted_tags
-            gold = example.tags
-
-            print(",".join(map(str, pred)))
-            print()
-
-            for pred_tag, gold_tag in zip(pred, gold):
-                all_pred[pred_tag] += 1
-                all_gold[gold_tag] += 1
-                if pred_tag == gold_tag:
-                    all_correct[gold_tag] += 1
-
-        print("% tag-type  #gold  #output  #correct-output  token-precision  "
-              "token-recall  token-f-score\n")
-        sumGold = 0
-        sumOutput = 0
-        sumCorrOutput = 0
-
-        for i, (correct, gold, pred) in enumerate(
-                zip(all_correct, all_gold, all_pred)):
-            sumGold += gold
-            sumOutput += pred
-            sumCorrOutput += correct
-
-            if gold == 0:
-                rec = 0
-            else:
-                rec = correct * 100.0 / gold
-
-            if pred == 0:
-                prec = 0
-            else:
-                prec = correct * 100.0 / pred
-
-            print("% {}:  {}  {}  {}  {:.2f}  {:.2f}  {:.2f}\n".format(
-                i, gold, pred, correct, prec, rec,
-                (2 * prec * rec / (prec + rec))))
-
-        if sumGold == 0:
-            rec = 0
-        else:
-            rec = sumCorrOutput * 100.0 / sumGold
-        if sumOutput == 0:
-            prec = 0
-        else:
-            prec = sumCorrOutput * 100.0 / sumOutput
-
-        if prec == 0 and rec == 0:
-            fscore = 0
-        else:
-            fscore = 2 * prec * rec / (prec + rec)
-
-        print("% overall-tags:  {}  {}  {}  {:.2f}  {:.2f}  {:.2f}\n".format(
-            sumGold, sumOutput, sumCorrOutput, prec, rec, fscore))
-        return [fscore]
-
-    def _decode_strAcc(self, dataset, model):
-
-        self._decode(dataset, model)
-
-        correct = 0
-        total = len(dataset)
-
-        for example in dataset:
-            pred = example.predicted_tags
-            gold = example.tags
-
-            print(",".join(map(str, pred)))
-            print()
-
-            for pred_tag, gold_tag in zip(pred, gold):
-                if pred_tag != gold_tag:
-                    break
-            else:
-                correct += 1
-
-        acc = correct / total * 100.0
-        print("total-tag-strings={}  correct-tag-strings={}  string-accuracy={}%".format(
-            total, correct, acc))
-        return [acc]
-
-    def _decode_fscore(self, dataset, model):
-        self._decode(dataset, model)
+    def test(self, dataset):
+        self._decode(dataset, self.model)
 
         gold_tags = list()
         pred_tags = list()
 
+        sample_wrong = 0
+        token_wrong = 0
+        token_total = 0
         for example in dataset:
             pred_tags.append(example.predicted_tags)
             gold_tags.append(example.tags)
 
+            flag = False
+            for pred_tag, gold_tag in zip(example.predicted_tags, example.tags):
+                if pred_tag != gold_tag:
+                    flag = True
+                    token_wrong += 1
+
+            token_total += len(example.tags)
+            if flag:
+                sample_wrong += 1  # 样本错误
+
         score_list, info_list = F1_score(gold_tags, pred_tags, self.idx_to_chunk_tag)
         print("\t# gold-num={}  output-num={}  correct-num={}\n"
-              "\t# precision={:.2f}%  recall={:.2f}%  f-score={:.2f}%\n".format(
+              "\t# precision={:.2f}%  recall={:.2f}%  f-score={:.2f}%\n"
+              "\t# token_acc={:.2f}%  sample_acc={:.2f}%\n".format(
                   info_list[0], info_list[1], info_list[2],
-                  score_list[1], score_list[2], score_list[0]))
+                  score_list[1], score_list[2], score_list[0],
+                  (token_total - token_wrong) / token_total,
+                  (len(dataset) - sample_wrong) / len(dataset)))
 
         return score_list

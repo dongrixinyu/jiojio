@@ -22,6 +22,7 @@ logging = set_logger(level='INFO', log_dir_name='.jiojio_logs')
 import jiojio.trainer as trainer
 from jiojio.config import config
 # from jiojio.postag import Postag
+from jiojio.predict_text import PredictText
 
 
 def train(train_file, test_file, train_dir, train_epoch=20):
@@ -52,7 +53,7 @@ def _test_single_proc(input_file, output_file, model_name="default_model",
 
     start_time = time.time()
     with jio.TimeIt('# loading model'):
-        seg = jiojio(model_name, user_dict, postag=postag)
+        seg = PredictText(model_name, user_dict, postag=postag)
 
     if not os.path.exists(input_file):
         raise Exception("input_file {} does not exist.".format(input_file))
@@ -124,7 +125,7 @@ def _test_multi_proc(input_file, nthread, model_name="default_model",
     if alt:
         seg = None
     else:
-        seg = jiojio(model_name, user_dict, postag)
+        seg = PredictText(model_name, user_dict, postag)
 
     times.append(time.time())
     if not os.path.exists(input_file):

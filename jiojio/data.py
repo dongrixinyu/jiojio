@@ -1,7 +1,6 @@
 # -*- coding=utf-8 -*-
 
 import pdb
-import copy
 import random
 
 
@@ -42,8 +41,18 @@ class DataSet(object):
         return dataset
 
     @classmethod
-    def load(cls, feature_idx_file, tag_idx_file):
+    def load(cls, feature_idx_file, tag_idx_file, sample_ratio=1.0):
+        """ 从文件加载数据集.
+
+        Args:
+            feature_idx_file(str): 特征文件，即 X
+            tag_idx_file(str): 标签文件，即 Y
+            sample_ratio(float): 欲从文件中取出的样本数量占全量比例，主要用于在训练
+                过程中仅对部分数据集作验证，若为 1.0，则全部取出。
+
+        """
         dataset = cls.__new__(cls)
+        assert 0.0 < sample_ratio <= 1.0
 
         with open(feature_idx_file, encoding="utf-8") as f_reader:
             example_strs = f_reader.read().split("\n\n")[:-1]
@@ -63,6 +72,10 @@ class DataSet(object):
         dataset.samples = list()
 
         for example_str, tags_str in zip(example_strs[1:], tags_strs[1:]):
+            if sample_ratio != 1.0:
+                if random.random() > sample_ratio:
+                    continue
+
             features = [list(map(int, feature_line.split(",")))
                         for feature_line in example_str.split("\n")]
             tags = tags_str.split(",")
@@ -72,7 +85,7 @@ class DataSet(object):
         return dataset
 
 
-class Example:
+class Example(object):
     def __init__(self, features, tags):
         self.features = features  # List[List[int]]
         self.tags = list(map(int, tags))  # List[int]

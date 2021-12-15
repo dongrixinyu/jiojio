@@ -27,7 +27,7 @@ class Config:
 
         # training params
         self.initial_learning_rate = 0.05  # 梯度初始值
-        self.dropping_rate = 0.8  # 维持学习速率，越大则下降越快(0~1)
+        self.dropping_rate = 0.8  # 维持学习速率，越大则下降越快(0~1) 推荐(0.7~0.999)
         self.random = 1  # 0 for 0-init of model weights, 1 for random init of model weights
         self.train_epoch = 20  # training iterations
         self.mini_batch = 2000  # mini-batch in stochastic training
