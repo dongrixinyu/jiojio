@@ -26,7 +26,7 @@ class Optimizer(object):
         raise NotImplementedError()
 
 
-class ADF(Optimizer):
+class SGD(Optimizer):
     def __init__(self, config, dataset, model):
         super().__init__()
 
