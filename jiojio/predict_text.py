@@ -1,6 +1,7 @@
 # -*- coding=utf-8 -*-
 
 import os
+import pdb
 
 from jiojio.tag_words_converter import tag2word
 from jiojio.lexicon_cut import LexiconCut
@@ -12,17 +13,20 @@ from jiojio.model import Model
 
 
 class PredictText(object):
-    def __init__(self, model_name="default_model", user_dict="default", postag=False):
+    """ 预测文本，用于对外暴露接口
+    """
+    def __init__(self, config, model_name=None,
+                 user_dict="default", pos=False):
         """初始化函数，加载模型及用户词典"""
-        self.postag = postag
+        self.pos = pos
 
-        if model_name in ["default_model"]:
+        if model_name is None:
             config.model_dir = os.path.join(
                 os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-                "models", model_name)
+                "models/default_model")
         else:
             config.model_dir = model_name
-        # pdb.set_trace()
+
         self.feature_extractor = FeatureExtractor.load(model_dir=config.model_dir)
         self.model = Model.load()
 
@@ -31,8 +35,7 @@ class PredictText(object):
 
         self.pre_processor = PreProcessor()
 
-
-        if postag:
+        if pos:
             download_model(config.model_urls["postag"], config.jiojio_home)
             postag_dir = os.path.join(config.jiojio_home, "postag")
             self.tagger = Postag(postag_dir)
@@ -46,9 +49,10 @@ class PredictText(object):
             node_features = self.feature_extractor.get_node_features(idx, examples)
 
             # 此处考虑，通用未匹配特征 “/”，即索引未 0 的特征
-            node_feature_idx = [self.feature_extractor.feature_to_idx[node_feature]
-                                for node_feature in node_features
-                                if node_feature in self.feature_extractor.feature_to_idx]
+            node_feature_idx = [
+                self.feature_extractor.feature_to_idx[node_feature]
+                for node_feature in node_features
+                if node_feature in self.feature_extractor.feature_to_idx]
 
             if len(node_feature_idx) != len(node_features):
                 node_feature_idx.append(0)
@@ -79,11 +83,7 @@ class PredictText(object):
         tags = self._cut(norm_text)
 
         words_list = tag2word(text, tags)
-        if self.postag:
+        if self.pos:
             tags = self.tagger.tag(ret.copy())
-            for i, user_tag in enumerate(user_tags):
-                if user_tag:
-                    tags[i] = user_tag
-            ret = list(zip(ret, tags))
 
         return words_list

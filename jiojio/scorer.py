@@ -23,8 +23,8 @@ def F1_score(gold_tags_list, pred_tags_list, idx_to_chunk_tag):
             if im in gold_chunk_list[i]:
                 correct_chunk_num += 1
 
-    precision = correct_chunk_num / pred_chunk_num * 100
-    recall = correct_chunk_num / gold_chunk_num * 100
+    precision = correct_chunk_num / pred_chunk_num
+    recall = correct_chunk_num / gold_chunk_num
     f1 = 0 if correct_chunk_num == 0 else 2 * precision * recall / (precision + recall)
 
     score_list = [f1, precision, recall]

@@ -8,12 +8,8 @@ import pdb
 import sys
 from collections import Counter
 
-import jionlp as jio
-
-from jiojio import logging
+from jiojio import logging, TimeIt, unzip_file, read_file_by_iter, config
 from jiojio.tag_words_converter import word2tag
-from jiojio.util import unzip_file
-from jiojio.config import config
 from jiojio.tag_words_converter import tag2word
 from jiojio.pre_processor import PreProcessor
 
@@ -77,7 +73,7 @@ class FeatureExtractor(object):
 
         unigrams = Counter()  # 计算各个 unigrams 出现次数，避免罕见 unigram 进入计数
         bigrams = Counter()  # 计算各个 bigrams 出现次数，避免罕见 bigram 进入计数
-        for sample_idx, words in enumerate(jio.read_file_by_iter(train_file)):
+        for sample_idx, words in enumerate(read_file_by_iter(train_file)):
 
             if sample_idx % 100000 == 0:
                 print(sample_idx)
@@ -95,8 +91,7 @@ class FeatureExtractor(object):
             unigrams.update(words)
 
             for pre, suf in zip(words[:-1], words[1:]):
-                # self.bigram.add("{}*{}".format(pre, suf))
-                bigrams.update("{}*{}".format(pre, suf))
+                bigrams.update(["{}*{}".format(pre, suf)])
 
             # second pass to get features
             for idx in range(len(example)):
@@ -353,7 +348,7 @@ class FeatureExtractor(object):
 
         with open(conll_file, "w", encoding="utf8") as c_writer, \
                 open(feature_file, "w", encoding="utf8") as f_writer:
-            for words in jio.read_file_by_iter(text_file):
+            for words in read_file_by_iter(text_file):
                 # 对文本进行归一化和整理
                 if config.norm_text:
                     words = [self.pre_processor(word, convert_exception=True,

@@ -3,7 +3,8 @@
 """
 方法说明：
     0、该方法用在训练数据集处理、推断文本预处理阶段，可以减少模型复杂度，减少罕见字符特征的训练，提高模型的稳定性。
-    1、该方法主要正规化 数字、英文字母，全半角空格等符号；正规化罕见字符与、日、俄等假名、西里尔字母等信息。
+    1、该方法主要正规化 数字、英文字母，全半角空格等符号；正规化无多个语言功能的标点符号；
+        正规化罕见字符与、日、俄等假名、西里尔字母等信息。
     2、该方法强调处理速度，以最大速率对文本进行归一化，耗时评估见下。
 
 耗时评估：
@@ -25,6 +26,10 @@ class PreProcessor(object):
 
     def __init__(self):
 
+        # 归一化标点符号，将确定性的标点进行替换，而非确定性标点，
+        # 如 “.”不仅仅可以作为句子结尾，还可作为数字小数点，因此不可进行标点归一化
+        punctuation = '。，、；！？：“”—《》（）…'
+
         # 归一化字符，数字、英文字母 -> 7\Z
         num = '0123456789几二三四五六七八九十千万亿兆零１２３４５６７８９０①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳' \
               '⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒇⒈⒉⒊⒋⒌⒍⒎⒏⒐⒑⒒⒓⒔⒕⒖⒗⒘⒙⒚⒛㈠㈡㈢㈣㈤㈥㈦㈧㈨㈩'  # 缺 百、一
@@ -37,8 +42,9 @@ class PreProcessor(object):
                  'ⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩ'
         space = '　'
         converted_space = ' '
-        self.num_letter_space_norm_translation = str.maketrans(
-            num + letter + space, '7' * len(num) + 'Z' * len(letter) + converted_space)
+        self.num_letter_space_punc_norm_translation = str.maketrans(
+            num + letter + space + punctuation,
+            '7' * len(num) + 'Z' * len(letter) + converted_space + len(punctuation) * '。')
 
         # 归一化非异常、罕见字符 -> 井字符 #
 
@@ -63,17 +69,17 @@ class PreProcessor(object):
                  'ⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩ'
         converted_letter = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz' \
                            'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
-        self.num_letter_token_translation = str.maketrans(
-            num + letter + space,
-            converted_num + converted_letter + converted_space)
+        self.num_letter_punc_token_translation = str.maketrans(
+            num + letter + space + punctuation,
+            converted_num + converted_letter + converted_space + len(punctuation) * '。')
 
     def __call__(self, text, convert_num_letter=True, normalize_num_letter=True,
                  convert_exception=True):
         if normalize_num_letter:
-            text = text.translate(self.num_letter_space_norm_translation)
+            text = text.translate(self.num_letter_space_punc_norm_translation)
         elif convert_num_letter:
             # 若正规化所有数字、字母，则全半角、符号等失去意义
-            text = text.translate(self.num_letter_token_translation)
+            text = text.translate(self.num_letter_punc_token_translation)
 
         if convert_exception:
             text = self.exception_token_pattern.sub('ん', text)
@@ -103,7 +109,7 @@ class PreProcessor(object):
             text = text.translate(self.num_letter_space_norm_translation)
         elif convert_num_letter:
             # 若正规化所有数字、字母，则全半角、符号等失去意义
-            text = text.translate(self.num_letter_token_translation)
+            text = text.translate(self.num_letter_punc_token_translation)
 
         if convert_exception:
             text = self.exception_token_pattern.sub('ん', text)
@@ -113,8 +119,8 @@ class PreProcessor(object):
 if __name__ == '__main__':
 
     import pdb
+    # from jiojio import TimeIt
     import jionlp as jio
-
     text = '''0123456789几二三四五六七八九十千万亿兆零１２３４５６７８９０①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳' \
               '⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒇⒈⒉⒊⒋⒌⒍⒎⒏⒐⒑⒒⒓⒔⒕⒖⒗⒘⒙⒚⒛㈠㈡㈢㈣㈤㈥㈦㈧㈨㈩'  # 缺 百、一
         letter = 'ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ' \

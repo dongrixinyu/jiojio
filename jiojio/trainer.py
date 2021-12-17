@@ -3,34 +3,29 @@
 import os
 import pdb
 import time
+import numpy as np
 from multiprocessing import Process, Queue
 
-import jionlp as jio
-
-from jiojio.config import Config, config
-from jiojio import TimeIt
+from jiojio import TimeIt, config
 from jiojio.data import DataSet
 from jiojio.feature_extractor import FeatureExtractor
 
-# from .feature_generator import *
 from jiojio.model import Model
 from jiojio.inference import decodeViterbi_fast
 from jiojio.optimizer import SGD
 from jiojio.scorer import F1_score
 
 
-def train(config=None):
-    if config is None:
-        config = Config()
+def train(config):
 
     feature_extractor = FeatureExtractor()
 
     # ''' # 构建 特征数据集
-    with jio.TimeIt('# build datasets'):
+    with TimeIt('# build datasets'):
         feature_extractor.build(config.train_file)
         feature_extractor.save()
 
-    with jio.TimeIt('# make feature files'):
+    with TimeIt('# make feature files'):
         feature_extractor.convert_text_file_to_feature_file(
             config.train_file, config.c_train, config.f_train)
         feature_extractor.convert_text_file_to_feature_file(
@@ -45,7 +40,7 @@ def train(config=None):
 
     print("\nstart training ...")
 
-    with jio.TimeIt('loading dataset'):
+    with TimeIt('loading dataset'):
         train_set = DataSet.load(config.feature_train_file, config.gold_train_file)
         test_set = DataSet.load(config.feature_test_file, config.gold_test_file)
 
@@ -55,7 +50,7 @@ def train(config=None):
 
     for i in range(config.train_epoch):
         print('- epoch {}:'.format(i))
-        with jio.TimeIt('training epoch {}'.format(i)):
+        with TimeIt('training epoch {}'.format(i)):
             err, diff = trainer.train_epoch()
 
         # 测试
@@ -63,7 +58,7 @@ def train(config=None):
             if i != config.train_epoch - 1:  # 最后一个 epoch 用全量
                 sample_ratio = 1
             else:
-                sample_ratio = 0.1
+                sample_ratio = 0.1  # 仅用全数据量的 5% 做训练中验证
 
             train_valid_set = DataSet.load(
                 config.feature_train_file, config.gold_train_file, sample_ratio=sample_ratio)
@@ -76,10 +71,18 @@ def train(config=None):
             print('# test_set:')
             test_score_list = trainer.test(test_valid_set)
 
-        print("- epoch {}  diff={:.4f}  error={:.4f} \n" \
-              "\tmetric={} train {:.2f}%  test {:.2f}%".format(
-                  i, diff, err, config.metric,
-                  train_score_list[0], test_score_list[0]))
+            # 计算所有参数的最大值，平均值，中位值，确保模型的参数稳定
+            max_weight = np.max(trainer.model.w)
+            min_weight = np.min(trainer.model.w)
+            average_weight = np.sum(trainer.model.w) / len(trainer.model.w)
+            average_abs_weight = np.sum(np.abs(trainer.model.w)) / len(trainer.model.w)
+
+        print("- epoch {}: \n"
+              "\t- diff={:.4f}  error={:.4f}\n"
+              "\t- max-weight={:.4f}  min-weight={:.4f}\n"
+              "\t  average-weight={:.4f}  average-abs-weight={:.4f}".format(
+                  i, diff, err, max_weight, min_weight,
+                  average_weight, average_abs_weight))
         print("-" * 50 + "\n")
 
     trainer.model.save()
@@ -183,9 +186,11 @@ class Trainer(object):
                 sample_wrong += 1  # 样本错误
 
         score_list, info_list = F1_score(gold_tags, pred_tags, self.idx_to_chunk_tag)
-        print("\t# gold-num={}  output-num={}  correct-num={}\n"
-              "\t# precision={:.2f}%  recall={:.2f}%  f-score={:.2f}%\n"
-              "\t# token_acc={:.2f}%  sample_acc={:.2f}%\n".format(
+        print("\t- test-sample-num={}\n"
+              "\t- gold-num={}  output-num={}  correct-num={}\n"
+              "\t- precision={:.2%}  recall={:.2%}  f-score={:.2%}\n"
+              "\t- token_acc={:.2%}  sample_acc={:.2%}\n".format(
+                  len(dataset),
                   info_list[0], info_list[1], info_list[2],
                   score_list[1], score_list[2], score_list[0],
                   (token_total - token_wrong) / token_total,

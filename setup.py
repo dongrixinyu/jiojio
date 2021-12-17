@@ -1,6 +1,6 @@
 import setuptools
 import os
-from distutils.extension import Extension
+# from distutils.extension import Extension
 
 import numpy as np
 
@@ -19,15 +19,7 @@ with open(os.path.join(DIR_PATH, 'README.md'),
     LONG_DOC = '\n'.join(readme_lines)
 
 
-def is_source_release(path):
-    return os.path.exists(os.path.join(path, "PKG-INFO"))
-
-
 def setup_package():
-
-    with open('')
-    long_description = "jiojio: a convenient Chinese word segmentation tool"
-
     '''
     extensions = [
         Extension(
@@ -48,6 +40,9 @@ def setup_package():
         ),
     ]
 
+    def is_source_release(path):
+        return os.path.exists(os.path.join(path, "PKG-INFO"))
+
     if not is_source_release(DIR_PATH):
         from Cython.Build import cythonize
         extensions = cythonize(extensions, annotate=True)
@@ -58,7 +53,7 @@ def setup_package():
         author="dongrixinyu",
         author_email="dongrixinyu.89@163.com",
         description="jiojio: a convenient Chinese word segmentation tool",
-        long_description=long_description,
+        long_description=LONG_DOC,
         long_description_content_type="text/markdown",
         url="https://github.com/dongrixinyu/jiojio",
         packages=setuptools.find_packages(),
@@ -68,8 +63,8 @@ def setup_package():
             "License :: Other/Proprietary License",
             "Operating System :: OS Independent",
         ],
-        install_requires=["cython", "numpy>=1.16.0"],
-        setup_requires=["cython", "numpy>=1.16.0"],
+        install_requires=["numpy>=1.16.0"],
+        # setup_requires=["cython", "numpy>=1.16.0"],
         # ext_modules=extensions,
         zip_safe=False,
     )
