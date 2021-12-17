@@ -66,4 +66,5 @@ class TrieTree(object):
 
         if res:
             return res
+
         return 1, None

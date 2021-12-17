@@ -34,7 +34,7 @@ class SGD(Optimizer):
 
         self._model = model
         self.dataset = dataset
-        self.decay_rate = config.initial_learning_rate
+        self.learning_rate = config.initial_learning_rate
         self.training_epoch_num = 0  # 计算训练轮数
 
     def _tune_reshuffle_samples(self, config):
@@ -68,17 +68,17 @@ class SGD(Optimizer):
             error_list.append(error)
 
             # update decay rates
-            self.decay_rate = config.initial_learning_rate * \
+            self.learning_rate = config.initial_learning_rate * \
                 np.exp((- self.training_epoch_num - t / sample_num) * config.dropping_rate)
             if t / config.mini_batch == 20:
-                print('\tlr: {:.5f}, grad {}: '.format(self.decay_rate, t),
+                print('\tlr: {:.5f}, grad {}: '.format(self.learning_rate, t),
                       grad[:3], '...', grad[-1])
             # update weights
-            self._model.w -= self.decay_rate * grad
+            self._model.w -= self.learning_rate * grad
 
             if config.regularization:
                 # 参数正则化，该公式，对大参数值的惩罚越大
-                r2 = self.decay_rate * self._model.w
+                r2 = self.learning_rate * self._model.w
                 # print('\tsum(abs(regular)): {:.4f}'.format(abs(r2).sum()))
                 # print('\tsum(abs(weight)):  {:.4f}'.format(abs(self._model.w).sum()))
                 self._model.w -= r2

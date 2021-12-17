@@ -46,12 +46,12 @@ class Config:
         self.gold_test_file = os.path.join(self.train_dir, "gold_test.txt")
 
         # features params
-        self.norm_text = True  # 将所有的 数字、字母，正规化
-        self.feature_trim = 5  # 特征出现频次过低则丢弃，当数据量超大时使用
-        self.word_feature = True  # 需要返回 词汇 特征
-        self.word_max = 5
-        self.word_min = 2
-        self.label_num = 2
+        self.norm_text = True  # 将所有的 数字、字母，正规化，但具体条目则须在代码内部调整，未暴露在外
+        self.feature_trim = 3  # 特征出现频次过低则丢弃，当数据量超大时使用，大于三次保留，不包含3次
+        self.word_feature = True  # 需要返回 词汇 特征，若丢弃词汇特征，则计算耗时减少 30~40%
+        self.word_max = 4  # 越大，则计算耗时越长，因此不建议超过 6，过短如 3 则会造成模型效果下降
+        self.word_min = 2  # 此值基本固定不变
+        self.label_num = 2  # 标签数量，即 B,I 两个
         self.start_token = '[START]'  # start and end token
         self.end_token = '[END]'
 
