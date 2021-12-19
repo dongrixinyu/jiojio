@@ -1,14 +1,12 @@
 import setuptools
 import os
 # from distutils.extension import Extension
-
+import re
 import numpy as np
-
 
 DIR_PATH = os.path.dirname(os.path.abspath(__file__))
 
-with open(os.path.join(DIR_PATH, 'README.md'),
-          'r', encoding='utf-8') as f:
+with open(os.path.join(DIR_PATH, 'README.md'), 'r', encoding='utf-8') as f:
     readme_lines = f.readlines()
     version_pattern = re.compile('badge/version-(\d\.\d+\.\d+)-')
     for line in readme_lines:
@@ -57,7 +55,10 @@ def setup_package():
         long_description_content_type="text/markdown",
         url="https://github.com/dongrixinyu/jiojio",
         packages=setuptools.find_packages(),
-        package_data={"": ["*.txt*", "*.pkl", "*.npz", "*.pyx", "*.pxd"]},
+        package_data={
+            "": ["*.txt*", "*.pkl", "*.npz", "*.pyx", "*.pxd", "*.zip"]
+        },
+        include_package_data=True,
         classifiers=[
             "Programming Language :: Python :: 3",
             "License :: Other/Proprietary License",

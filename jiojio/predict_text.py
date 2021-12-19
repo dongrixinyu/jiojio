@@ -22,7 +22,7 @@ class PredictText(object):
 
         if model_name is None:
             config.model_dir = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+                os.path.dirname(os.path.realpath(__file__)),
                 "models/default_model")
         else:
             config.model_dir = model_name
