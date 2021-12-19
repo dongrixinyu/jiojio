@@ -1,6 +1,5 @@
 # -*- coding=utf-8 -*-
 
-
 from jiojio import logging
 
 
@@ -35,12 +34,11 @@ class TrieTree(object):
                     tree = tree[char]
             if depth > self.depth:
                 self.depth = depth
-            if 'type' in tree and tree['type'] != typing:
-                logging.warning(
-                    '`{}` belongs to both `{}` and `{}`.'.format(
-                        word, tree['type'], typing))
+            if 't' in tree and tree['t'] != typing:
+                logging.warning('`{}` belongs to both `{}` and `{}`.'.format(
+                    word, tree['t'], typing))
             else:
-                tree['type'] = typing
+                tree['t'] = typing
 
     def build_trie_tree(self, dict_list, typing):
         """ 创建 trie 树 """
@@ -59,8 +57,8 @@ class TrieTree(object):
             if char in tree:
                 tree = tree[char]
                 step += 1
-                if 'type' in tree:
-                    res = (step, tree['type'])
+                if 't' in tree:
+                    res = (step, tree['t'])
             else:
                 break
 
