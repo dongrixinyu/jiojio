@@ -11,16 +11,13 @@ from multiprocessing import Process, Queue, get_start_method
 
 from .util.logger import set_logger
 
-
 logging = set_logger(level='INFO', log_dir_name='.jiojio_logs')
-
 
 from .util import TimeIt, unzip_file, read_file_by_iter, write_file_by_line
 from .config import config
 import jiojio.trainer as trainer
 from jiojio.trie_tree import TrieTree
 from jiojio.predict_text import PredictText
-
 
 __all__ = ['init', 'cut', 'train', 'test']
 
@@ -40,7 +37,9 @@ def init(model_name=None, pos=False, user_dict=None):
 
     """
     global jiojio_obj
-    jiojio_obj = PredictText(config, model_name=model_name,)
+    jiojio_obj = PredictText(config,
+                             model_name=model_name,
+                             user_dict=user_dict)
 
 
 def cut(text):
@@ -48,7 +47,11 @@ def cut(text):
     return words
 
 
-def train(train_file, test_file, train_dir=None, model_dir=None, train_epoch=20):
+def train(train_file,
+          test_file,
+          train_dir=None,
+          model_dir=None,
+          train_epoch=20):
     """用于训练模型，分析、确定参数"""
 
     if not os.path.exists(train_file):
@@ -113,7 +116,8 @@ def _test_single_proc(input_file, model_name=None, user_dict=None, pos=False):
         total_sample_num, total_token_num / total_sample_num))
     print("# {} chars per second".format(total_token_num / (cost_time)))
 
-    write_file_by_line(diff_results, '/home/cuichengyu/dataset/diff_cws_samples.txt')
+    write_file_by_line(diff_results,
+                       '/home/cuichengyu/dataset/diff_cws_samples.txt')
 
 
 def _proc(seg, in_queue, out_queue):
@@ -146,8 +150,11 @@ def _proc_alt(model_name, user_dict, pos, in_queue, out_queue):
         out_queue.put((idx, output_list))
 
 
-def _test_multi_proc(input_file, nthread, model_name="default_model",
-                     user_dict=None, pos=False):
+def _test_multi_proc(input_file,
+                     nthread,
+                     model_name="default_model",
+                     user_dict=None,
+                     pos=False):
 
     with TimeIt('# select method of starting subprocess'):
         alt = get_start_method() == "spawn"
@@ -166,9 +173,8 @@ def _test_multi_proc(input_file, nthread, model_name="default_model",
     procs = list()
     for _ in range(nthread):
         if alt:
-            p = Process(
-                target=_proc_alt,
-                args=(model_name, user_dict, pos, in_queue, out_queue))
+            p = Process(target=_proc_alt,
+                        args=(model_name, user_dict, pos, in_queue, out_queue))
         else:
             p = Process(target=_proc, args=(seg, in_queue, out_queue))
         procs.append(p)
@@ -202,8 +208,7 @@ def _test_multi_proc(input_file, nthread, model_name="default_model",
     print("# {} chars per second".format(total_token_num / (cost_time)))
 
 
-def test(input_file, model_name=None, user_dict=None,
-         nthread=1, pos=False):
+def test(input_file, model_name=None, user_dict=None, nthread=1, pos=False):
     """ 测试数据集预测效果，其中 nthread 可以使用 os.cpu_count() - 1 指定，来进行最大限度资源利用，
     主要用于测试处理速度 """
 
