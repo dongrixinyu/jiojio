@@ -18,9 +18,9 @@ from jiojio.scorer import F1_score
 
 def train(config):
 
-    feature_extractor = FeatureExtractor()
+    feature_extractor = FeatureExtractor(config)
 
-    # ''' # 构建 特征数据集
+    ''' # 构建 特征数据集
     with TimeIt('# build datasets'):
         feature_extractor.build(config.train_file)
         feature_extractor.save()
@@ -36,15 +36,14 @@ def train(config):
         feature_extractor.convert_feature_file_to_idx_file(
             config.f_test, config.feature_test_file, config.gold_test_file)
     # '''
-    # feature_extractor.load(config.train_dir)
+
+    feature_extractor = feature_extractor.load(config, config.model_dir)
 
     print("\nstart training ...")
 
     with TimeIt('loading dataset'):
         train_set = DataSet.load(config.feature_train_file, config.gold_train_file)
-        test_set = DataSet.load(config.feature_test_file, config.gold_test_file)
-
-    print("train_set size: {}, test_set size: {}\n".format(len(train_set), len(test_set)))
+        print("train_set size: {}\n".format(len(train_set)))
 
     trainer = Trainer(config, train_set, feature_extractor)
 
@@ -52,13 +51,14 @@ def train(config):
         print('- epoch {}:'.format(i))
         with TimeIt('training epoch {}'.format(i)):
             err, diff = trainer.train_epoch()
+            # pass
 
         # 测试
         with TimeIt('loading valid dataset'):
-            if i != config.train_epoch - 1:  # 最后一个 epoch 用全量
+            if i == config.train_epoch - 1:  # 最后一个 epoch 用全量
                 sample_ratio = 1
             else:
-                sample_ratio = 0.1  # 仅用全数据量的 5% 做训练中验证
+                sample_ratio = 0.09  # 仅用全数据量的 5% 做训练中验证
 
             train_valid_set = DataSet.load(
                 config.feature_train_file, config.gold_train_file, sample_ratio=sample_ratio)
@@ -72,11 +72,11 @@ def train(config):
             test_score_list = trainer.test(test_valid_set)
 
             # 计算所有参数的最大值，平均值，中位值，确保模型的参数稳定
-            max_weight = np.max(trainer.model.w)
-            min_weight = np.min(trainer.model.w)
-            average_weight = np.sum(trainer.model.w) / len(trainer.model.w)
-            average_abs_weight = np.sum(np.abs(trainer.model.w)) / len(trainer.model.w)
-
+            max_weight = np.max(trainer.model.node_weight)
+            min_weight = np.min(trainer.model.node_weight)
+            average_weight = np.sum(trainer.model.node_weight) / len(trainer.model.node_weight)
+            average_abs_weight = np.sum(np.abs(trainer.model.node_weight)) / len(trainer.model.node_weight)
+        pdb.set_trace()
         print("- epoch {}: \n"
               "\t- diff={:.4f}  error={:.4f}\n"
               "\t- max-weight={:.4f}  min-weight={:.4f}\n"
@@ -94,7 +94,6 @@ class Trainer(object):
 
     def __init__(self, config, dataset, feature_extractor):
         self.config = config
-        self.X = dataset
         self.n_feature = dataset.n_feature
         self.n_tag = dataset.n_tag
 
@@ -116,6 +115,16 @@ class Trainer(object):
     def train_epoch(self):
         return self.optim.optimize()
 
+    def train_edge_params(self):
+        # 即直接根据语料统计参数取值
+        samples_num = len(self.optim.dataset)
+        tag_length = len(self.feature_extractor.tag_to_idx)
+        edge_count_matrix = np.zeros((tag_length, tag_length))
+
+        for sample in self.optim.dataset:
+            sample.tags  # 未完
+        return
+
     def _decode(self, test_set: DataSet, model: Model):
         if config.nThread == 1:
             self._decode_single(test_set, model)
@@ -126,6 +135,7 @@ class Trainer(object):
         for example in test_set:
             tags = decodeViterbi_fast(example.features, model)
             example.predicted_tags = tags
+            # pdb.set_trace()
 
     @staticmethod
     def _decode_proc(model, in_queue, out_queue):

@@ -1,6 +1,4 @@
-# distutils: language = c++
-# cython: infer_types=True
-# cython: language_level=3
+# -*- coding=utf-8 -*-
 
 import json
 import os
@@ -8,7 +6,7 @@ import pdb
 import sys
 from collections import Counter
 
-from jiojio import logging, TimeIt, unzip_file, read_file_by_iter, config
+from jiojio import logging, TimeIt, unzip_file, read_file_by_iter
 from jiojio.tag_words_converter import word2tag
 from jiojio.tag_words_converter import tag2word
 from jiojio.pre_processor import PreProcessor
@@ -30,13 +28,17 @@ def get_slice_str(iterator_obj, start, length, all_len):
 
 class FeatureExtractor(object):
 
-    def __init__(self):
+    def __init__(self, config):
         self.unigram = set()
         self.bigram = set()
         self.feature_to_idx = dict()
         self.tag_to_idx = dict()
-        self.pre_processor = PreProcessor()
+        self.pre_processor = PreProcessor(
+            convert_num_letter=config.convert_num_letter,
+            normalize_num_letter=config.normalize_num_letter,
+            convert_exception=config.convert_exception)
 
+        self.config = config
         self._create_features()
 
     def _create_features(self):
@@ -70,7 +72,6 @@ class FeatureExtractor(object):
         word_length_info = Counter()
         # specials = set()
         feature_freq = Counter()  # 计算各个特征的出现次数，减少罕见 token 计数
-
         unigrams = Counter()  # 计算各个 unigrams 出现次数，避免罕见 unigram 进入计数
         bigrams = Counter()  # 计算各个 bigrams 出现次数，避免罕见 bigram 进入计数
         for sample_idx, words in enumerate(read_file_by_iter(train_file)):
@@ -82,10 +83,8 @@ class FeatureExtractor(object):
             # specials.update(word for word in words if len(word) >= 10)
 
             # 对文本进行归一化和整理
-            if config.norm_text:
-                words = [self.pre_processor(word, convert_exception=True,
-                            convert_num_letter=True, normalize_num_letter=False)
-                            for word in words]
+            if self.config.norm_text:
+                words = [self.pre_processor(word) for word in words]
 
             example = ''.join(words)
             unigrams.update(words)
@@ -101,13 +100,13 @@ class FeatureExtractor(object):
         # 对 self.unigram 的清理和整理
         # 若 self.unigram 中的频次都不足 feature_trim 则，在后续特征删除时必然频次不足
         self.unigram = set([unigram for unigram, freq in unigrams.most_common()
-                            if freq > config.feature_trim])
+                            if freq > self.config.feature_trim])
         if '' in self.unigram:  # 删除错误 token
             self.unigram.remove('')
 
         # 对 self.bigram 的清理和整理
         self.bigram = set([bigram for bigram, freq in bigrams.most_common()
-                           if freq > config.feature_trim])
+                           if freq > self.config.feature_trim])
 
         # print token length counter
         short_token_total_length = 0
@@ -129,20 +128,21 @@ class FeatureExtractor(object):
         print('# orig feature_num: {}'.format(len(feature_freq)))
         print('# {:.2%} features are saved.'.format(
             sum([freq for _, freq in feature_freq.most_common()
-                 if freq > config.feature_trim]) / sum(list(feature_freq.values()))))
+                 if freq > self.config.feature_trim]) / sum(list(feature_freq.values()))))
 
-        feature_set = (feature for feature, freq in feature_freq.most_common()
-                       if freq > config.feature_trim)
+        feature_set = [feature for feature, freq in feature_freq.most_common()
+                       if freq > self.config.feature_trim]
 
-        self.feature_to_idx = {feature: idx for idx, feature in enumerate(feature_set, 3)}
+        self.feature_to_idx = {feature: idx for idx, feature in enumerate(feature_set, 1)}
+
         # 特殊 token 须加入，如 空特征，起始特征，结束特征等
         self.feature_to_idx.update({self.empty_feature: 0})  # 空特征更新为第一个
-        self.feature_to_idx.update({self.start_feature: 1})
-        self.feature_to_idx.update({self.end_feature: 2})
+        # self.feature_to_idx.update({self.start_feature: 1})  # 在寻找特征时已包含
+        # self.feature_to_idx.update({self.end_feature: 2})
         print('# true feature_num: {}'.format(len(self.feature_to_idx)))
 
         # create tag map
-        B, B_single, I_first, I, I_end = FeatureExtractor._create_label()
+        B, B_single, I_first, I, I_end = self._create_label()
         tag_set = {B, B_single, I_first, I, I_end}
         self.tag_to_idx = {tag: idx for idx, tag in enumerate(sorted(tag_set))}
         assert self.tag_to_idx == {'B': 0, 'I': 1}, \
@@ -156,7 +156,7 @@ class FeatureExtractor(object):
         feature_list = list()
 
         # 1 start feature
-        feature_list.append(self.default_feature)
+        # feature_list.append(self.default_feature)  # 取消默认特征，无意义
 
         # 8 unigram/bgiram feature
         # 当前字特征
@@ -201,7 +201,7 @@ class FeatureExtractor(object):
             feature_list.append(self.char_next_1_2 + token_list[idx + 1] + self.delim + token_list[idx + 2])
 
         # no num/letter based features
-        if not config.word_feature:
+        if not self.config.word_feature:
             return feature_list
 
         # 2 * (wordMax-wordMin+1) word features (default: 2*(6-2+1)=10 )
@@ -209,21 +209,21 @@ class FeatureExtractor(object):
 
         # 寻找该字前一个词汇特征(包含该字)
         pre_list_in = list()
-        for l in range(config.word_max, config.word_min - 1, -1):
+        for l in range(self.config.word_max, self.config.word_min - 1, -1):
             # length 6 ... 2 (default)
             # "prefix including current c" token_list[n-l+1, n]
             # current character ends word
             tmp = get_slice_str(token_list, idx - l + 1, l, length)
             if tmp in self.unigram:
                 feature_list.append(self.word_before + tmp)
-                pre_list_in.append(tmp)
+                pre_list_in.append(tmp)  # 列表或字符串，关系计算速度
                 break  # 此 break 的取舍很重要
             # else:
             #     pre_list_in.append(self.no_word)
 
         # 寻找该字后一个词汇特征(包含该字)
         post_list_in = list()
-        for l in range(config.word_max, config.word_min - 1, -1):
+        for l in range(self.config.word_max, self.config.word_min - 1, -1):
             # "suffix" token_list[n, n+l-1]
             # current character starts word
             tmp = get_slice_str(token_list, idx, l, length)
@@ -236,7 +236,7 @@ class FeatureExtractor(object):
 
         # 寻找该字前一个词汇特征(不包含该字)
         pre_list_ex = list()
-        for l in range(config.word_max, config.word_min - 1, -1):
+        for l in range(self.config.word_max, self.config.word_min - 1, -1):
             # "prefix excluding current c" token_list[n-l, n-1]
             tmp = get_slice_str(token_list, idx - l, l, length)
             if tmp in self.unigram:
@@ -247,7 +247,7 @@ class FeatureExtractor(object):
 
         # 寻找该字后一个词汇特征(不包含该字)
         post_list_ex = list()  # 其中个数由 word_max 决定
-        for l in range(config.word_max, config.word_min - 1, -1):
+        for l in range(self.config.word_max, self.config.word_min - 1, -1):
             # "suffix excluding current c" token_list[n+1, n+l]
             tmp = get_slice_str(token_list, idx + 1, l, length)
             if tmp in self.unigram:
@@ -259,18 +259,20 @@ class FeatureExtractor(object):
         # this character is in the middle of a word
         # 2 * (wordMax - wordMin + 1) ^ 2 (default: 2 * (6 -2 + 1) ^ 2 = 50)
         # 寻找连续两个词汇特征(该字在右侧词汇中)
-        for pre in pre_list_ex:
-            for post in post_list_in:
-                bigram = pre + "*" + post
-                if bigram in self.bigram:
-                    feature_list.append(self.word_2_left + bigram)
+        if len(pre_list_ex) != 0 and len(post_list_in) != 0:  # 加速处理
+            for pre in pre_list_ex:
+                for post in post_list_in:
+                    bigram = pre + "*" + post
+                    if bigram in self.bigram:
+                        feature_list.append(self.word_2_left + bigram)
 
         # 寻找连续两个词汇特征(该字在左侧词汇中)
-        for pre in pre_list_in:
-            for post in post_list_ex:
-                bigram = pre + "*" + post
-                if bigram in self.bigram:
-                    feature_list.append(self.word_2_right + bigram)
+        if len(pre_list_in) != 0 and len(post_list_ex) != 0:  # 加速处理
+            for pre in pre_list_in:
+                for post in post_list_ex:
+                    bigram = pre + "*" + post
+                    if bigram in self.bigram:
+                        feature_list.append(self.word_2_right + bigram)
 
         return feature_list
 
@@ -314,21 +316,20 @@ class FeatureExtractor(object):
                     features_idx.append(feature_idx)
                     tags_idx.append(self.tag_to_idx[splits[-1]])
 
-    @staticmethod
-    def _create_label():
-        if config.label_num == 2:
+    def _create_label(self):
+        if self.config.label_num == 2:
             B = B_single = "B"
             I_first = I = I_end = "I"
-        elif config.label_num == 3:
+        elif self.config.label_num == 3:
             B = B_single = "B"
             I_first = I = "I"
             I_end = "I_end"
-        elif config.label_num == 4:
+        elif self.config.label_num == 4:
             B = "B"
             B_single = "B_single"
             I_first = I = "I"
             I_end = "I_end"
-        elif config.label_num == 5:
+        elif self.config.label_num == 5:
             B = "B"
             B_single = "B_single"
             I_first = "I_first"
@@ -344,16 +345,14 @@ class FeatureExtractor(object):
     def convert_text_file_to_feature_file(
             self, text_file, conll_file, feature_file):
         # 从文本中，构建所有的特征和训练标注数据
-        B, B_single, I_first, I, I_end = FeatureExtractor._create_label()
+        B, B_single, I_first, I, I_end = self._create_label()
 
         with open(conll_file, "w", encoding="utf8") as c_writer, \
                 open(feature_file, "w", encoding="utf8") as f_writer:
             for words in read_file_by_iter(text_file):
                 # 对文本进行归一化和整理
-                if config.norm_text:
-                    words = [self.pre_processor(word, convert_exception=True,
-                                convert_num_letter=True, normalize_num_letter=False)
-                                for word in words]
+                if self.config.norm_text:
+                    words = [self.pre_processor(word) for word in words]
 
                 example, tags = word2tag(words)
 
@@ -372,7 +371,7 @@ class FeatureExtractor(object):
 
     def save(self, model_dir=None):
         if model_dir is None:
-            model_dir = config.model_dir
+            model_dir = self.config.model_dir
 
         data = dict()
         data["unigram"] = sorted(list(self.unigram))
@@ -384,33 +383,16 @@ class FeatureExtractor(object):
             json.dump(data, f_w, ensure_ascii=False, indent=4, separators=(',', ':'))
 
     @classmethod
-    def load(cls, model_dir=None):
-        if model_dir is None:
-            model_dir = config.model_dir
-
+    def load(cls, config, model_dir=None):
         extractor = cls.__new__(cls)
+        extractor.config = config
         extractor._create_features()
 
-        feature_path = os.path.join(model_dir, "features.pkl")
-        if os.path.exists(feature_path):
-            with open(feature_path, "rb") as reader:
-                data = pickle.load(reader)
-
-            extractor.unigram = set(data["unigram"])
-            extractor.bigram = set(data["bigram"])
-            extractor.feature_to_idx = data["feature_to_idx"]
-            extractor.tag_to_idx = data["tag_to_idx"]
-            # extractor.idx_to_tag = extractor._reverse_dict(extractor.tag_to_idx)
-
-            return extractor
-
-        print("WARNING: features.pkl does not exist, try loading features.json", file=sys.stderr)
         feature_path = os.path.join(model_dir, "features.json")
         zip_feature_path = os.path.join(model_dir, "features.zip")
 
         if (not os.path.exists(feature_path)) and os.path.exists(zip_feature_path):
-            logging.info('unzipping `{}` to `{}`.'.format(
-                zip_feature_path, feature_path))
+            logging.info('unzip `{}` to `{}`.'.format(zip_feature_path, feature_path))
             unzip_file([zip_feature_path])
 
         if os.path.exists(feature_path):
@@ -421,6 +403,7 @@ class FeatureExtractor(object):
             extractor.bigram = set(data["bigram"])
             extractor.feature_to_idx = data["feature_to_idx"]
             extractor.tag_to_idx = data["tag_to_idx"]
+
             # extractor.idx_to_tag = extractor._reverse_dict(extractor.tag_to_idx)
             return extractor
 

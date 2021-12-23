@@ -17,14 +17,14 @@ import numpy as np
 
 
 class Belief(object):
-    def __init__(self, nNodes, nStates):
-        self.node_states = np.empty((nNodes, nStates))
-        self.transition_states = np.empty((nNodes, nStates * nStates))
+    def __init__(self, num_node, num_tag):
+        self.node_states = np.empty((num_node, num_tag), dtype=np.float32)
+        self.transition_states = np.empty((num_node, num_tag * num_tag), dtype=np.float32)
         self.Z = 0
 
 class MaskedBelief(object):
-    def __init__(self, nNodes, nStates):
-        self.node_states = np.zeros((nNodes, nStates))
+    def __init__(self, num_node, num_tag):
+        self.node_states = np.zeros((num_node, num_tag), dtype=np.float32)
 
 
 def log_sum(a):
@@ -62,8 +62,10 @@ def log_multiply(A, B):
         np.log 是为了便于将乘法转为加法的折中。
 
     """
+    # 方式 1
     # return np.log(np.sum(np.exp(A) * np.exp(B), axis=1))
 
+    # 方式 2
     # to_sum_list = np.zeros(A.shape)
     # ret = np.zeros(A.shape[0])
     # for row in range(A.shape[0]):
@@ -78,12 +80,12 @@ def log_multiply(A, B):
     return ret
 
 
-def get_beliefs(bel, Y, YY):
+def get_beliefs(belief, Y, YY):
     """求解 Z 值。
     由于搜索空间巨大，将全局概率转换为 HMM 的转移概率进行计算。
 
     Args:
-        bel: 条件转移概率的计算状态
+        belief: 条件转移概率的计算状态
         Y: 根据特征权重计算得到的 节点特征值
         YY: 根据特征权重计算得到的 转移特征值
 
@@ -108,14 +110,13 @@ def get_beliefs(bel, Y, YY):
                    = (alpha_t(y_t=i) * beta(y_t=i)) / (SIGMA_s_1_I(alpha_T(y_T=s)))            (F2)
 
     """
-    node_states = bel.node_states
-    transition_states = bel.transition_states
+    node_states = belief.node_states
+    transition_states = belief.transition_states
     node_num = Y.shape[0]  # 序列节点个数
     tag_num = YY.shape[0]
 
     # alpha_Y = np.zeros(tag_num)  # 表示当前节点 t 处，状态 s 为 i 的概率，此处为各个状态的矩阵形式
     alpha_Y = np.empty(tag_num)  # 加速计算
-    # new_alpha_Y = np.empty(tag_num)
     YY_trans = YY.transpose()
     YY_t_r = YY_trans.reshape(-1)
     sum_edge = np.zeros(tag_num * tag_num)
@@ -158,7 +159,7 @@ def get_beliefs(bel, Y, YY):
     return Z, sum_edge
 
 
-def get_masked_beliefs(bel, Y):
+def get_masked_beliefs(belief, Y):
     """该方法为使用 get_beliefs 求解 masked_Y, YY 对应的 node_states,
     transition_states 的简便方法。
 
@@ -189,21 +190,20 @@ def get_masked_beliefs(bel, Y):
         Y: 根据特征权重计算得到的 节点特征值
 
     """
-    node_states = bel.node_states
-    node_num = Y.shape[0]  # 序列节点个数
-    tag_num = Y.shape[1]
+    node_states = belief.node_states
+    node_num, tag_num = Y.shape  # 序列节点个数
 
     sum_edge = np.zeros(tag_num * tag_num)
-    # pdb.set_trace()
-    for i in range(node_num):
+    max_idx_count = np.empty((node_num), dtype=np.int8)
 
-        idx = np.argmax(Y[i])
-        node_states[i][idx] = 1  # 转换为真实概率值
+    for i in range(node_num):
+        max_idx = np.argmax(Y[i])
+        max_idx_count[i] = max_idx
+        node_states[i][max_idx] = 1  # 转换为真实概率值
 
     for i in range(1, node_num):
-        y_pre_idx = np.argmax(node_states[i-1])
-        y_idx = np.argmax(node_states[i])
-
+        y_pre_idx = max_idx_count[i-1]
+        y_idx = max_idx_count[i]
         sum_edge[y_idx * tag_num + y_pre_idx] += 1
 
     return sum_edge
@@ -211,7 +211,7 @@ def get_masked_beliefs(bel, Y):
 
 def run_viterbi(node_score, edge_score):
     node_num, tag_num = node_score.shape
-    max_score = np.empty((node_num, tag_num), dtype=np.float64)
+    max_score = np.empty((node_num, tag_num), dtype=np.float32)
     pre_tag = np.empty((node_num, tag_num), dtype=np.int8)
 
     max_score[node_num - 1] = node_score[node_num - 1]
@@ -243,7 +243,7 @@ def run_viterbi(node_score, edge_score):
     return states
 
 
-def get_log_Y_YY(sequence_feature_list, tag_num, offset, w):
+def get_log_Y_YY(sequence_feature_list, node_weight):
     """根据模型的参数，以及 x 序列，匹配得到特征值，计算得到两个矩阵
     node_score 和 transition_score，即每个节点，对应各个标签的得分。
 
@@ -258,30 +258,27 @@ def get_log_Y_YY(sequence_feature_list, tag_num, offset, w):
     Args:
         sequence_feature_list: 一个句子的特征值索引号，如 [[0, 12, 1903], [0, 8, 10293, 29801], [0, 2]]
         num_tag: 标签个数，比如，B、I，其标签数为 2
-        offset: 特征数与标签数的乘积，为寻找转移特征的偏移量
-        w: 模型参数
+        node_weight: 模型参数 节点部分
+
+    # edge_weight: 模型参数 转移概率部分直接由 model.edge_weight 得到
 
     """
     node_num = len(sequence_feature_list)
-    # 每个节点的得分，base 为 0
-    node_score = np.zeros((node_num, tag_num), dtype=np.float64)
-    # 转移矩阵的得分，base 为 1，其实没必要
-    # edge_score = np.ones((tag_num, tag_num), dtype=np.float64)
-    edge_score = np.empty((tag_num, tag_num), dtype=np.float64)
+    tag_num = node_weight.shape[1]
+    # 每个节点的得分
+    node_score = np.empty((node_num, tag_num), dtype=np.float32)
 
     for i in range(node_num):
-        for s in range(tag_num):
-            for node_feature in sequence_feature_list[i]:
-                f = node_feature * tag_num + s  # 找到特征在 w 中的位置
-                node_score[i, s] += w[f]  # * scalar，尺度标量已被剔除，无用
+        # method 1:
+        # 速度相对于 numpy 下面方法较慢
+        # 此时须设  node_score 初始值为 zeros
+        # for node_feature in sequence_feature_list[i]:
+        #     node_score[i] += node_weight[node_feature]
 
-    for s in range(tag_num):
-        for s_pre in range(tag_num):
-            f = offset + s * tag_num + s_pre  # 找到转移特征在 w 中的位置
-            # edge_score[s_pre, s] += w[f]  # * scalar  # 由于特征参数只有一个，所以只累加一次
-            edge_score[s_pre, s] = w[f]
-    # pdb.set_trace()
-    return node_score, edge_score
+        # method 2:
+        node_score[i] = np.sum(node_weight[sequence_feature_list[i]], axis=0)
+
+    return node_score
 
 
 def mask_Y(tags, node_num, tag_num, Y):
@@ -294,30 +291,22 @@ def mask_Y(tags, node_num, tag_num, Y):
         Y: 前向计算得到的特征势函数 矩阵
 
     """
-    mask_Yi = Y.copy()  # numpy.Array 类型
-    mask_value = -np.inf
+    mask_Yi = Y.copy()
 
     for i in range(node_num):
         for s in range(tag_num):
-            if tags[i] != s:  # 将不符合标注序列的部分置为负无穷
-                mask_Yi[i, s] = mask_value
+            # if tags[i] != s:  # 将不符合标注序列的部分置为负无穷
+            #     mask_Yi[i, s] = - np.inf
+            if tags[i] == s:  # 为计算简便加速而如此做
+                mask_Yi[i, s] = np.inf
 
     return mask_Yi
 
 
-def log_sum_exp(a):
-    # a = [1, 0.5, -1, 10, 9, -4, 0, 1]
-    # log(sum(exp(a_1), exp(a_i), ..., exp(a_n)))
-    # np.log(np.sum(np.exp(a)))
-    # 该函数偏向计算整个列表中最大的值的结果
-    return np.log(np.sum(np.exp(a)))
-
-
 def decodeViterbi_fast(features_list, model):
-    Y, YY = get_log_Y_YY(features_list, model.n_tag,
-                         model.offset, model.w)
-    tags = run_viterbi(Y, YY)
-    # tags = list(tags)
+    Y = get_log_Y_YY(features_list, model.node_weight)
+    tags = run_viterbi(Y, model.edge_weight)
+
     return tags
 
 
@@ -331,8 +320,6 @@ def get_Y_YY(model, example):
     Y: Y 标签的节点势函数
 
     """
-    Y, YY = get_log_Y_YY(example.features, model.n_tag,
-                         model.offset, model.w)
+    Y = get_log_Y_YY(example.features, model.node_weight)
     masked_Y = mask_Y(example.tags, len(example), model.n_tag, Y)
-    # masked_YY = YY  # 对某些标注系统，某个标签转移到另一个标签的概率为 0，此时需要做掩码。但一般情况下，不需要做，模型自己可以学习。
-    return Y, YY, masked_Y
+    return Y, model.edge_weight, masked_Y

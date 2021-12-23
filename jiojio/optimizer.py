@@ -37,56 +37,63 @@ class SGD(Optimizer):
         self.learning_rate = config.initial_learning_rate
         self.training_epoch_num = 0  # 计算训练轮数
 
-    def _tune_reshuffle_samples(self, config):
+    def _tune_reshuffle_samples(self):
         # 调整样本，打乱样本
         sample_num = len(self.dataset)
 
         random_index = list(range(sample_num))
         random.shuffle(random_index)  # 样本打乱
-        remainder = sample_num % config.mini_batch
+        remainder = sample_num % self.config.mini_batch
         if remainder != 0:
-            sample_num += (config.mini_batch - remainder)
-            random_index.extend(random_index[:(config.mini_batch - remainder)])
+            sample_num += (self.config.mini_batch - remainder)
+            random_index.extend(random_index[:(self.config.mini_batch - remainder)])
 
         return sample_num, random_index
 
     def optimize(self):
-        config = self.config
-        print('model w init: ', self._model.w[:3], '...', self._model.w[-2:])
-        feature_num = self._model.w.shape[0]  # 特征参数量
-        grad = np.zeros(feature_num)  # 梯度值
+        print('model w init: ', self._model.node_weight[0],
+              '...', self._model.edge_weight[0][0])
+
         error_list = list()
 
-        sample_num, random_index = self._tune_reshuffle_samples(config)
+        sample_num, random_index = self._tune_reshuffle_samples()
 
-        for t in range(0, sample_num, config.mini_batch):
+        for t in range(0, sample_num, self.config.mini_batch):
+            node_grad = np.zeros((self._model.n_feature, self._model.n_tag))  # 节点梯度值
+            edge_grad = np.zeros((self._model.n_tag, self._model.n_tag))  # 转移梯度值
             XX = list()
-            for i in random_index[t: t + config.mini_batch]:
+            for i in random_index[t: t + self.config.mini_batch]:
                 XX.append(self.dataset[i])  # 小 batch 样本
 
-            error, feature_set = get_grad_SGD_minibatch(grad, self._model, XX)
+            error, feature_set = get_grad_SGD_minibatch(node_grad, edge_grad, self._model, XX)
             error_list.append(error)
 
             # update decay rates
-            self.learning_rate = config.initial_learning_rate * \
-                np.exp((- self.training_epoch_num - t / sample_num) * config.dropping_rate)
-            if t / config.mini_batch == 20:
-                print('\tlr: {:.5f}, grad {}: '.format(self.learning_rate, t),
-                      grad[:3], '...', grad[-1])
-            # update weights
-            self._model.w -= self.learning_rate * grad
+            self.learning_rate = self.config.initial_learning_rate * \
+                np.exp((- self.training_epoch_num - t / sample_num) * self.config.dropping_rate)
+            if t % (self.config.mini_batch * 20) == 0:
+                print('\tlr: {:.5f}, sample idx {}: grad: '.format(self.learning_rate, t),
+                      node_grad[0], '...', edge_grad[0][0])
 
-            if config.regularization:
+            # update weights
+            self._model.node_weight -= self.learning_rate * node_grad
+            self._model.edge_weight -= self.learning_rate * edge_grad
+
+            if self.config.regularization:
                 # 参数正则化，该公式，对大参数值的惩罚越大
-                r2 = self.learning_rate * self._model.w
+                node_r2 = self.learning_rate * self._model.node_weight
+                edge_r2 = self.learning_rate * self._model.edge_weight
                 # print('\tsum(abs(regular)): {:.4f}'.format(abs(r2).sum()))
-                # print('\tsum(abs(weight)):  {:.4f}'.format(abs(self._model.w).sum()))
-                self._model.w -= r2
+
+                self._model.node_weight -= node_r2
+                self._model.edge_weight -= edge_r2
 
         diff = self.converge_test(sum(error_list) / len(error_list))
 
         print('err/diff: {:.4f}/{:.4f}'.format(sum(error_list) / len(error_list), diff))
-        print('model w change: ', self._model.w[:3], '...', self._model.w[-2:])
+        print('model w change: ', self._model.node_weight[0],
+              '...', self._model.edge_weight[0][0])
 
         self.training_epoch_num += 1
+
         return error, diff

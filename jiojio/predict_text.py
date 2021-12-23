@@ -13,36 +13,31 @@ from jiojio.model import Model
 
 
 class PredictText(object):
-    """ 预测文本，用于对外暴露接口
-    """
+    """ 预测文本，用于对外暴露接口 """
     def __init__(self, config, model_name=None, user_dict=None, pos=False):
         """初始化函数，加载模型及用户词典"""
-        self.pos = pos
-
-        if model_name is None:
-            config.model_dir = os.path.join(
-                os.path.dirname(os.path.realpath(__file__)),
-                "models/default_model")
-        else:
+        if model_name is not None:
             config.model_dir = model_name
 
         self.user_dict = AddDict2Model(user_dict)
 
         self.feature_extractor = FeatureExtractor.load(
-            model_dir=config.model_dir)
+            config, model_dir=config.model_dir)
         self.model = Model.load()
 
-        self.idx_to_tag = {
-            idx: tag
-            for tag, idx in self.feature_extractor.tag_to_idx.items()
-        }
+        self.idx_to_tag = {idx: tag
+            for tag, idx in self.feature_extractor.tag_to_idx.items()}
 
-        self.pre_processor = PreProcessor()
+        self.pre_processor = PreProcessor(
+            convert_num_letter=config.convert_num_letter,
+            normalize_num_letter=config.normalize_num_letter,
+            convert_exception=config.convert_exception)
 
+        self.pos = pos
         if pos:
             download_model(config.model_urls["postag"], config.jiojio_home)
             postag_dir = os.path.join(config.jiojio_home, "postag")
-            self.tagger = Postag(postag_dir)
+            self.pos = Postag(postag_dir)
 
     def _cut(self, text):
 
@@ -55,8 +50,10 @@ class PredictText(object):
             node_feature_idx = [
                 self.feature_extractor.feature_to_idx[node_feature]
                 for node_feature in node_features
-                if node_feature in self.feature_extractor.feature_to_idx
-            ]
+                if node_feature in self.feature_extractor.feature_to_idx]
+
+            # if len(node_features) == 0 or len(node_feature_idx) == 0:
+            #     pdb.set_trace()
 
             if len(node_feature_idx) != len(node_features):
                 node_feature_idx.append(0)
@@ -66,14 +63,13 @@ class PredictText(object):
 
             all_features.append(node_feature_idx)
 
-        # 将 decodeViterbi_fast 拆分开计算
-        Y, YY = get_log_Y_YY(all_features, self.model.n_tag, self.model.offset,
-                             self.model.w)
+        Y = get_log_Y_YY(all_features, self.model.node_weight)
+
         # 添加词典
         if self.user_dict.trie_tree_obj is not None:
             self.user_dict(text, Y)
-
-        tags_idx = run_viterbi(Y, YY)
+        #pdb.set_trace()
+        tags_idx = run_viterbi(Y, self.model.edge_weight)
 
         return tags_idx
         # tags = [self.idx_to_tag[tag_idx] for tag_idx in tags_idx]
@@ -81,25 +77,17 @@ class PredictText(object):
 
         # return tags
 
-    def cut(self,
-            text,
-            convert_num_letter=True,
-            normalize_num_letter=False,
-            convert_exception=True):
+    def cut(self, text):
 
         if not text:
             return list()
 
-        norm_text = self.pre_processor(
-            text,
-            convert_num_letter=convert_num_letter,
-            normalize_num_letter=normalize_num_letter,
-            convert_exception=convert_exception)
+        norm_text = self.pre_processor(text)
 
         tags = self._cut(norm_text)
 
         words_list = tag2word(text, tags)
         if self.pos:
-            tags = self.tagger.tag(ret.copy())
+            tags = self.pos.tag(ret.copy())
 
         return words_list

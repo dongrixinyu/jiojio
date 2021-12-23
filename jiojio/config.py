@@ -1,28 +1,28 @@
 # -*- coding=utf-8 -*-
 
 import os
+import pdb
 
 
 class Config:
     lineEnd = "\n"
-    biLineEnd = "\n\n"
-    triLineEnd = "\n\n\n"
     undrln = "_"
     blank = " "
     tab = "\t"
     star = "*"
     slash = "/"
     comma = ","
-    B = "B"
     model_urls = {
-        "postag": "https://github.com/lancopku/pkuseg-python/releases/download/v0.0.16/postag.zip",
+        "postag": "https://github.com/dongrixinyu/jiojio/releases/download/v0.0.16/postag.zip",
     }
 
     def __init__(self):
+        # 若自行训练模型，请务必保留该页参数，尤其是特征参数 features params 选取部分，将直接影响结果
+
         # dirs
-        self.train_dir = '/home/cuichengyu/github/jiojio/train_dir'
         self.jiojio_home = os.path.expanduser('~/.jiojio')
-        self.model_dir = os.path.join(os.path.dirname(self.train_dir),
+        self.train_dir = os.path.join(self.jiojio_home, 'train_dir')
+        self.model_dir = os.path.join(os.path.dirname(__file__),
                                       "models/default_model")
 
         # training params
@@ -46,14 +46,18 @@ class Config:
         self.gold_test_file = os.path.join(self.train_dir, "gold_test.txt")
 
         # features params
-        self.norm_text = True  # 将所有的 数字、字母，正规化，但具体条目则须在代码内部调整，未暴露在外
+        self.norm_text = True  # 将所有的 数字、字母正规化，但该参数基本上是必选参数，否则造成特征稀疏与 F1 值降低
+        self.convert_num_letter = True  # 将所有数字、字母、空格等转换为 ascii 形式
+        self.normalize_num_letter = False  # 将所有数字正规化为 7，字母正规化为 Z
+        self.convert_exception = True  # 将所有异常字符全部转为固定常见字符 ん
+
         self.feature_trim = 3  # 特征出现频次过低则丢弃，当数据量超大时使用，大于三次保留，不包含3次
         self.word_feature = True  # 需要返回 词汇 特征，若丢弃词汇特征，则计算耗时减少 30~40%
         self.word_max = 4  # 越大，则计算耗时越长，因此不建议超过 6，过短如 3 则会造成模型效果下降
         self.word_min = 2  # 此值基本固定不变
         self.label_num = 2  # 标签数量，即 B,I 两个
-        self.start_token = '[START]'  # start and end token
-        self.end_token = '[END]'
+        # self.start_token = '[START]'  # start and end token
+        # self.end_token = '[END]'
 
     def globalCheck(self):
         assert self.initial_learning_rate > 0
