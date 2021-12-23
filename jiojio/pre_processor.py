@@ -24,7 +24,12 @@ import re
 class PreProcessor(object):
     """清洗字符串，准备用户词典"""
 
-    def __init__(self):
+    def __init__(self, convert_num_letter=True, normalize_num_letter=False,
+                 convert_exception=True):
+        # 预处理参数，用于控制预处理方式
+        self.convert_num_letter = convert_num_letter
+        self.normalize_num_letter = normalize_num_letter
+        self.convert_exception = convert_exception
 
         # 归一化标点符号，将确定性的标点进行替换，而非确定性标点，
         # 如 “.”不仅仅可以作为句子结尾，还可作为数字小数点，因此不可进行标点归一化
@@ -73,15 +78,13 @@ class PreProcessor(object):
             num + letter + space + punctuation,
             converted_num + converted_letter + converted_space + len(punctuation) * '。')
 
-    def __call__(self, text, convert_num_letter=True, normalize_num_letter=True,
-                 convert_exception=True):
-        if normalize_num_letter:
+    def __call__(self, text):
+        if self.normalize_num_letter:
             text = text.translate(self.num_letter_space_punc_norm_translation)
-        elif convert_num_letter:
-            # 若正规化所有数字、字母，则全半角、符号等失去意义
+        elif self.convert_num_letter:
             text = text.translate(self.num_letter_punc_token_translation)
 
-        if convert_exception:
+        if self.convert_exception:
             text = self.exception_token_pattern.sub('ん', text)
 
         return text

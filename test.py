@@ -11,13 +11,12 @@ import jionlp as jio
 from jiojio.trie_tree import TrieTree
 
 
-file_path = '/home/cuichengyu/dataset/cws.txt'
+# 去重
+# '''
+file_path = '/home/cuichengyu/dataset/all_cws.txt'
 # file_path = '/home/cuichengyu/dataset/train_cws.txt1'
 
-keys_dict = dict()
 trie_tree_obj = TrieTree()
-
-
 duplicate_res_list = list()
 md5_length = 10
 for idx, line in enumerate(jio.read_file_by_iter(
@@ -42,12 +41,14 @@ random.shuffle(duplicate_res_list)
 jio.write_file_by_line(
     duplicate_res_list, '/home/cuichengyu/dataset/dupli_cws.txt')
 
+pdb.set_trace()
+# '''
 # -----------------------------------------------------
-'''  计算标签真实转移概率
-dir_path = '/home/cuichengyu/github/jiojio/train_dir/temp'
+# '''  计算标签真实转移概率
+dir_path = '/home/cuichengyu/.jiojio/train_dir/'
 
 trans_dict = {'B-B': 0, 'B-I': 0, 'I-B': 0, 'I-I': 0}
-for text in jio.read_file_by_iter(os.path.join(dir_path, 'train.conll.txt')):
+for text in jio.read_file_by_iter(os.path.join(dir_path, 'test.conll.txt')):
     assert type(text) is list
     tags = text[1]
     for tag_pre, tag_behind in zip(tags[:-1], tags[1:]):
@@ -62,19 +63,30 @@ for text in jio.read_file_by_iter(os.path.join(dir_path, 'train.conll.txt')):
         else:
             print('the tag is wrong!')
 
-#''
+'''
 B-B: 0.34959443
 B-I: 0.29970311
 I-B: 0.29961667
 I-I: 0.05108579
-#''
+
+B-B: 0.30506170
+B-I: 0.31956753
+I-B: 0.31916296
+I-I: 0.05620781
+
+B-B: 0.30491522
+B-I: 0.31961474
+I-B: 0.31919062
+I-I: 0.05627941
+
+'''
 total_num = sum(list(trans_dict.values()))
 print(trans_dict)
-# for key, value in trans_dict.items():
-#    print('{}: {:.8f}'.format(key, value / total_num))
+for key, value in trans_dict.items():
+    print('{}: {:.8f}'.format(key, value / total_num))
 print('{}: {:.8f}'.format('B-B', trans_dict['B-B'] / (trans_dict['B-B'] + trans_dict['B-I'])))
 print('{}: {:.8f}'.format('B-I', trans_dict['B-I'] / (trans_dict['B-B'] + trans_dict['B-I'])))
 
 print('{}: {:.8f}'.format('I-B', trans_dict['I-B'] / (trans_dict['I-B'] + trans_dict['I-I'])))
 print('{}: {:.8f}'.format('I-I', trans_dict['I-I'] / (trans_dict['I-B'] + trans_dict['I-I'])))
-'''
+# '''

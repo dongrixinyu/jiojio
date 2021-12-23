@@ -2,6 +2,8 @@
 
 __doc__ = 'for fast Chinese Word Segmentation(CWS) and Part of Speech(POS).'
 
+__version__ = '0.0.1'
+
 import sys
 import os
 import pdb
@@ -18,6 +20,7 @@ from .config import config
 import jiojio.trainer as trainer
 from jiojio.trie_tree import TrieTree
 from jiojio.predict_text import PredictText
+
 
 __all__ = ['init', 'cut', 'train', 'test']
 
@@ -37,9 +40,8 @@ def init(model_name=None, pos=False, user_dict=None):
 
     """
     global jiojio_obj
-    jiojio_obj = PredictText(config,
-                             model_name=model_name,
-                             user_dict=user_dict)
+    jiojio_obj = PredictText(
+        config, model_name=model_name, user_dict=user_dict)
 
 
 def cut(text):
@@ -47,11 +49,8 @@ def cut(text):
     return words
 
 
-def train(train_file,
-          test_file,
-          train_dir=None,
-          model_dir=None,
-          train_epoch=20):
+def train(train_file, test_file, train_dir=None,
+          model_dir=None, train_epoch=20):
     """用于训练模型，分析、确定参数"""
 
     if not os.path.exists(train_file):
@@ -95,20 +94,20 @@ def _test_single_proc(input_file, model_name=None, user_dict=None, pos=False):
     total_sample_num = 0
     with TimeIt('# cutting text') as ti:
         diff_results = list()
-        for line in read_file_by_iter(input_file, line_num=100000):
-            text = ''.join(line)
+        for text in read_file_by_iter(input_file, line_num=2000):
+            # text = ''.join(line)
 
             # print(text)
             total_sample_num += 1
             total_token_num += len(text)
 
-            words_list = seg.cut(text, normalize_num_letter=False)
+            words_list = seg.cut(text)
             # if words_list != line:
             #     diff_results.append(line)
-
-            # print(line)
-            # print(words_list)
-            # pdb.set_trace()
+                # print('true: ' , line)
+                # print('pred: ', words_list)
+                # print('correct num: ', total_sample_num - len(diff_results))
+                # pdb.set_trace()
         cost_time = ti.break_point()
 
     print("# total_time:\t{:.3f}".format(cost_time))
