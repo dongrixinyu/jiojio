@@ -1,13 +1,10 @@
 # -*- coding=utf-8 -*-
 
 __doc__ = 'for fast Chinese Word Segmentation(CWS) and Part of Speech(POS).'
+__version__ = '0.0.2'
 
-__version__ = '0.0.1'
-
-import sys
 import os
 import pdb
-import time
 
 from multiprocessing import Process, Queue, get_start_method
 
@@ -15,12 +12,10 @@ from .util.logger import set_logger
 
 logging = set_logger(level='INFO', log_dir_name='.jiojio_logs')
 
-from .util import TimeIt, unzip_file, read_file_by_iter, write_file_by_line
+from .util import TimeIt, unzip_file, read_file_by_iter, write_file_by_line, TrieTree
 from .config import config
 import jiojio.trainer as trainer
-from jiojio.trie_tree import TrieTree
 from jiojio.predict_text import PredictText
-
 
 __all__ = ['init', 'cut', 'train', 'test']
 
@@ -40,8 +35,8 @@ def init(model_name=None, pos=False, user_dict=None):
 
     """
     global jiojio_obj
-    jiojio_obj = PredictText(
-        config, model_name=model_name, user_dict=user_dict)
+    jiojio_obj = PredictText(config, model_name=model_name,
+                             user_dict=user_dict)
 
 
 def cut(text):
@@ -59,14 +54,14 @@ def train(train_file, test_file, train_dir=None,
         raise Exception("test_file does not exist.")
 
     if (train_dir is None) or (type(train_dir) is not str):
-        print('using the default `train_dir` in `./jiojio/config.py`.')
+        loading.info('using the default `train_dir` in `./jiojio/config.py`.')
     else:
         config.train_dir = train_dir
     if not os.path.exists(config.train_dir):
         os.makedirs(config.train_dir)
 
     if (model_dir is None) or (type(model_dir) is not str):
-        print('using the default `model_dir` in `./jiojio/config.py`.')
+        logging.info('using the default `model_dir` in `./jiojio/config.py`.')
     else:
         config.model_dir = model_dir
     if not os.path.exists(config.model_dir):
@@ -104,16 +99,16 @@ def _test_single_proc(input_file, model_name=None, user_dict=None, pos=False):
             words_list = seg.cut(text)
             # if words_list != line:
             #     diff_results.append(line)
-                # print('true: ' , line)
-                # print('pred: ', words_list)
-                # print('correct num: ', total_sample_num - len(diff_results))
-                # pdb.set_trace()
+            # print('true: ' , line)
+            # print('pred: ', words_list)
+            # print('correct num: ', total_sample_num - len(diff_results))
+            # pdb.set_trace()
         cost_time = ti.break_point()
 
-    print("# total_time:\t{:.3f}".format(cost_time))
-    print("# total sample:{:},\t average {:} chars per sample ".format(
+    logging.info("# total_time:\t{:.3f}".format(cost_time))
+    logging.info("# total sample:{:},\t average {:} chars per sample ".format(
         total_sample_num, total_token_num / total_sample_num))
-    print("# {} chars per second".format(total_token_num / (cost_time)))
+    logging.info("# {} chars per second".format(total_token_num / (cost_time)))
 
     write_file_by_line(diff_results,
                        '/home/cuichengyu/dataset/diff_cws_samples.txt')
@@ -127,7 +122,7 @@ def _proc(seg, in_queue, out_queue):
     while True:
         item = in_queue.get()
         if item is None:
-            print('finished! Processed {} samples. '.format(count))
+            logging.info('finished! Processed {} samples. '.format(count))
             return
 
         idx, line = item
@@ -149,11 +144,8 @@ def _proc_alt(model_name, user_dict, pos, in_queue, out_queue):
         out_queue.put((idx, output_list))
 
 
-def _test_multi_proc(input_file,
-                     nthread,
-                     model_name="default_model",
-                     user_dict=None,
-                     pos=False):
+def _test_multi_proc(input_file, nthread, model_name="default_model",
+                     user_dict=None, pos=False):
 
     with TimeIt('# select method of starting subprocess'):
         alt = get_start_method() == "spawn"
@@ -202,14 +194,14 @@ def _test_multi_proc(input_file,
     for p in procs:
         p.join()
 
-    print("# total sample:{:},\t average {:} chars per sample ".format(
+    logging.info("# total sample:{:},\t average {:} chars per sample ".format(
         total_sample_num, total_token_num / total_sample_num))
-    print("# {} chars per second".format(total_token_num / (cost_time)))
+    logging.info("# {} chars per second".format(total_token_num / (cost_time)))
 
 
 def test(input_file, model_name=None, user_dict=None, nthread=1, pos=False):
-    """ 测试数据集预测效果，其中 nthread 可以使用 os.cpu_count() - 1 指定，来进行最大限度资源利用，
-    主要用于测试处理速度 """
+    """ 测试数据集预测效果，其中 nthread 可以使用 os.cpu_count() - 1 指定，
+    来进行最大限度资源利用，主要用于测试处理速度 """
 
     if nthread > 1:
         _test_multi_proc(input_file, nthread, model_name, user_dict, pos)

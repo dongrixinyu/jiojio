@@ -6,8 +6,8 @@ import time
 import numpy as np
 from multiprocessing import Process, Queue
 
-from jiojio import TimeIt, config
-from jiojio.data import DataSet
+from jiojio import TimeIt, config, logging
+from jiojio.dataset import DataSet
 from jiojio.feature_extractor import FeatureExtractor
 
 from jiojio.model import Model
@@ -39,16 +39,16 @@ def train(config):
 
     feature_extractor = feature_extractor.load(config, config.model_dir)
 
-    print("\nstart training ...")
+    logging.info("\nstart training ...")
 
     with TimeIt('loading dataset'):
         train_set = DataSet.load(config.feature_train_file, config.gold_train_file)
-        print("train_set size: {}\n".format(len(train_set)))
+        logging.info("train_set size: {}\n".format(len(train_set)))
 
     trainer = Trainer(config, train_set, feature_extractor)
 
     for i in range(config.train_epoch):
-        print('- epoch {}:'.format(i))
+        logging.info('- epoch {}:'.format(i))
         with TimeIt('training epoch {}'.format(i)):
             err, diff = trainer.train_epoch()
             # pass
@@ -66,9 +66,9 @@ def train(config):
                 config.feature_test_file, config.gold_test_file, sample_ratio=sample_ratio)
 
         with TimeIt('Testing'):
-            print('# train_set:')
+            logging.info('# train_set:')
             train_score_list = trainer.test(train_valid_set)
-            print('# test_set:')
+            logging.info('# test_set:')
             test_score_list = trainer.test(test_valid_set)
 
             # 计算所有参数的最大值，平均值，中位值，确保模型的参数稳定
@@ -77,17 +77,17 @@ def train(config):
             average_weight = np.sum(trainer.model.node_weight) / len(trainer.model.node_weight)
             average_abs_weight = np.sum(np.abs(trainer.model.node_weight)) / len(trainer.model.node_weight)
         pdb.set_trace()
-        print("- epoch {}: \n"
-              "\t- diff={:.4f}  error={:.4f}\n"
-              "\t- max-weight={:.4f}  min-weight={:.4f}\n"
-              "\t  average-weight={:.4f}  average-abs-weight={:.4f}".format(
-                  i, diff, err, max_weight, min_weight,
-                  average_weight, average_abs_weight))
-        print("-" * 50 + "\n")
+        logging.info("- epoch {}: \n"
+                     "\t- diff={:.4f}  error={:.4f}\n"
+                     "\t- max-weight={:.4f}  min-weight={:.4f}\n"
+                     "\t  average-weight={:.4f}  average-abs-weight={:.4f}".format(
+                         i, diff, err, max_weight, min_weight,
+                         average_weight, average_abs_weight))
+        logging.info("-" * 50 + "\n")
 
     trainer.model.save()
 
-    print("finished.")
+    logging.info("finished.")
 
 
 class Trainer(object):
@@ -196,14 +196,14 @@ class Trainer(object):
                 sample_wrong += 1  # 样本错误
 
         score_list, info_list = F1_score(gold_tags, pred_tags, self.idx_to_chunk_tag)
-        print("\t- test-sample-num={}\n"
-              "\t- gold-num={}  output-num={}  correct-num={}\n"
-              "\t- precision={:.2%}  recall={:.2%}  f-score={:.2%}\n"
-              "\t- token_acc={:.2%}  sample_acc={:.2%}\n".format(
-                  len(dataset),
-                  info_list[0], info_list[1], info_list[2],
-                  score_list[1], score_list[2], score_list[0],
-                  (token_total - token_wrong) / token_total,
-                  (len(dataset) - sample_wrong) / len(dataset)))
+        logging.info("\t- test-sample-num={}\n"
+                     "\t- gold-num={}  output-num={}  correct-num={}\n"
+                     "\t- precision={:.2%}  recall={:.2%}  f-score={:.2%}\n"
+                     "\t- token_acc={:.2%}  sample_acc={:.2%}\n".format(
+                         len(dataset),
+                         info_list[0], info_list[1], info_list[2],
+                         score_list[1], score_list[2], score_list[0],
+                         (token_total - token_wrong) / token_total,
+                         (len(dataset) - sample_wrong) / len(dataset)))
 
         return score_list

@@ -2,6 +2,7 @@ import pdb
 import random
 
 import numpy as np
+from jiojio import logging
 from jiojio.gradient import get_grad_SGD_minibatch
 
 
@@ -51,8 +52,8 @@ class SGD(Optimizer):
         return sample_num, random_index
 
     def optimize(self):
-        print('model w init: ', self._model.node_weight[0],
-              '...', self._model.edge_weight[0][0])
+        logging.info('model w init: ', self._model.node_weight[0],
+                     '...', self._model.edge_weight[0][0])
 
         error_list = list()
 
@@ -72,8 +73,8 @@ class SGD(Optimizer):
             self.learning_rate = self.config.initial_learning_rate * \
                 np.exp((- self.training_epoch_num - t / sample_num) * self.config.dropping_rate)
             if t % (self.config.mini_batch * 20) == 0:
-                print('\tlr: {:.5f}, sample idx {}: grad: '.format(self.learning_rate, t),
-                      node_grad[0], '...', edge_grad[0][0])
+                logging.info('\tlr: {:.5f}, sample idx {}: grad: '.format(self.learning_rate, t),
+                             node_grad[0], '...', edge_grad[0][0])
 
             # update weights
             self._model.node_weight -= self.learning_rate * node_grad
@@ -90,8 +91,8 @@ class SGD(Optimizer):
 
         diff = self.converge_test(sum(error_list) / len(error_list))
 
-        print('err/diff: {:.4f}/{:.4f}'.format(sum(error_list) / len(error_list), diff))
-        print('model w change: ', self._model.node_weight[0],
+        logging.info('err/diff: {:.4f}/{:.4f}'.format(sum(error_list) / len(error_list), diff))
+        logging.info('model w change: ', self._model.node_weight[0],
               '...', self._model.edge_weight[0][0])
 
         self.training_epoch_num += 1

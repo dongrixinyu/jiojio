@@ -5,13 +5,6 @@ import pdb
 
 
 class Config:
-    lineEnd = "\n"
-    undrln = "_"
-    blank = " "
-    tab = "\t"
-    star = "*"
-    slash = "/"
-    comma = ","
     model_urls = {
         "postag": "https://github.com/dongrixinyu/jiojio/releases/download/v0.0.16/postag.zip",
     }
@@ -28,15 +21,14 @@ class Config:
         # training params
         self.initial_learning_rate = 0.05  # 梯度初始值
         self.dropping_rate = 0.8  # 维持学习速率，越大则下降越快(0~1) 推荐(0.7~0.999)
-        self.random = 1  # 0 for 0-init of model weights, 1 for random init of model weights
-        self.train_epoch = 20  # training iterations
+        self.random_init = True  # False for 0-init of model weights, True for random init of model weights
+        self.train_epoch = 20  # 训练迭代次数
         self.mini_batch = 2000  # mini-batch in stochastic training
-        self.nThread = 10  # number of processes
+        self.nThread = 10  # number of processes in testing
         self.regularization = True  # 建议保持
 
         self.c_train = os.path.join(self.train_dir, "train.conll.txt")
         self.f_train = os.path.join(self.train_dir, "train.feat.txt")
-
         self.c_test = os.path.join(self.train_dir, "test.conll.txt")
         self.f_test = os.path.join(self.train_dir, "test.feat.txt")
 
@@ -55,9 +47,7 @@ class Config:
         self.word_feature = True  # 需要返回 词汇 特征，若丢弃词汇特征，则计算耗时减少 30~40%
         self.word_max = 4  # 越大，则计算耗时越长，因此不建议超过 6，过短如 3 则会造成模型效果下降
         self.word_min = 2  # 此值基本固定不变
-        self.label_num = 2  # 标签数量，即 B,I 两个
-        # self.start_token = '[START]'  # start and end token
-        # self.end_token = '[END]'
+        self.label_num = 2  # 标签数量，即 B,I 两个，有助于模型计算加速
 
     def globalCheck(self):
         assert self.initial_learning_rate > 0
