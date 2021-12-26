@@ -1,7 +1,5 @@
 # -*- coding=utf-8 -*-
 
-from jiojio import logging
-
 
 class TrieTree(object):
     """
@@ -35,7 +33,7 @@ class TrieTree(object):
             if depth > self.depth:
                 self.depth = depth
             if 't' in tree and tree['t'] != typing:
-                logging.warning('`{}` belongs to both `{}` and `{}`.'.format(
+                print('`{}` belongs to both `{}` and `{}`.'.format(
                     word, tree['t'], typing))
             else:
                 tree['t'] = typing

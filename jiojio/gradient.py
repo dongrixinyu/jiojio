@@ -2,14 +2,14 @@ import pdb
 import numpy as np
 from typing import List
 
+from jiojio.dataset import Sample
 from jiojio.model import Model
 from jiojio.inference import get_Y_YY, get_beliefs, \
     get_masked_beliefs, Belief, MaskedBelief
 
 
 def get_grad_SGD_minibatch(node_grad: np.ndarray, edge_grad: np.ndarray,
-                           model: jiojio.model.Model,
-                           X: List[jiojio.data.Sample]):
+                           model: Model, X: List[Sample]):
     feature_id_dict = dict()
     errors = 0
     for x in X:
@@ -30,8 +30,7 @@ def get_grad_SGD_minibatch(node_grad: np.ndarray, edge_grad: np.ndarray,
 
 
 def get_grad_CRF(node_grad: np.ndarray, edge_grad: np.ndarray,
-                 model: jiojio.model.Model,
-                 x: jiojio.data.Sample):
+                 model: Model, x: Sample):
     feature_id_set = set()
 
     n_tag = model.n_tag
