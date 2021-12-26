@@ -37,7 +37,7 @@ def init(model_name=None, pos=False, user_dict=None):
     """
     global jiojio_obj
     jiojio_obj = PredictText(config, model_name=model_name,
-                             user_dict=user_dict)
+                             user_dict=user_dict, pos=pos)
 
 
 def cut(text):

@@ -11,6 +11,7 @@ class TrieTree(object):
     def __init__(self):
         self.dict_trie = dict()
         self.depth = 0
+        self.exception_list = ['', '\t', ' ', '\r']
 
     def add_node(self, word, typing):
         """
@@ -20,7 +21,7 @@ class TrieTree(object):
         :return: None
         """
         word = word.strip()
-        if word not in ['', '\t', ' ', '\r']:
+        if word not in self.exception_list:
             tree = self.dict_trie
             depth = len(word)
             word = word.lower()  # 将所有的字母全部转换成小写

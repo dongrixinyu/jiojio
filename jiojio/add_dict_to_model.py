@@ -30,7 +30,7 @@ class AddDict2Model(object):
             else:
                 logging.warn('`{}` is illegal.'.format(line))
 
-            self.trie_tree_obj.add_node(word, weight)
+            self.trie_tree_obj.add_node(word.lower(), weight)  # 要先预处理 TODO
         logging.info('add {} words to user_dict.'.format(idx + 1))
 
     def __call__(self, text, node_states):
@@ -48,8 +48,8 @@ class AddDict2Model(object):
         i = 0
 
         while i < text_length:
-            pointer_orig = text[i:self.trie_tree_obj.depth + i]
-            pointer = pointer_orig.lower()
+            pointer = text[i: self.trie_tree_obj.depth + i]
+            # pointer = pointer_orig.lower()  # 不需要，因预处理已处理过 TODO
             step, typing = self.trie_tree_obj.search(pointer)
             if typing is not None:
                 node_states[i][0] += typing
