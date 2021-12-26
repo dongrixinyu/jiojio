@@ -2,7 +2,6 @@
 
 
 import time
-from jiojio import logging
 
 
 class TimeIt(object):
@@ -41,10 +40,10 @@ class TimeIt(object):
         self.cost_time = time.time() - self.start_time
         if not self.no_print:
             if self.unit == 's':
-                logging.info('{0:s} totally costs {1:.3f} s.'.format(
+                print('{0:s} totally costs {1:.3f} s.'.format(
                     self.name, self.cost_time))
             elif self.unit == 'ms':
-                logging.info('{0:s} totally costs {1:.1f} ms.'.format(
+                print('{0:s} totally costs {1:.1f} ms.'.format(
                     self.name, self.cost_time * 1000))
 
     def break_point(self, restart=True):
@@ -64,10 +63,10 @@ class TimeIt(object):
 
         if not self.no_print:
             if self.unit == 's':
-                logging.info('{0:s} break point costs {1:.3f} s.'.format(
+                print('{0:s} break point costs {1:.3f} s.'.format(
                     self.name, cost_time))
             elif self.unit == 'ms':
-                logging.info('{0:s} break point costs {1:.1f} ms.'.format(
+                print('{0:s} break point costs {1:.1f} ms.'.format(
                     self.name, cost_time * 1000))
 
         self.restart_time = time.time()
