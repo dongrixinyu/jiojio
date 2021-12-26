@@ -1,2 +1,2 @@
 pip uninstall jiojio -y
-pip install .
+pip install -e .

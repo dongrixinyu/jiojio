@@ -4,7 +4,6 @@ import os
 import pdb
 
 from jiojio.tag_words_converter import tag2word
-from jiojio.lexicon_cut import LexiconCut
 from jiojio.pre_processor import PreProcessor
 from jiojio.feature_extractor import FeatureExtractor
 from jiojio.inference import decodeViterbi_fast, get_log_Y_YY, run_viterbi

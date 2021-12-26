@@ -4,9 +4,7 @@ import os
 import pdb
 import numpy as np
 
-from jiojio import logging
-from jiojio import read_file_by_iter
-from jiojio.trie_tree import TrieTree
+from jiojio import logging, read_file_by_iter, TrieTree
 
 
 class AddDict2Model(object):

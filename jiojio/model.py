@@ -11,7 +11,7 @@ class Model(object):
         self.n_tag = n_tag
         self.n_feature = n_feature
 
-        if config.random:
+        if config.random_init:
             # 均值为 0 的均匀分布
             # self.w = np.random.random(
             #     size=(self.n_transition_feature,)) * 2 - 1
@@ -24,24 +24,6 @@ class Model(object):
         else:
             self.node_weight = np.zeros(self.n_feature, self.n_tag)
             self.edge_weight = np.zeros(self.n_tag, self.n_tag)
-
-    def __expand(self, n_feature, n_tag):
-        # 在原有模型特征基础上，扩展特征和标签
-        new_transition_feature = n_tag * (n_feature + n_tag)
-        if config.random:
-            new_w = np.random.random(size=(new_transition_feature,)) * 2 - 1
-        else:
-            new_w = np.zeros(new_transition_feature)
-
-        n_node = self.n_tag * self.n_feature
-        n_edge = self.n_tag * self.n_tag
-        new_w[:n_node] = self.w[:n_node]
-        new_w[-n_edge:] = self.w[-n_edge:]
-        self.n_tag = n_tag
-        self.n_feature = n_feature
-        self.offset = self.n_tag * self.n_feature
-        self.n_transition_feature = new_transition_feature
-        self.w = new_w
 
     @classmethod
     def load(cls, model_dir=None):
@@ -68,7 +50,7 @@ class Model(object):
 
             return model
 
-        raise FileNotFoundError('the file {} does not exist.'.format(model_path))
+        raise FileNotFoundError('the file `{}` does not exist.'.format(model_path))
 
     def save(self, model_dir=None):
         if model_dir is None:

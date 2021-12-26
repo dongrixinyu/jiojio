@@ -1,16 +1,15 @@
 import pdb
 import numpy as np
-import jiojio.model
 from typing import List
 
+from jiojio.model import Model
 from jiojio.inference import get_Y_YY, get_beliefs, \
     get_masked_beliefs, Belief, MaskedBelief
-import jiojio.data
 
 
 def get_grad_SGD_minibatch(node_grad: np.ndarray, edge_grad: np.ndarray,
                            model: jiojio.model.Model,
-                           X: List[jiojio.data.Example]):
+                           X: List[jiojio.data.Sample]):
     feature_id_dict = dict()
     errors = 0
     for x in X:
@@ -32,7 +31,7 @@ def get_grad_SGD_minibatch(node_grad: np.ndarray, edge_grad: np.ndarray,
 
 def get_grad_CRF(node_grad: np.ndarray, edge_grad: np.ndarray,
                  model: jiojio.model.Model,
-                 x: jiojio.data.Example):
+                 x: jiojio.data.Sample):
     feature_id_set = set()
 
     n_tag = model.n_tag

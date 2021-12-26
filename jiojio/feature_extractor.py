@@ -20,10 +20,12 @@ def get_slice_str(iterator_obj, start, length, all_len):
     if start + length > all_len:
         return ""
 
-    if type(iterator_obj) is str:
-        return iterator_obj[start: start + length]
-    else:
-        return "".join(iterator_obj[start: start + length])
+    return iterator_obj[start: start + length]
+
+    # if type(iterator_obj) is str:
+    #     return iterator_obj[start: start + length]
+    # else:
+    #     return "".join(iterator_obj[start: start + length])
 
 
 class FeatureExtractor(object):
@@ -44,8 +46,6 @@ class FeatureExtractor(object):
     def _create_features(self):
         self.start_feature = '[START]'
         self.end_feature = '[END]'
-        self.norm_num = '7'  # 与 pre_processor.py文件中定义一致
-        self.norm_letter = 'Z'  # 与 pre_processor.py文件中定义一致
 
         self.delim = '.'
         self.empty_feature = '/'
@@ -69,9 +69,10 @@ class FeatureExtractor(object):
         self.no_word = "**noWord"
 
     def build(self, train_file):
-        word_length_info = Counter()
+
         # specials = set()
-        feature_freq = Counter()  # 计算各个特征的出现次数，减少罕见 token 计数
+        word_length_info = Counter()  # 计算所有词汇长度信息
+        feature_freq = Counter()  # 计算各个特征的出现次数，减少罕见特征计数
         unigrams = Counter()  # 计算各个 unigrams 出现次数，避免罕见 unigram 进入计数
         bigrams = Counter()  # 计算各个 bigrams 出现次数，避免罕见 bigram 进入计数
         for sample_idx, words in enumerate(read_file_by_iter(train_file)):
@@ -90,7 +91,7 @@ class FeatureExtractor(object):
             unigrams.update(words)
 
             for pre, suf in zip(words[:-1], words[1:]):
-                bigrams.update(["{}*{}".format(pre, suf)])
+                bigrams.update([pre + '*' + suf])
 
             # second pass to get features
             for idx in range(len(example)):
@@ -108,25 +109,25 @@ class FeatureExtractor(object):
         self.bigram = set([bigram for bigram, freq in bigrams.most_common()
                            if freq > self.config.feature_trim])
 
-        # print token length counter
+        # 打印全语料不同长度词 token 的计数和比例
         short_token_total_length = 0
         total_length = sum(list(word_length_info.values()))
-        print("token length\ttoken num\tratio:")
+        logging.info("token length\ttoken num\tratio:")
         for length in range(1, 12):
             if length <= 10:
                 short_token_total_length += word_length_info[length]
-                print("\t{} : {} : {:.2%}".format(
+                logging.info("\t{} \t {} \t {:.2%}".format(
                     length, word_length_info[length],
                     word_length_info[length] / total_length))
             else:
-                print("\t{}+: {} : {:.2%}".format(
+                logging.info("\t{}+\t {} \t {:.2%}".format(
                     length, total_length - short_token_total_length,
                     (total_length - short_token_total_length) / total_length))
         # print('special words num: {}\n'.format(specials))
         # print(json.dumps(list(specials), ensure_ascii=False))
 
-        print('# orig feature_num: {}'.format(len(feature_freq)))
-        print('# {:.2%} features are saved.'.format(
+        logging.info('# orig feature num: {}'.format(len(feature_freq)))
+        logging.info('# {:.2%} features are saved.'.format(
             sum([freq for _, freq in feature_freq.most_common()
                  if freq > self.config.feature_trim]) / sum(list(feature_freq.values()))))
 
@@ -139,7 +140,7 @@ class FeatureExtractor(object):
         self.feature_to_idx.update({self.empty_feature: 0})  # 空特征更新为第一个
         # self.feature_to_idx.update({self.start_feature: 1})  # 在寻找特征时已包含
         # self.feature_to_idx.update({self.end_feature: 2})
-        print('# true feature_num: {}'.format(len(self.feature_to_idx)))
+        logging.info('# true feature_num: {}'.format(len(self.feature_to_idx)))
 
         # create tag map
         B, B_single, I_first, I, I_end = self._create_label()
@@ -152,7 +153,7 @@ class FeatureExtractor(object):
     def get_node_features(self, idx, token_list):
         # 给定一个  token_list，找出其中 token_list[idx] 匹配到的所有特征
         length = len(token_list)
-        w = token_list[idx]
+        cur_c = token_list[idx]
         feature_list = list()
 
         # 1 start feature
@@ -160,45 +161,43 @@ class FeatureExtractor(object):
 
         # 8 unigram/bgiram feature
         # 当前字特征
-        feature_list.append(self.char_current + w)
+        feature_list.append(self.char_current + cur_c)
 
-        # 前一个字特征
         if idx > 0:
-            feature_list.append(self.char_before + token_list[idx - 1])
+            before_c = token_list[idx - 1]
+            # 前一个字 特征
+            feature_list.append(self.char_before + before_c)
+            # 当前字和前一字组合特征
+            feature_list.append(self.char_before_current + before_c + self.delim + cur_c)
         else:
             # 字符为起始位特征
             feature_list.append(self.start_feature)
 
-        # 后一个字特征
+
         if idx < len(token_list) - 1:
-            feature_list.append(self.char_next + token_list[idx + 1])
+            next_c = token_list[idx + 1]
+            # 后一个字特征
+            feature_list.append(self.char_next + next_c)
+            # 当前字和后一字组合特征
+            feature_list.append(self.char_current_next + cur_c + self.delim + next_c)
         else:
             # 字符为终止位特征
             feature_list.append(self.end_feature)
 
-        # 前第二字特征
+
         if idx > 1:
-            feature_list.append(self.char_before_2 + token_list[idx - 2])
+            before_c2 = token_list[idx - 2]
+            # 前第二字特征
+            feature_list.append(self.char_before_2 + before_c2)
+            # 前一字和前第二字组合
+            feature_list.append(self.char_before_2_1 + before_c2 + self.delim + before_c)
 
-        # 后第二字特征
         if idx < len(token_list) - 2:
-            feature_list.append(self.char_next_2 + token_list[idx + 2])
-
-        # 当前字和前一字组合特征
-        if idx > 0:
-            feature_list.append(self.char_before_current + token_list[idx - 1] + self.delim + w)
-
-        # 当前字和后一字组合特征
-        if idx < len(token_list) - 1:
-            feature_list.append(self.char_current_next + w + self.delim + token_list[idx + 1])
-
-        # 前一字和前第二字组合
-        if idx > 1:
-            feature_list.append(self.char_before_2_1 + token_list[idx - 2] + self.delim + token_list[idx - 1])
-
-        # 后一字和后第二字组合
-        if idx < len(token_list) - 2:
-            feature_list.append(self.char_next_1_2 + token_list[idx + 1] + self.delim + token_list[idx + 2])
+            next_c2 = token_list[idx + 2]
+            # 后第二字特征
+            feature_list.append(self.char_next_2 + next_c2)
+            # 后一字和后第二字组合
+            feature_list.append(self.char_next_1_2 + next_c + self.delim + next_c2)
 
         # no num/letter based features
         if not self.config.word_feature:
@@ -206,73 +205,53 @@ class FeatureExtractor(object):
 
         # 2 * (wordMax-wordMin+1) word features (default: 2*(6-2+1)=10 )
         # the character starts or ends a word
-
         # 寻找该字前一个词汇特征(包含该字)
-        pre_list_in = list()
-        for l in range(self.config.word_max, self.config.word_min - 1, -1):
-            # length 6 ... 2 (default)
-            # "prefix including current c" token_list[n-l+1, n]
-            # current character ends word
-            tmp = get_slice_str(token_list, idx - l + 1, l, length)
-            if tmp in self.unigram:
-                feature_list.append(self.word_before + tmp)
-                pre_list_in.append(tmp)  # 列表或字符串，关系计算速度
-                break  # 此 break 的取舍很重要
-            # else:
-            #     pre_list_in.append(self.no_word)
-
+        pre_list_in = None
         # 寻找该字后一个词汇特征(包含该字)
-        post_list_in = list()
+        post_list_in = None
+        # 寻找该字前一个词汇特征(不包含该字)
+        pre_list_ex = None
+        # 寻找该字后一个词汇特征(不包含该字)
+        post_list_ex = None
         for l in range(self.config.word_max, self.config.word_min - 1, -1):
             # "suffix" token_list[n, n+l-1]
             # current character starts word
-            tmp = get_slice_str(token_list, idx, l, length)
-            if tmp in self.unigram:
-                feature_list.append(self.word_next + tmp)
-                post_list_in.append(tmp)
-                break  # 此 break 的取舍很重要
+            if pre_list_in is None:
+                pre_in_tmp = get_slice_str(token_list, idx - l + 1, l, length)
+                if pre_in_tmp in self.unigram:
+                    feature_list.append(self.word_before + pre_in_tmp)
+                    pre_list_in = pre_in_tmp  # 列表或字符串，关系计算速度
+
+            if post_list_in is None:
+                post_in_tmp = get_slice_str(token_list, idx, l, length)
+                if post_in_tmp in self.unigram:
+                    feature_list.append(self.word_next + post_in_tmp)
+                    post_list_in = post_in_tmp
+
+            if pre_list_ex is None:
+                pre_ex_tmp = get_slice_str(token_list, idx - l, l, length)
+                if pre_ex_tmp in self.unigram:
+                    pre_list_ex = pre_ex_tmp
+
+            if post_list_ex is None:
+                post_ex_tmp = get_slice_str(token_list, idx + 1, l, length)
+                if post_ex_tmp in self.unigram:
+                    post_list_ex = post_ex_tmp
             # else:
             #     post_list_in.append(self.no_word)
 
-        # 寻找该字前一个词汇特征(不包含该字)
-        pre_list_ex = list()
-        for l in range(self.config.word_max, self.config.word_min - 1, -1):
-            # "prefix excluding current c" token_list[n-l, n-1]
-            tmp = get_slice_str(token_list, idx - l, l, length)
-            if tmp in self.unigram:
-                pre_list_ex.append(tmp)
-                break  # 此 break 的取舍很重要
-            # else:
-            #     pre_list_ex.append(self.no_word)
-
-        # 寻找该字后一个词汇特征(不包含该字)
-        post_list_ex = list()  # 其中个数由 word_max 决定
-        for l in range(self.config.word_max, self.config.word_min - 1, -1):
-            # "suffix excluding current c" token_list[n+1, n+l]
-            tmp = get_slice_str(token_list, idx + 1, l, length)
-            if tmp in self.unigram:
-                post_list_ex.append(tmp)
-                break  # 此 break 的取舍很重要
-            # else:
-            #     post_list_ex.append(self.no_word)
-
         # this character is in the middle of a word
-        # 2 * (wordMax - wordMin + 1) ^ 2 (default: 2 * (6 -2 + 1) ^ 2 = 50)
         # 寻找连续两个词汇特征(该字在右侧词汇中)
-        if len(pre_list_ex) != 0 and len(post_list_in) != 0:  # 加速处理
-            for pre in pre_list_ex:
-                for post in post_list_in:
-                    bigram = pre + "*" + post
-                    if bigram in self.bigram:
-                        feature_list.append(self.word_2_left + bigram)
+        if pre_list_ex and post_list_in:  # 加速处理
+            bigram = pre_list_ex + "*" + post_list_in
+            if bigram in self.bigram:
+                feature_list.append(self.word_2_left + bigram)
 
         # 寻找连续两个词汇特征(该字在左侧词汇中)
-        if len(pre_list_in) != 0 and len(post_list_ex) != 0:  # 加速处理
-            for pre in pre_list_in:
-                for post in post_list_ex:
-                    bigram = pre + "*" + post
-                    if bigram in self.bigram:
-                        feature_list.append(self.word_2_right + bigram)
+        if pre_list_in and post_list_ex:  # 加速处理
+            bigram = pre_list_in + "*" + post_list_ex
+            if bigram in self.bigram:
+                feature_list.append(self.word_2_right + bigram)
 
         return feature_list
 
