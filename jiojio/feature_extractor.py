@@ -6,7 +6,7 @@ import pdb
 import sys
 from collections import Counter
 
-from jiojio import logging, TimeIt, unzip_file, read_file_by_iter
+from jiojio import logging, TimeIt, unzip_file, zip_file, read_file_by_iter
 from jiojio.tag_words_converter import word2tag
 from jiojio.tag_words_converter import tag2word
 from jiojio.pre_processor import PreProcessor
@@ -78,7 +78,7 @@ class FeatureExtractor(object):
         for sample_idx, words in enumerate(read_file_by_iter(train_file)):
 
             if sample_idx % 100000 == 0:
-                print(sample_idx)
+                logging.info(sample_idx)
             # first pass to collect unigram and bigram and tag info
             word_length_info.update(map(len, words))
             # specials.update(word for word in words if len(word) >= 10)
@@ -123,8 +123,8 @@ class FeatureExtractor(object):
                 logging.info("\t{}+\t {} \t {:.2%}".format(
                     length, total_length - short_token_total_length,
                     (total_length - short_token_total_length) / total_length))
-        # print('special words num: {}\n'.format(specials))
-        # print(json.dumps(list(specials), ensure_ascii=False))
+        # logging.info('special words num: {}\n'.format(specials))
+        # logging.info(json.dumps(list(specials), ensure_ascii=False))
 
         logging.info('# orig feature num: {}'.format(len(feature_freq)))
         logging.info('# {:.2%} features are saved.'.format(
@@ -358,8 +358,12 @@ class FeatureExtractor(object):
         data["feature_to_idx"] = self.feature_to_idx
         data["tag_to_idx"] = self.tag_to_idx
 
-        with open(os.path.join(model_dir, "features.json"), "w", encoding="utf8") as f_w:
+        feature_path = os.path.join(model_dir, "features.json")
+
+        with open(feature_path, "w", encoding="utf8") as f_w:
             json.dump(data, f_w, ensure_ascii=False, indent=4, separators=(',', ':'))
+
+        zip_file(feature_path)
 
     @classmethod
     def load(cls, config, model_dir=None):
@@ -372,7 +376,7 @@ class FeatureExtractor(object):
 
         if (not os.path.exists(feature_path)) and os.path.exists(zip_feature_path):
             logging.info('unzip `{}` to `{}`.'.format(zip_feature_path, feature_path))
-            unzip_file([zip_feature_path])
+            unzip_file(zip_feature_path)
 
         if os.path.exists(feature_path):
             with open(feature_path, "r", encoding="utf8") as reader:
@@ -386,7 +390,7 @@ class FeatureExtractor(object):
             # extractor.idx_to_tag = extractor._reverse_dict(extractor.tag_to_idx)
             return extractor
 
-        print("WARNING: features.json does not exist, try loading using old format", file=sys.stderr)
+        logging.warn("WARNING: features.json does not exist, try loading using old format")
         with open(os.path.join(model_dir, "unigram_word.txt"), "r", encoding="utf8") as reader:
             extractor.unigram = set([line.strip() for line in reader])
 
