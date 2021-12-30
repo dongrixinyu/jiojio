@@ -24,7 +24,7 @@ DESCRIPTION:
 
 """
 
-
+import pdb
 from typing import List
 
 from jiojio import logging
@@ -75,14 +75,14 @@ def word2tag(word_list: List[str]):
     return [chars, tags]
 
 
-def tag2word(char_list: List[str], tags: List[str], verbose=False):
+def tag2word(char_list, tags, verbose=False):
     """ 将 tag 格式转为词汇列表，
     若格式中有破损不满足 BI 标准，则不转换为词汇并支持报错。
     该函数针对单条数据处理，不支持批量处理。
 
     Args:
-        char_list(List[str]): 输入的文本字符列表
-        tags(List[str]): 文本序列对应的标签
+        char_list(str): 输入的文本字符列表
+        tags(numpy.ndarray): 文本序列对应的标签
         verbose(bool): 是否打印出抽取实体时的详细错误信息，该函数并不处理报错返回，
             仍按一定形式将有标签逻辑错误数据进行组织并返回。
 
@@ -91,6 +91,7 @@ def tag2word(char_list: List[str], tags: List[str], verbose=False):
 
     Examples:
         >>> char_list = ['他', '指', '出', '：', '近', '几', '年', '来', '，', '足', '球', '场', '风', '气', '差', '劲', '。']
+        >>> char_list = '他指出：近几年来，足球场风气差劲。'
         >>> tags = ['B', 'B', 'I', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'I', 'I', 'B', 'I', 'B', 'I', 'B']
         # for speeding up, `tags` been modified to the following format
         >>> tags = [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0]
@@ -106,35 +107,47 @@ def tag2word(char_list: List[str], tags: List[str], verbose=False):
     word_list = list()
     start = None
 
-    for idx, (tag, char) in enumerate(zip(tags, char_list)):
+    for idx, tag in enumerate(tags):
+        # 由于 tag 为 B 的频率高于 tag 为 I，因此首先判断 tag == 0
+        if tag == 0:  # tag == 'B'
+            if idx == 0:
+                start = idx
+                if idx == chars_length - 1:  # 即文本中仅一个字
+                    word_list.append(char_list)
+                    break
+                continue
 
-        if tag == 1:  # tag == 'I'
-            if idx == 0:
-                _wrong_message(idx, tags, verbose)
-                start = idx
-                continue
-            elif idx == chars_length - 1:
-                word = ''.join(char_list[start:])
-            else:
-                continue
-        elif tag == 0:  # tag == 'B'
-            if idx == 0:
-                start = idx
-                continue
-            elif idx == chars_length - 1:
-                word_list.append(''.join(char_list[start:idx]))
-                word = char_list[-1]
-            else:
+            elif idx != chars_length - 1:
                 if start is None:
-                    _wrong_message(idx, tags, verbose)
+                    # _wrong_message(idx, tags, verbose)
                     continue
-                word = ''.join(char_list[start: idx])
+                # if start + 1 == idx:
+                #     word = char_list[start]
+                # else:
+                word_list.append(char_list[start: idx])
                 start = idx
-        else:
+            else:  # 即 idx == chars_length - 1
+                # if start + 1 == idx:
+                #     word_list.append(char_list[start])
+                # else:
+                word_list.append(char_list[start:idx])
+                word_list.append(char_list[-1])
+
+        elif tag == 1:  # tag == 'I'
+            if idx == 0:
+                # _wrong_message(idx, tags, verbose)
+                start = idx
+                continue
+            elif idx != chars_length - 1:
+                continue
+            else:  # 即 idx == chars_length - 1
+                word_list.append(char_list[start:])
+
+        else:  # 有额外标签，在分词此处默认无
             _wrong_message(idx, tags, verbose)
             return word_list
 
-        word_list.append(word)
+        # word_list.append(word)
 
     # assert len(''.join(word_list)) == chars_length, \
     #     'the length of char list must be same.'

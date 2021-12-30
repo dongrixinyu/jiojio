@@ -52,8 +52,8 @@ class SGD(Optimizer):
         return sample_num, random_index
 
     def optimize(self):
-        logging.info('model w init: ', self._model.node_weight[0],
-                     '...', self._model.edge_weight[0][0])
+        logging.info('model w init: {} ... {}'.format(self._model.node_weight[0][0],
+            self._model.edge_weight[0][0]))
 
         error_list = list()
 
@@ -72,9 +72,9 @@ class SGD(Optimizer):
             # update decay rates
             self.learning_rate = self.config.initial_learning_rate * \
                 np.exp((- self.training_epoch_num - t / sample_num) * self.config.dropping_rate)
-            if t % (self.config.mini_batch * 20) == 0:
-                logging.info('\tlr: {:.5f}, sample idx {}: grad: '.format(self.learning_rate, t),
-                             node_grad[0], '...', edge_grad[0][0])
+            if t % (self.config.mini_batch * 100) == 0:
+                logging.info('\tlr: {:.5f}, sample idx {}: grad: {} ... {}'.format(
+                    self.learning_rate, t, node_grad[0][0], edge_grad[0][0]))
 
             # update weights
             self._model.node_weight -= self.learning_rate * node_grad
@@ -92,8 +92,8 @@ class SGD(Optimizer):
         diff = self.converge_test(sum(error_list) / len(error_list))
 
         logging.info('err/diff: {:.4f}/{:.4f}'.format(sum(error_list) / len(error_list), diff))
-        logging.info('model w change: ', self._model.node_weight[0],
-              '...', self._model.edge_weight[0][0])
+        logging.info('model w change: {} ... {}'.format(
+            self._model.node_weight[0][0], self._model.edge_weight[0][0]))
 
         self.training_epoch_num += 1
 
