@@ -20,7 +20,7 @@ def train(config):
 
     feature_extractor = FeatureExtractor(config)
 
-    ''' # 构建 特征数据集
+    # ''' # 构建 特征数据集
     with TimeIt('# build datasets'):
         feature_extractor.build(config.train_file)
         feature_extractor.save()
@@ -37,7 +37,7 @@ def train(config):
             config.f_test, config.feature_test_file, config.gold_test_file)
     # '''
 
-    feature_extractor = feature_extractor.load(config, config.model_dir)
+    # feature_extractor = feature_extractor.load(config, config.model_dir)
 
     logging.info("\nstart training ...")
 
@@ -58,7 +58,7 @@ def train(config):
             if i == config.train_epoch - 1:  # 最后一个 epoch 用全量
                 sample_ratio = 1
             else:
-                sample_ratio = 0.09  # 仅用全数据量的 5% 做训练中验证
+                sample_ratio = 0.05  # 仅用全数据量的 5% 做训练中验证
 
             train_valid_set = DataSet.load(
                 config.feature_train_file, config.gold_train_file, sample_ratio=sample_ratio)
@@ -76,7 +76,7 @@ def train(config):
             min_weight = np.min(trainer.model.node_weight)
             average_weight = np.sum(trainer.model.node_weight) / len(trainer.model.node_weight)
             average_abs_weight = np.sum(np.abs(trainer.model.node_weight)) / len(trainer.model.node_weight)
-        pdb.set_trace()
+        # pdb.set_trace()
         logging.info("- epoch {}: \n"
                      "\t- diff={:.4f}  error={:.4f}\n"
                      "\t- max-weight={:.4f}  min-weight={:.4f}\n"

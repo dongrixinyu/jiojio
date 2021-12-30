@@ -16,6 +16,11 @@ PyObject* runViterbiDecode(
 }
 
 
+PyObject* getNodeFeatures(){
+
+}
+
+
 void main(){
     int node_num = 5;
     int tag_num = 2;

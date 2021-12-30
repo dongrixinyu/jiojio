@@ -45,14 +45,11 @@ class PredictText(object):
         for idx in range(length):
             node_features = self.feature_extractor.get_node_features(idx, text)
 
-            # 此处考虑，通用未匹配特征 “/”，即索引未 0 的特征
+            # 此处考虑，通用未匹配特征 “/”，即索引为 0 的特征
             node_feature_idx = [
                 self.feature_extractor.feature_to_idx[node_feature]
                 for node_feature in node_features
                 if node_feature in self.feature_extractor.feature_to_idx]
-
-            # if len(node_features) == 0 or len(node_feature_idx) == 0:
-            #     pdb.set_trace()
 
             if len(node_feature_idx) != len(node_features):
                 node_feature_idx.append(0)
@@ -67,13 +64,11 @@ class PredictText(object):
         # 添加词典
         if self.user_dict.trie_tree_obj is not None:
             self.user_dict(text, Y)
-        #pdb.set_trace()
+
         tags_idx = run_viterbi(Y, self.model.edge_weight)
 
         return tags_idx
         # tags = [self.idx_to_tag[tag_idx] for tag_idx in tags_idx]
-        # tags = map(lambda i:self.idx_to_tag[i], tags_idx)  # for speeding up
-
         # return tags
 
     def cut(self, text):

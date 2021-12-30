@@ -1,10 +1,10 @@
 .vscode/
-*.cpp
+*.json
 *.pyd
 *.html
 **/__pycache__/
 *.egg-info
-*.txt*
+
 build
 tmp/
 data/

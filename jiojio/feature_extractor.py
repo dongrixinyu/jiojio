@@ -15,10 +15,13 @@ from jiojio.pre_processor import PreProcessor
 def get_slice_str(iterator_obj, start, length, all_len):
     # 截取字符串，其中，iterable 为字、词列表
 
-    if start < 0 or start >= all_len:
-        return ""
-    if start + length > all_len:
-        return ""
+    # 此逻辑非必须，python 默认当索引越界时，按 空 返回
+    # if start < 0 or start >= all_len:
+    #     return ""
+
+    # 此逻辑非必须，若结尾索引大于总长度，则按 最长长度返回
+    # if start + length > all_len:
+    #     return ""
 
     return iterator_obj[start: start + length]
 
@@ -51,20 +54,23 @@ class FeatureExtractor(object):
         self.empty_feature = '/'
         self.default_feature = '$$'
 
-        self.char_current = 'c.'
-        self.char_before = 'c-1.'
-        self.char_next = 'c1.'
-        self.char_before_2 = 'c-2.'
-        self.char_next_2 = 'c2.'
-        self.char_before_current = 'c-1c.'
-        self.char_current_next = 'cc1.'
-        self.char_before_2_1 = "c-2c-1."
-        self.char_next_1_2 = "c1c2."
+        # 为了减少字符串个数，缩短匹配时间，根据前后字符的位置，制定规则进行缩短匹配，规则如下：
+        # c 代表 char，后一个位置 char 用 d 表示，前一个用 b 表示，按字母表顺序完成。
+        # w 代表 word，后一个位置 word 用 x 表示，双词用 w 表示，
+        self.char_current = 'c'
+        self.char_before = 'b'  # 'c-1.'
+        self.char_next = 'd'  # 'c1.'
+        self.char_before_2 = 'a'  # 'c-2.'
+        self.char_next_2 = 'e'  # 'c2.'
+        self.char_before_current = 'bc'  # 'c-1c.'
+        self.char_current_next = 'cd'  # 'cc1.'
+        self.char_before_2_1 = 'ab'  # 'c-2c-1.'
+        self.char_next_1_2 = 'de'  # 'c1c2.'
 
-        self.word_before = "w-1."
-        self.word_next = "w1."
-        self.word_2_left = "ww.l."
-        self.word_2_right = "ww.r."
+        self.word_before = 'v'  # 'w-1.'
+        self.word_next = 'x'  # 'w1.'
+        self.word_2_left = 'wl'  # 'ww.l.'
+        self.word_2_right = 'wr'  # 'ww.r.'
 
         self.no_word = "**noWord"
 
@@ -157,7 +163,7 @@ class FeatureExtractor(object):
         feature_list = list()
 
         # 1 start feature
-        # feature_list.append(self.default_feature)  # 取消默认特征，无意义
+        # feature_list.append(self.default_feature)  # 取消默认特征，仅有极微小影响
 
         # 8 unigram/bgiram feature
         # 当前字特征
@@ -338,7 +344,7 @@ class FeatureExtractor(object):
                 c_writer.write(json.dumps([example, tags], ensure_ascii=False) + "\n")
 
                 for idx, tag in enumerate(tags):
-                    features = self.get_node_features(idx, example)
+                    features = self.get_node_features(idx, ''.join(example))
                     # 某些特征不存在，则将其转换为 `/` 特征
                     norm_features = [feature for feature in features if feature in self.feature_to_idx]
                     if len(norm_features) < len(features):

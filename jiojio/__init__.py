@@ -55,7 +55,7 @@ def train(train_file, test_file, train_dir=None,
         raise Exception("test_file does not exist.")
 
     if (train_dir is None) or (type(train_dir) is not str):
-        loading.info('using the default `train_dir` in `./jiojio/config.py`.')
+        logging.info('using the default `train_dir` in `./jiojio/config.py`.')
     else:
         config.train_dir = train_dir
     if not os.path.exists(config.train_dir):
@@ -90,16 +90,21 @@ def _test_single_proc(input_file, model_name=None, user_dict=None, pos=False):
     total_sample_num = 0
     with TimeIt('# cutting text') as ti:
         diff_results = list()
-        for text in read_file_by_iter(input_file, line_num=2000):
-            # text = ''.join(line)
+        for line in read_file_by_iter(input_file,):  # line_num=3000):
+            text = ''.join(line)
 
             # print(text)
             total_sample_num += 1
             total_token_num += len(text)
 
             words_list = seg.cut(text)
-            # if words_list != line:
-            #     diff_results.append(line)
+            if words_list != line:
+                diff_results.append(line)
+            if len(''.join(words_list)) != len(text):
+                print('true: ' , line)
+                print('pred: ', words_list)
+                pdb.set_trace()
+            # assert len(''.join(words_list)) == len(text)
             # print('true: ' , line)
             # print('pred: ', words_list)
             # print('correct num: ', total_sample_num - len(diff_results))
