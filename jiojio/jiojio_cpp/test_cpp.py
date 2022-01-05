@@ -16,7 +16,8 @@ get_node_feature_c = feature_extractor.getNodeFeature
 get_node_feature_c.restype = ctypes.py_object
 
 text = "今天是个好天气！"
-res = get_node_feature_c(0, text, len(text))
+unigram = set(["天气", "今天", "中国"])
+res = get_node_feature_c(4, text, len(text))
 print(res)
 print(type(res[0]))
 

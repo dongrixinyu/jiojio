@@ -79,7 +79,7 @@ def tag2word(char_list, tags, verbose=False):
     """ 将 tag 格式转为词汇列表，
     若格式中有破损不满足 BI 标准，则不转换为词汇并支持报错。
     该函数针对单条数据处理，不支持批量处理。
-
+    且仅针对 tag_num 为 2，即 tag 仅有 B 和 I 时的情况。
     Args:
         char_list(str): 输入的文本字符列表
         tags(numpy.ndarray): 文本序列对应的标签
@@ -133,7 +133,8 @@ def tag2word(char_list, tags, verbose=False):
                 word_list.append(char_list[start:idx])
                 word_list.append(char_list[-1])
 
-        elif tag == 1:  # tag == 'I'
+        # elif tag == 1:  # tag == 'I'  # 此步对速度有较大影响，直接改成 else 会加速
+        else:
             if idx == 0:
                 # _wrong_message(idx, tags, verbose)
                 start = idx
@@ -143,9 +144,9 @@ def tag2word(char_list, tags, verbose=False):
             else:  # 即 idx == chars_length - 1
                 word_list.append(char_list[start:])
 
-        else:  # 有额外标签，在分词此处默认无
-            _wrong_message(idx, tags, verbose)
-            return word_list
+        # else:  # 有额外标签，在分词此处默认无
+        #     _wrong_message(idx, tags, verbose)
+        #     return word_list
 
         # word_list.append(word)
 
