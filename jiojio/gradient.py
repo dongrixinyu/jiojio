@@ -37,6 +37,13 @@ def get_grad_CRF(node_grad: np.ndarray, edge_grad: np.ndarray,
     belief = Belief(len(x), n_tag)
     belief_masked = MaskedBelief(len(x), n_tag)
 
+    # 为节省内存，每次均须将字符串解为 list 处理，增加了耗时
+    orig_features = x.features
+    orig_tags = x.tags
+    x.features = [list(map(int, feature_line.split(",")))
+                  for feature_line in orig_features.split("\n")]
+    x.tags = list(map(int, orig_tags.split(',')))
+
     Y, YY, masked_Y = get_Y_YY(model, x)
 
     Z, sum_edge = get_beliefs(belief, Y, YY)
@@ -48,6 +55,10 @@ def get_grad_CRF(node_grad: np.ndarray, edge_grad: np.ndarray,
 
             feature_id_set.add(feature_id)  # 需要更新梯度值的特征值索引
             node_grad[feature_id] += diff  # 计算梯度
+
+    #还原数据，节省内存
+    x.features = orig_features
+    x.tags = orig_tags
 
     edge_grad += np.reshape(sum_edge - sum_edge_masked, (n_tag, n_tag))  # 更新转移概率梯度
 

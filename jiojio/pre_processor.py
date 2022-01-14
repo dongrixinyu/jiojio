@@ -15,10 +15,33 @@
         函数的多次调用。
     3、maketrans 方法应当尽量将多个合并成一个，减少对字符串的遍历。
 
+规则说明：
+    1、某些字母和数字会引起混淆，如 “一九八Ｏ” 中，实际上以全角字母 “O” 替代。因此字母和数字不可归一化替代。
+    2、
 """
 
 
 import re
+
+
+SINGLE_CHINESE_FAMILY_NAME = \
+    '赵李吴郑王冯陈褚蒋沈韩杨朱秦尤许何吕张孔曹严魏陶姜戚邹喻窦潘葛奚范彭郎鲁韦' \
+    '俞袁酆鲍史廉岑薛倪滕殷罗郝邬傅卞康伍卜顾孟穆萧尹姚邵' \
+    '湛汪祁禹狄臧宋茅董梁杜阮闵贾娄郭盛刁钟徐邱骆' \
+    '蔡樊凌霍虞柯昝卢莫裘缪丁贲邓郁崔龚嵇邢裴翁荀於惠甄' \
+    '芮羿储靳汲邴糜弓隗侯宓蓬郗仲伊栾钭刘詹' \
+    '韶郜黎蓟薄蒲邰鄂蔺乔胥莘翟谭贡逄姬冉郦雍郤璩' \
+    '濮扈冀郏尚晏瞿阎慕茹宦艾易慎戈廖庾暨衡耿弘匡寇禄阙' \
+    '殳沃夔厍聂晁敖融訾阚饶毋乜鞠巢蒯後竺逯桓' \
+    '仉晋楚闫汝鄢涂钦缑亢牟佘佴赏谯笪佟'
+
+TWO_CHAR_CHINESE_FAMILY_NAME = \
+    '万俟|司马|上官|欧阳|夏侯|诸葛|闻人|东方|赫连|皇甫|尉迟|公羊|澹台|公冶|宗政|濮阳|淳于|单于|太叔|申屠|' \
+    '公孙|仲孙|轩辕|令狐|钟离|宇文|长孙|慕容|鲜于|闾丘|司徒|司空|亓官|司寇|子车|颛孙|端木|巫马|公西|漆雕|' \
+    '乐正|壤驷|公良|拓跋|夹谷|宰父|谷梁|段干|百里|东郭|南门|呼延|羊舌|微生|梁丘|左丘|东门|西门|南宫|第五'
+
+CHINESE_FAMILY_NAME = '(' + '|'.join(SINGLE_CHINESE_FAMILY_NAME) + \
+                      '|' + TWO_CHAR_CHINESE_FAMILY_NAME + ')'
 
 
 class PreProcessor(object):
@@ -26,6 +49,18 @@ class PreProcessor(object):
 
     def __init__(self, convert_num_letter=True, normalize_num_letter=False,
                  convert_exception=True):
+
+        # 检查是否包含中文字符
+        self.chinese_char_pattern = re.compile('[一-龥]')
+        self.num_pattern = re.compile(
+            '^(\d+(,\d+)?(\.\d+)?(万|亿|万亿|万千|千|点|亿千|兆)|[零一二三四五六七八九十百千万亿]{3,9})$')
+
+        # 检测是否为人名正则
+        self.chinese_family_name = re.compile(CHINESE_FAMILY_NAME)
+        self.two_char_chinese_family_name = re.compile(
+            '(' + TWO_CHAR_CHINESE_FAMILY_NAME + ')')
+
+
         # 预处理参数，用于控制预处理方式
         self.convert_num_letter = convert_num_letter
         self.normalize_num_letter = normalize_num_letter
@@ -93,6 +128,68 @@ class PreProcessor(object):
             text = self.exception_token_pattern.sub('ん', text)
 
         return text
+
+    def check_chinese_char(self, text):
+        if text == '':
+            return False
+
+        if self.chinese_char_pattern.search(text):
+            return True
+
+        return False
+
+    def check_num(self, text):
+        if text == '':
+            return False
+
+        if self.num_pattern.search(text) is not None:
+            return True
+        return False
+
+    def check_chinese_name(self, text):
+        text_length = len(text)
+        if text_length <= 1:  # 非人名
+            return False
+
+        if text_length >= 5:  # 非人名
+            return False
+
+        if text_length == 4:
+            # 4 字人名，其中包括两种情况：
+            # 1、姓氏为二字，如 “欧阳”
+            if self.chinese_family_name.search(text[0]) is not None \
+                    and self.chinese_family_name.search(text[1]) is not None:
+                return True
+
+            # 2、首二字为单字姓氏，如父母姓氏的组合：“刘王晨曦”
+            if self.two_char_chinese_family_name.search(text[:2]) is not None:
+                return True
+
+            return False
+
+        if text_length == 3:
+            # 3 字人名
+            # 1、首字为姓氏，如 “张”
+            if self.chinese_family_name.search(text[0]) is not None:
+                return True
+
+            # 2、姓氏为二字，如 “上官”
+            if self.two_char_chinese_family_name.search(text[:2]) is not None:
+                return True
+
+            return False
+
+        if text_length == 2:
+            if self.chinese_family_name.search(text[0]) is not None:
+                return True
+
+            return False
+
+    def cleansing_unigram(self, text):
+        """ 输入一个 ungram，判断其是否符合进入 unigram 词典集。
+        Return:
+            (bool): 是意味符合 unigram 要求，否则将该词串剔除
+        """
 
     def normalize_num_letter(self, text):
         text = text.translate(self.letter_translation)

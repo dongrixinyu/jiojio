@@ -23,14 +23,10 @@ class Config:
         self.dropping_rate = 0.8  # 维持学习速率，越大则下降越快(0~1) 推荐(0.7~0.999)
         self.random_init = True  # False for 0-init of model weights, True for random init of model weights
         self.train_epoch = 20  # 训练迭代次数
-        self.mini_batch = 2000  # mini-batch in stochastic training
-        self.nThread = 10  # number of processes in testing
+        self.mini_batch = 1000  # mini-batch in stochastic training
+        self.nThread = 10  # number of processes in testing and training
         self.regularization = True  # 建议保持
-
-        self.c_train = os.path.join(self.train_dir, "train.conll.txt")
-        self.f_train = os.path.join(self.train_dir, "train.feat.txt")
-        self.c_test = os.path.join(self.train_dir, "test.conll.txt")
-        self.f_test = os.path.join(self.train_dir, "test.feat.txt")
+        self.sample_ratio = 0.03  # 抽取总数据集中做训练中途验证的数据集比例
 
         self.feature_train_file = os.path.join(self.train_dir, "feature_train.txt")
         self.gold_train_file = os.path.join(self.train_dir, "gold_train.txt")
@@ -43,17 +39,20 @@ class Config:
         self.normalize_num_letter = False  # 将所有数字正规化为 7，字母正规化为 Z
         self.convert_exception = True  # 将所有异常字符全部转为固定常见字符 ん
 
-        self.feature_trim = 3  # 特征出现频次过低则丢弃，当数据量超大时使用，大于三次保留，不包含3次
+        self.char_feature_trim = 8  # 大数据量选择(20) 特征出现频次过低则丢弃，当数据量超大时使用，大于三次保留，不包含3次
+        self.feature_trim = 20  # 大数据量选择(20) 特征数量，小数据量(4)
+        self.unigram_feature_trim = 80  # 大数据量选择(80)，小数据量(10) 单词特征的数量
+        self.bigram_feature_trim = 20  # 大数据量选择(30)，小数据量(4) 单词特征的数量
         self.word_feature = True  # 需要返回 词汇 特征，若丢弃词汇特征，则计算耗时减少 30~40%
         self.word_max = 4  # 越大，则计算耗时越长，因此不建议超过 6，过短如 3 则会造成模型效果下降
         self.word_min = 2  # 此值基本固定不变
         self.label_num = 2  # 标签数量，即 B,I 两个，有助于模型计算加速
 
-    def globalCheck(self):
+    def params_check(self):
         assert self.initial_learning_rate > 0
         assert self.train_epoch > 0
         assert self.mini_batch > 0
 
 
 config = Config()
-config.globalCheck()
+config.params_check()
