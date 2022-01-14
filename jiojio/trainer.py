@@ -26,15 +26,10 @@ def train(config):
         feature_extractor.save()
 
     with TimeIt('# make feature files'):
-        feature_extractor.convert_text_file_to_feature_file(
-            config.train_file, config.c_train, config.f_train)
-        feature_extractor.convert_text_file_to_feature_file(
-            config.test_file, config.c_test, config.f_test)
-
-        feature_extractor.convert_feature_file_to_idx_file(
-            config.f_train, config.feature_train_file, config.gold_train_file)
-        feature_extractor.convert_feature_file_to_idx_file(
-            config.f_test, config.feature_test_file, config.gold_test_file)
+        feature_extractor.convert_text_file_to_feature_idx_file(
+            config.train_file, config.feature_train_file, config.gold_train_file)
+        feature_extractor.convert_text_file_to_feature_idx_file(
+            config.test_file, config.feature_test_file, config.gold_test_file)
     # '''
 
     # feature_extractor = feature_extractor.load(config, config.model_dir)
@@ -58,7 +53,7 @@ def train(config):
             if i == config.train_epoch - 1:  # 最后一个 epoch 用全量
                 sample_ratio = 1
             else:
-                sample_ratio = 0.05  # 仅用全数据量的 5% 做训练中验证
+                sample_ratio = config.sample_ratio  # 仅用全数据量的 5% 做训练中验证
 
             train_valid_set = DataSet.load(
                 config.feature_train_file, config.gold_train_file, sample_ratio=sample_ratio)
@@ -119,7 +114,7 @@ class Trainer(object):
         # 即直接根据语料统计参数取值
         samples_num = len(self.optim.dataset)
         tag_length = len(self.feature_extractor.tag_to_idx)
-        edge_count_matrix = np.zeros((tag_length, tag_length))
+        edge_count_matrix = np.zeros((tag_length, tag_length), dtype=np.int32)
 
         for sample in self.optim.dataset:
             sample.tags  # 未完
@@ -133,9 +128,13 @@ class Trainer(object):
 
     def _decode_single(self, test_set: DataSet, model: Model):
         for example in test_set:
+            example.features = [list(map(int, feature_line.split(",")))
+                                for feature_line in example.features.split("\n")]
+            example.tags = list(map(int, example.tags.split(',')))
             tags = decodeViterbi_fast(example.features, model)
             example.predicted_tags = tags
             # pdb.set_trace()
+            example.features = None
 
     @staticmethod
     def _decode_proc(model, in_queue, out_queue):
@@ -200,8 +199,7 @@ class Trainer(object):
                      "\t- gold-num={}  output-num={}  correct-num={}\n"
                      "\t- precision={:.2%}  recall={:.2%}  f-score={:.2%}\n"
                      "\t- token_acc={:.2%}  sample_acc={:.2%}\n".format(
-                         len(dataset),
-                         info_list[0], info_list[1], info_list[2],
+                         len(dataset), info_list[0], info_list[1], info_list[2],
                          score_list[1], score_list[2], score_list[0],
                          (token_total - token_wrong) / token_total,
                          (len(dataset) - sample_wrong) / len(dataset)))

@@ -54,31 +54,33 @@ class DataSet(object):
         dataset = cls.__new__(cls)
         assert 0.0 < sample_ratio <= 1.0
 
-        with open(feature_idx_file, encoding="utf-8") as f_reader:
+        with open(feature_idx_file, 'r', encoding="utf-8") as f_reader:
             sample_strs = f_reader.read().split("\n\n")[:-1]
+            n_feature = int(sample_strs[0])
+            sample_strs = sample_strs[1:]
 
-        with open(tag_idx_file, encoding="utf-8") as t_reader:
-            tags_strs = t_reader.read().split("\n\n")[:-1]
+        with open(tag_idx_file, 'r', encoding="utf-8") as t_reader:
+            n_tag, tags_strs = t_reader.read().split("\n\n")
+            n_tag = int(n_tag)
+            tags_strs = tags_strs.split('\n')[:-1]
 
         assert len(sample_strs) == len(tags_strs), \
             "lengths do not match:\t{}\n{}\n".format(sample_strs, tags_strs)
-
-        # pdb.set_trace()
-        n_feature = int(sample_strs[0])
-        n_tag = int(tags_strs[0])
 
         dataset.n_feature = n_feature
         dataset.n_tag = n_tag
         dataset.samples = list()
 
-        for sample_str, tags_str in zip(sample_strs[1:], tags_strs[1:]):
+        for sample_str, tags_str in zip(sample_strs, tags_strs):
             if sample_ratio != 1.0:
                 if random.random() > sample_ratio:
                     continue
 
-            features = [list(map(int, feature_line.split(",")))
-                        for feature_line in sample_str.split("\n")]
-            tags = tags_str.split(",")
+            # features = [list(map(int, feature_line.split(",")))
+            #             for feature_line in sample_str.split("\n")]
+            # tags = tags_str.split(",")
+            features = sample_str
+            tags = tags_str
             sample = Sample(features, tags)
             dataset.samples.append(sample)
 
@@ -88,7 +90,7 @@ class DataSet(object):
 class Sample(object):
     def __init__(self, features, tags):
         self.features = features  # List[List[int]]
-        self.tags = list(map(int, tags))  # List[int]
+        self.tags = tags  # List[int]
         self.predicted_tags = None
 
     def __len__(self):
