@@ -39,10 +39,13 @@ class Config:
         self.normalize_num_letter = False  # 将所有数字正规化为 7，字母正规化为 Z
         self.convert_exception = True  # 将所有异常字符全部转为固定常见字符 ん
 
-        self.char_feature_trim = 8  # 大数据量选择(20) 特征出现频次过低则丢弃，当数据量超大时使用，大于三次保留，不包含3次
-        self.feature_trim = 20  # 大数据量选择(20) 特征数量，小数据量(4)
+        # self.char_feature_trim = 6  # 大数据量选择(20) 特征出现频次过低则丢弃，当数据量超大时使用，大于三次保留，不包含3次
+        self.feature_trim = 20  # 普遍特征的删减数值
+        self.gap_1_feature_trim = 30  # 大数据量选择(20) 特征数量，小数据量(4)
+        self.gap_3_feature_trim = 60  # 带有 3 个词的跨度的特征删除量
+        self.gap_2_feature_trim = 40  # 带有 2 个词的跨度的特征删除量
         self.unigram_feature_trim = 80  # 大数据量选择(80)，小数据量(10) 单词特征的数量
-        self.bigram_feature_trim = 20  # 大数据量选择(30)，小数据量(4) 单词特征的数量
+        self.bigram_feature_trim = 10  # 大数据量选择(30)，小数据量(4) 单词特征的数量
         self.word_feature = True  # 需要返回 词汇 特征，若丢弃词汇特征，则计算耗时减少 30~40%
         self.word_max = 4  # 越大，则计算耗时越长，因此不建议超过 6，过短如 3 则会造成模型效果下降
         self.word_min = 2  # 此值基本固定不变
