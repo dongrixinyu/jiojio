@@ -63,12 +63,14 @@ class FeatureExtractor(object):
         self.char_next = 'd.'  # 'c1.'
         self.char_before_2 = 'a.'  # 'c-2.'
         self.char_next_2 = 'e.'  # 'c2.'
+        self.char_before_3 = 'z'  # 'c-3.
+        self.char_next_3 = 'f'  # 'c3.'
         self.char_before_current = 'bc.'  # 'c-1c.'
-        self.char_before_2_current = 'sc.'  # 'c-2c'
-        self.char_before_3_current = 'tc.'  # 'c-3c'
+        self.char_before_2_current = 'ac.'  # 'c-2c'
+        self.char_before_3_current = 'zc.'  # 'c-3c'
         self.char_current_next = 'cd.'  # 'cc1.'
-        self.char_current_next_2 = 'cs.'  # 'cc2.'
-        self.char_current_next_3 = 'ct.'  # 'cc3.'
+        self.char_current_next_2 = 'ce.'  # 'cc2.'
+        self.char_current_next_3 = 'cf.'  # 'cc3.'
         self.char_before_2_1 = 'ab.'  # 'c-2c-1.'
         self.char_next_1_2 = 'de.'  # 'c1c2.'
 
@@ -242,12 +244,35 @@ class FeatureExtractor(object):
 
         # pdb.set_trace()
         logging.info('# orig feature num: {}'.format(len(feature_freq)))
+        # feature_set = [feature for feature, freq in feature_freq.most_common()
+        #                if freq > self.config.feature_trim]
+        feature_set = list()
+        feature_count_sum = 0
+        for feature, freq in feature_freq.most_common():
+            if feature.startswith('zc.') or feature.startswith('cf.'):
+                if freq > self.config.gap_3_feature_trim:
+                    feature_set.append(feature)
+                    feature_count_sum += freq
+            elif feature.startswith('ac.') or feature.startswith('ce.'):
+                if freq > self.config.gap_2_feature_trim:
+                    feature_set.append(feature)
+                    feature_count_sum += freq
+            elif feature.startswith('bc.') or feature.startswith('cd.'):
+                if freq > self.config.gap_1_feature_trim:
+                    feature_set.append(feature)
+                    feature_count_sum += freq
+            elif feature.startswith('wl.') or feature.startswith('wr.') \
+                    or feature.startswith('v.') or feature.startswith('x.'):
+                if freq > self.config.bigram_feature_trim:
+                    feature_set.append(feature)
+                    feature_count_sum += freq
+            else:
+                if freq > self.config.feature_trim:
+                    feature_set.append(feature)
+                    feature_count_sum += freq
         logging.info('# {:.2%} features are saved.'.format(
-            sum([freq for _, freq in feature_freq.most_common()
-                 if freq > self.config.feature_trim]) / sum(list(feature_freq.values()))))
+            feature_count_sum / sum(list(feature_freq.values()))))
 
-        feature_set = [feature for feature, freq in feature_freq.most_common()
-                       if freq > self.config.feature_trim]
         for len_feature in bigram_len_feature:
             if len_feature not in feature_set:
                 feature_set.append(len_feature)
@@ -312,7 +337,6 @@ class FeatureExtractor(object):
             # feature_list.append(self.char_before_2_1 + before_c2 + self.delim + before_c)
             feature_list.append(self.char_before_2_current + before_c2 + self.delim + cur_c)
 
-
         if idx < len(token_list) - 2:
             next_c2 = token_list[idx + 2]
             # 后第二字特征
@@ -323,19 +347,18 @@ class FeatureExtractor(object):
 
         if idx > 2:
             before_c3 = token_list[idx - 3]
+            # 前第三字特征
+            feature_list.append(self.char_before_3 + before_c3)
             # 前三字和当前字组合
             feature_list.append(self.char_before_3_current + before_c3 + self.delim + cur_c)
 
         if idx < len(token_list) - 3:
             next_c3 = token_list[idx + 3]
-            # 后一字和后第二字组合
+            # 后第三字特征
+            feature_list.append(self.char_next_3 + next_c3)
+            # 当前字和后第三字组合
             feature_list.append(self.char_current_next_3 + cur_c + self.delim + next_c3)
 
-        # no num/letter based features
-        if not self.config.word_feature:
-            return feature_list
-
-        # 2 * (wordMax-wordMin+1) word features (default: 2*(6-2+1)=10 )
         # the character starts or ends a word
         # 寻找该字前一个词汇特征(包含该字)
         pre_list_in = None
@@ -407,7 +430,7 @@ class FeatureExtractor(object):
 
         # 寻找连续两个词汇特征(该字在右侧词汇中)
         if pre_list_ex and post_list_in:  # 加速处理
-            bigram = pre_list_ex + "*" + post_list_in
+            bigram = pre_list_ex + self.delim + post_list_in
             if bigram in self.bigram:
                 feature_list.append(self.word_2_left + bigram)
             feature_list.append(
@@ -416,7 +439,7 @@ class FeatureExtractor(object):
 
         # 寻找连续两个词汇特征(该字在左侧词汇中)
         if pre_list_in and post_list_ex:  # 加速处理
-            bigram = pre_list_in + "*" + post_list_ex
+            bigram = pre_list_in + self.delim + post_list_ex
             if bigram in self.bigram:
                 feature_list.append(self.word_2_right + bigram)
             feature_list.append(
