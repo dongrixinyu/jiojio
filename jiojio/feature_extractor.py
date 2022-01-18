@@ -7,7 +7,8 @@ import sys
 from collections import Counter
 
 
-from jiojio import logging, TimeIt, unzip_file, zip_file, read_file_by_iter
+from jiojio import logging, TimeIt, unzip_file, zip_file, \
+    read_file_by_iter, get_node_features_c
 from jiojio.tag_words_converter import word2tag
 from jiojio.tag_words_converter import tag2word
 from jiojio.pre_processor import PreProcessor
@@ -47,6 +48,11 @@ class FeatureExtractor(object):
         self.config = config
         self._create_features()
 
+        if get_node_features_c is None:
+            self.get_node_features_c = None
+        else:
+            self.get_node_features_c = True
+
     def _create_features(self):
         self.start_feature = '[START]'
         self.end_feature = '[END]'
@@ -58,28 +64,29 @@ class FeatureExtractor(object):
         # 为了减少字符串个数，缩短匹配时间，根据前后字符的位置，制定规则进行缩短匹配，规则如下：
         # c 代表 char，后一个位置 char 用 d 表示，前一个用 b 表示，按字母表顺序完成。
         # w 代表 word，后一个位置 word 用 x 表示，双词用 w 表示，
-        self.char_current = 'c.'
-        self.char_before = 'b.'  # 'c-1.'
-        self.char_next = 'd.'  # 'c1.'
-        self.char_before_2 = 'a.'  # 'c-2.'
-        self.char_next_2 = 'e.'  # 'c2.'
-        self.char_before_3 = 'z'  # 'c-3.
-        self.char_next_3 = 'f'  # 'c3.'
-        self.char_before_current = 'bc.'  # 'c-1c.'
-        self.char_before_2_current = 'ac.'  # 'c-2c'
-        self.char_before_3_current = 'zc.'  # 'c-3c'
-        self.char_current_next = 'cd.'  # 'cc1.'
-        self.char_current_next_2 = 'ce.'  # 'cc2.'
-        self.char_current_next_3 = 'cf.'  # 'cc3.'
-        self.char_before_2_1 = 'ab.'  # 'c-2c-1.'
-        self.char_next_1_2 = 'de.'  # 'c1c2.'
+        seg = ''
+        self.char_current = 'c' + seg
+        self.char_before = 'b' + seg  # 'c-1.'
+        self.char_next = 'd' + seg  # 'c1.'
+        self.char_before_2 = 'a' + seg  # 'c-2.'
+        self.char_next_2 = 'e' + seg  # 'c2.'
+        self.char_before_3 = 'z' + seg  # 'c-3.
+        self.char_next_3 = 'f' + seg  # 'c3.'
+        self.char_before_current = 'bc' + seg  # 'c-1c.'
+        self.char_before_2_current = 'ac' + seg  # 'c-2c'
+        self.char_before_3_current = 'zc' + seg  # 'c-3c'
+        self.char_current_next = 'cd' + seg  # 'cc1.'
+        self.char_current_next_2 = 'ce' + seg  # 'cc2.'
+        self.char_current_next_3 = 'cf' + seg  # 'cc3.'
+        self.char_before_2_1 = 'ab' + seg  # 'c-2c-1.'
+        self.char_next_1_2 = 'de' + seg  # 'c1c2.'
 
-        self.word_before = 'v.'  # 'w-1.'
-        self.word_next = 'x.'  # 'w1.'
-        self.word_2_left = 'wl.'  # 'ww.l.'
-        self.word_2_right = 'wr.'  # 'ww.r.'
+        self.word_before = 'v' + seg  # 'w-1.'
+        self.word_next = 'x' + seg  # 'w1.'
+        self.word_2_left = 'wl' + seg  # 'ww.l.'
+        self.word_2_right = 'wr' + seg  # 'ww.r.'
 
-        self.no_word = "nw."
+        self.no_word = "nw" + seg
         self.length_feature_pattern = '{}{}'
 
     @staticmethod
@@ -238,31 +245,42 @@ class FeatureExtractor(object):
 
             example = ''.join(words)
             # second pass to get features
-            for idx in range(len(example)):
-                node_features = self.get_node_features(idx, example)
-                feature_freq.update(feature for feature in node_features)
+            if self.get_node_features_c is None:
+                for idx in range(len(example)):
+                    node_features = self.get_node_features(idx, example)
+                    feature_freq.update(feature for feature in node_features)
+            else:
+                example_length = len(example)
+                print(example)
+                for idx in range(example_length):
+                    node_features = get_node_features_c(
+                        idx, example, example_length, self.unigram, self.bigram)
+                    feature_freq.update(feature for feature in node_features)
+                    # print(idx, node_features)
+                print(example)
+                print(sample_idx, '\n')
 
         # pdb.set_trace()
         logging.info('# orig feature num: {}'.format(len(feature_freq)))
         # feature_set = [feature for feature, freq in feature_freq.most_common()
         #                if freq > self.config.feature_trim]
+
         feature_set = list()
         feature_count_sum = 0
         for feature, freq in feature_freq.most_common():
-            if feature.startswith('zc.') or feature.startswith('cf.'):
+            if feature.startswith(self.char_before_3_current) or feature.startswith(self.char_current_next_3):
                 if freq > self.config.gap_3_feature_trim:
                     feature_set.append(feature)
                     feature_count_sum += freq
-            elif feature.startswith('ac.') or feature.startswith('ce.'):
+            elif feature.startswith(self.char_before_2_current) or feature.startswith(self.char_current_next_2):
                 if freq > self.config.gap_2_feature_trim:
                     feature_set.append(feature)
                     feature_count_sum += freq
-            elif feature.startswith('bc.') or feature.startswith('cd.'):
+            elif feature.startswith(self.char_before_current) or feature.startswith(self.char_current_next):
                 if freq > self.config.gap_1_feature_trim:
                     feature_set.append(feature)
                     feature_count_sum += freq
-            elif feature.startswith('wl.') or feature.startswith('wr.') \
-                    or feature.startswith('v.') or feature.startswith('x.'):
+            elif feature.startswith(self.word_2_left) or feature.startswith(self.word_2_right):
                 if freq > self.config.bigram_feature_trim:
                     feature_set.append(feature)
                     feature_count_sum += freq

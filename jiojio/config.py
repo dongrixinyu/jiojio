@@ -19,8 +19,8 @@ class Config:
                                       "models/default_model")
 
         # training params
-        self.initial_learning_rate = 0.05  # 梯度初始值
-        self.dropping_rate = 0.8  # 维持学习速率，越大则下降越快(0~1) 推荐(0.7~0.999)
+        self.initial_learning_rate = 0.02  # 梯度初始值
+        self.dropping_rate = 0.74  # 维持学习速率，越大则下降越快(0~1) 推荐(0.7~0.999)
         self.random_init = True  # False for 0-init of model weights, True for random init of model weights
         self.train_epoch = 20  # 训练迭代次数
         self.mini_batch = 1000  # mini-batch in stochastic training
@@ -42,11 +42,11 @@ class Config:
         # self.char_feature_trim = 6  # 大数据量选择(20) 特征出现频次过低则丢弃，当数据量超大时使用，大于三次保留，不包含3次
         self.feature_trim = 20  # 普遍特征的删减数值
         self.gap_1_feature_trim = 30  # 大数据量选择(20) 特征数量，小数据量(4)
-        self.gap_3_feature_trim = 60  # 带有 3 个词的跨度的特征删除量
-        self.gap_2_feature_trim = 40  # 带有 2 个词的跨度的特征删除量
+        self.gap_3_feature_trim = 80  # 带有 3 个词的跨度的特征删除量
+        self.gap_2_feature_trim = 60  # 带有 2 个词的跨度的特征删除量
         self.unigram_feature_trim = 80  # 大数据量选择(80)，小数据量(10) 单词特征的数量
         self.bigram_feature_trim = 10  # 大数据量选择(30)，小数据量(4) 单词特征的数量
-        self.word_feature = True  # 需要返回 词汇 特征，若丢弃词汇特征，则计算耗时减少 30~40%
+        # self.word_feature = True  # 需要返回 词汇 特征，若丢弃词汇特征，则计算耗时减少 30~40%
         self.word_max = 4  # 越大，则计算耗时越长，因此不建议超过 6，过短如 3 则会造成模型效果下降
         self.word_min = 2  # 此值基本固定不变
         self.label_num = 2  # 标签数量，即 B,I 两个，有助于模型计算加速
