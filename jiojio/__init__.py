@@ -13,7 +13,7 @@ from .util.logger import set_logger
 logging = set_logger(level='INFO', log_dir_name='.jiojio_logs')
 
 from .util import TimeIt, unzip_file, zip_file, read_file_by_iter, \
-    write_file_by_line, TrieTree
+    write_file_by_line, TrieTree, get_node_features_c
 from .config import config
 import jiojio.trainer as trainer
 from jiojio.predict_text import PredictText
