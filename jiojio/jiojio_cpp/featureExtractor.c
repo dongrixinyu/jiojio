@@ -1,12 +1,7 @@
 #include "featureExtractor.h"
 
-inline wchar_t *getSliceStr(wchar_t *text, int start, int length, int all_len)
+inline wchar_t *getSliceStr(wchar_t *text, int start, int length, int all_len, wchar_t *emptyStr)
 {
-    // printf("%d\t%d\t%d\n", start, length, all_len);
-    // 空字符串
-    wchar_t *emptyStr = malloc(1 * sizeof(wchar_t));
-    memset(emptyStr, L'\0', 1 * sizeof(wchar_t));
-    emptyStr = L"\0";
     if (start < 0 || start >= all_len)
     {
         return emptyStr;
@@ -15,7 +10,6 @@ inline wchar_t *getSliceStr(wchar_t *text, int start, int length, int all_len)
     {
         return emptyStr;
     }
-    // free(emptyStr);
 
     // 返回相应的子字符串
     wchar_t *resStr = malloc(length * sizeof(wchar_t));
@@ -29,11 +23,16 @@ inline wchar_t *getSliceStr(wchar_t *text, int start, int length, int all_len)
  * @param idx
  * @param text
  * @param nodeNum
+ * @param unigram
+ * @param bigram
  * @return PyObject*
  */
 PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
                          PySetObject *unigram, PySetObject *bigram)
 {
+    wchar_t *emptyStr = malloc(sizeof(wchar_t));
+    memset(emptyStr, L'\0', sizeof(wchar_t));
+
     const wchar_t *startFeature = L"[START]";
     const wchar_t *endFeature = L"[END]";
 
@@ -217,17 +216,16 @@ PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
     int preExFlag = 0;
     int postInFlag = 0;
     int postExFlag = 0;
-    wchar_t *preIn;
-    wchar_t *preEx;
-    wchar_t *postIn;
-    wchar_t *postEx;
+    wchar_t *preIn = NULL;
+    wchar_t *preEx = NULL;
+    wchar_t *postIn = NULL;
+    wchar_t *postEx = NULL;
     for (int l = wordMax; l > wordMin - 1; l--)
     {
         // printf("idx: %d\n", l);
         if (preInFlag == 0)
         {
-            wchar_t *preInTmp = getSliceStr(text, idx - l + 1, l, nodeNum);
-
+            wchar_t *preInTmp = getSliceStr(text, idx - l + 1, l, nodeNum, emptyStr);
             if (wcslen(preInTmp) != 0)
             {
                 ret = PySet_Contains(unigram, PyUnicode_FromWideChar(preInTmp, l));
@@ -241,22 +239,24 @@ PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
                     wcsncpy(wordBeforeFeature + 1, preInTmp, l);
                     // printf("the string is right, %ls.\n", wordBeforeFeature);
                     ret = PyList_Append(featureList, PyUnicode_FromWideChar(wordBeforeFeature, l + 1));
+                    free(wordBeforeFeature);
 
                     // 记录该词
                     // preIn = malloc(l * sizeof(wchar_t));
                     // wcsncpy(preIn, preInTmp, l);
                     preIn = preInTmp;
-                    free(wordBeforeFeature);
+                    preInTmp = NULL;
 
                     preInFlag = l;
                 }
-                free(preInTmp);
+                if (preInTmp != NULL)
+                    free(preInTmp);
             }
         }
 
         if (postInFlag == 0)
         {
-            wchar_t *postInTmp = getSliceStr(text, idx, l, nodeNum);
+            wchar_t *postInTmp = getSliceStr(text, idx, l, nodeNum, emptyStr);
 
             if (wcslen(postInTmp) != 0)
             {
@@ -270,59 +270,63 @@ PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
                     wcsncpy(wordNextFeature, wordNext, 1);
                     wcsncpy(wordNextFeature + 1, postInTmp, l);
                     ret = PyList_Append(featureList, PyUnicode_FromWideChar(wordNextFeature, l + 1));
+                    free(wordNextFeature);
 
                     // 记录该词
                     // postIn = malloc(l * sizeof(wchar_t));
                     // wcsncpy(postIn, postInTmp, l);
                     postIn = postInTmp;
-                    free(wordNextFeature);
+                    postInTmp = NULL;
 
                     postInFlag = l;
                 }
-                free(postInTmp);
+                if (postInTmp != NULL)
+                    free(postInTmp);
             }
         }
 
         if (preExFlag == 0)
         {
-            wchar_t *preExTmp = getSliceStr(text, idx - l, l, nodeNum);
-
+            wchar_t *preExTmp = getSliceStr(text, idx - l, l, nodeNum, emptyStr);
             if (wcslen(preExTmp) != 0)
             {
                 ret = PySet_Contains(unigram, PyUnicode_FromWideChar(preExTmp, l));
                 // printf("true preExTmp:\t%d\t%ls\n", l, preExTmp);
-
                 if (ret == 1)
                 {
                     // 记录该词
                     // preEx = malloc(l * sizeof(wchar_t));
                     // wcsncpy(preEx, preExTmp, l);
                     preEx = preExTmp;
+                    preExTmp = NULL;
+
                     preExFlag = l;
                 }
-                free(preExTmp);
+                if (preExTmp != NULL)
+                    free(preExTmp);
             }
         }
 
         if (postExFlag == 0)
         {
-            wchar_t *postExTmp = getSliceStr(text, idx + 1, l, nodeNum);
-
+            wchar_t *postExTmp = getSliceStr(text, idx + 1, l, nodeNum, emptyStr);
             if (wcslen(postExTmp) != 0)
             {
                 ret = PySet_Contains(unigram, PyUnicode_FromWideChar(postExTmp, l));
                 // printf("true postExTmp:\t%d\t%ls\n", l, postExTmp);
-
                 if (ret == 1)
                 {
                     // 记录该词
                     // postEx = malloc(l * sizeof(wchar_t));
                     // wcsncpy(postEx, postExTmp, l);
                     postEx = postExTmp;
+                    postExTmp = NULL;
+
                     postExFlag = l;
                 }
 
-                free(postExTmp);
+                if (postExTmp != NULL)
+                    free(postExTmp);
             }
         }
     }
@@ -390,6 +394,28 @@ PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
         ret = PyList_Append(featureList, PyUnicode_FromWideChar(bigramRightLength, 4));
         free(bigramRightLength);
     }
-    // printf("## end of feature.\n");
+
+    if (preIn != NULL)
+    {
+        free(preIn);
+        preIn = NULL;
+    }
+    if (preEx != NULL)
+    {
+        free(preEx);
+        preEx = NULL;
+    }
+    if (postIn != NULL)
+    {
+        free(postIn);
+        postIn = NULL;
+    }
+    if (postEx != NULL)
+    {
+        free(postEx);
+        postEx = NULL;
+    }
+    free(emptyStr);
+
     return featureList;
 }
