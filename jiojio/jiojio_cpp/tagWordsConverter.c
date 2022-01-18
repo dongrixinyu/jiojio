@@ -7,15 +7,9 @@
  */
 inline void PyAppend(int wordLength, int start, PyObject *wordList, const wchar_t *charList)
 {
-    // wchar_t *clone = malloc(wordLength * sizeof(wchar_t));
-    // wcsncpy(clone, charList + start, wordLength);
-    // clone[wordLength] = L'\0'; // 字符串的结尾，会造成指针错乱无法释放
-
-    // int ret = PyList_Append(wordList, PyUnicode_FromWideChar(clone, wordLength));
     int ret = PyList_Append(wordList, PyUnicode_FromWideChar(charList + start, wordLength));
     if (ret == -1)
         printf("Failed to append string to list.");
-    // free(clone);
 }
 
 /** 从 tag 转为 words，默认 tags 参数的 strides 为 1 字节。
@@ -31,12 +25,6 @@ PyObject *tagWordsConverter(const wchar_t *charList, char *tags, int nodeNum)
     // npy_intp *strideLength = PyArray_STRIDES(tags);
     // printf("stride length: %ld", *strideLength);
     // long nodeNum = 1000;
-    // wchar_t *clone = malloc(3 * sizeof(wchar_t));
-    // wchar_t *wcscpy(clone, charList);//, 2);
-    // wcsncpy(clone, charList, 3);
-    // clone[3] = '\0'; // 字符串的结尾
-    // printf("clone: %ls\n", clone);
-    // printf("tags:\t%d\n", *tags);
 
     int ret;
     int wordLength;
@@ -54,9 +42,10 @@ PyObject *tagWordsConverter(const wchar_t *charList, char *tags, int nodeNum)
                 start = i;
                 if (i == nodeNum - 1) // 即文本中仅一个字
                 {
-                    ret = PyList_Append(wordList, PyUnicode_FromWideChar(charList, 1));
-                    if (ret == -1)
-                        printf("Failed to append string to list.");
+                    PyAppend(1, 0, wordList, charList);
+                    // ret = PyList_Append(wordList, PyUnicode_FromWideChar(charList, 1));
+                    // if (ret == -1)
+                    //     printf("Failed to append string to list.");
 
                     break;
                 };
@@ -74,10 +63,11 @@ PyObject *tagWordsConverter(const wchar_t *charList, char *tags, int nodeNum)
             {
                 wordLength = i - start;
                 PyAppend(wordLength, start, wordList, charList);
+                PyAppend(1, i, wordList, charList);
 
-                ret = PyList_Append(wordList, PyUnicode_FromWideChar(charList + i, 1));
-                if (ret == -1)
-                    printf("Failed to append string to list.");
+                // ret = PyList_Append(wordList, PyUnicode_FromWideChar(charList + i, 1));
+                // if (ret == -1)
+                //     printf("Failed to append string to list.");
             }
         }
         else //if (tags[i] == 1)
