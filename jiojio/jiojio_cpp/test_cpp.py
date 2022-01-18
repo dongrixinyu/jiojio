@@ -5,8 +5,9 @@ import numpy as np
 import numpy.ctypeslib as npct
 import ctypes
 import pdb
+import json
 import jionlp as jio
-from jiojio.tag_words_converter import tag2word
+# from jiojio.tag_words_converter import tag2word
 
 
 def get_slice_str(iterator_obj, start, length, all_len):
@@ -184,17 +185,28 @@ get_node_feature_c.argtypes = [
     ctypes.c_int, ctypes.c_wchar_p, ctypes.c_int, ctypes.py_object, ctypes.py_object]
 get_node_feature_c.restype = ctypes.py_object
 
-text = "今天真是个好天气，美国总统府在干嘛？"
+text = "一切存在之物，各自有其存在之本质，所谓本质（essence），即物之为物，所必具之固有性，缺此要素，则不成其为同类之物也，故本质常含有普遍性，必然性，而为某事某物共通之特质。"
 unigram = set(["天气", "今天", "中国", "美国", "总统", "总统府"])
 bigram = set(["美国.总统", "天气.晴朗", "美国.总统府"])
 # unigram = list(["天气", "今天", "中国"])
-res = get_node_feature_c(11, text, len(text), unigram, bigram)
+
+with open('/home/ubuntu/datasets/unigram.json', 'r', encoding='utf-8') as fr:
+    unigram = set(json.load(fr))
+with open('/home/ubuntu/datasets/bigram.json', 'r', encoding='utf-8') as fr:
+    bigram = set(json.load(fr))
+print(text[25])
+unigram.add('nc')
+unigram.add('nc\x00')
+unigram.add('kl')
+# unigram.add('kl\x00')
+# for i in range(len(text)):
+res = get_node_feature_c(25, text, len(text), unigram, bigram)
+#    print(i, text[i], res)
 print(text)
 print(res)
 print(type(res[0]))
-
-
-times = 1000000
+sys.exit()
+times = 100000
 idx = 10
 with jio.TimeIt('c ', no_print=True) as ti:
     for i in range(times):
