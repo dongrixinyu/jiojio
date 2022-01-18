@@ -8,40 +8,8 @@ import numpy as np
 
 import jionlp as jio
 
-from jiojio.trie_tree import TrieTree
+# from jiojio.trie_tree import TrieTree
 
-
-# 去重
-# '''
-file_path = '/home/cuichengyu/dataset/all_cws.txt'
-# file_path = '/home/cuichengyu/dataset/train_cws.txt1'
-
-trie_tree_obj = TrieTree()
-duplicate_res_list = list()
-md5_length = 10
-for idx, line in enumerate(jio.read_file_by_iter(
-    file_path, auto_loads_json=False, strip=True)):
-    key = hashlib.md5(line.encode('utf-8')).hexdigest()[:md5_length]
-
-    _, res = trie_tree_obj.search(key)
-
-    if res is None:
-        trie_tree_obj.add_node(key, str(idx))
-        duplicate_res_list.append(line)
-    else:
-        # 匹配到重复，丢弃该数据
-        assert _ == md5_length
-        # print(res, idx)  # 历史数据值
-        # pdb.set_trace()
-
-print(len(duplicate_res_list))
-
-random.shuffle(duplicate_res_list)
-
-jio.write_file_by_line(
-    duplicate_res_list, '/home/cuichengyu/dataset/dupli_cws.txt')
-
-pdb.set_trace()
 # '''
 # -----------------------------------------------------
 # '''  计算标签真实转移概率
