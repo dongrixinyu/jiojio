@@ -8,4 +8,4 @@ inline wchar_t *getSliceStr(wchar_t *text, int start, int length,
                             int all_len, wchar_t *emptyStr);
 
 PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
-                         PySetObject *unigram, PySetObject *bigram);
+                         PyObject *unigram, PyObject *bigram);
