@@ -46,7 +46,7 @@ def cut(text):
 
 
 def train(train_file, test_file, train_dir=None,
-          model_dir=None, train_epoch=20):
+          model_dir=None, train_epoch=0):
     """用于训练模型，分析、确定参数"""
 
     if not os.path.exists(train_file):
@@ -72,7 +72,8 @@ def train(train_file, test_file, train_dir=None,
     config.test_file = test_file
 
     config.nThread = 1
-    config.train_epoch = train_epoch
+    if train_epoch != 0:
+        config.train_epoch = train_epoch
 
     with TimeIt('total training time'):
         trainer.train(config)
@@ -90,20 +91,25 @@ def _test_single_proc(input_file, model_name=None, user_dict=None, pos=False):
     total_sample_num = 0
     with TimeIt('# cutting text') as ti:
         diff_results = list()
-        for line in read_file_by_iter(input_file,):  # line_num=3000):
+        for idx, line in enumerate(read_file_by_iter(input_file,)):  # line_num=3000):
             text = ''.join(line)
-
+            if idx % 1e5 == 0:
+                print(idx)
             # print(text)
             total_sample_num += 1
             total_token_num += len(text)
 
             words_list = seg.cut(text)
             if words_list != line:
-                diff_results.append(line)
-            if len(''.join(words_list)) != len(text):
-                print('true: ' , line)
-                print('pred: ', words_list)
-                pdb.set_trace()
+                # diff_results.append(line)
+                min_len = min(len(words_list), len(line))
+                for idx, (c, p) in enumerate(zip(words_list[:min_len], line[:min_len])):
+                    if c != p:
+                        print(line[max(0, idx - 5):idx + 7])
+                        diff_results.append(words_list[max(0, idx - 5):idx + 7] + ['⚫'] + line[max(0, idx - 5):idx + 7])
+                        # pdb.set_trace()
+                        break
+
             # assert len(''.join(words_list)) == len(text)
             # print('true: ' , line)
             # print('pred: ', words_list)
@@ -117,7 +123,7 @@ def _test_single_proc(input_file, model_name=None, user_dict=None, pos=False):
     logging.info("# {} chars per second".format(total_token_num / (cost_time)))
 
     write_file_by_line(diff_results,
-                       '/home/cuichengyu/dataset/diff_cws_samples.txt')
+                       '/home/cuichengyu/dataset/diff_pred_cws_samples.txt')
 
 
 def _proc(seg, in_queue, out_queue):

@@ -54,12 +54,16 @@ class PreProcessor(object):
         self.chinese_char_pattern = re.compile('[一-龥]')
         self.num_pattern = re.compile(
             '^(\d+(,\d+)?(\.\d+)?(万|亿|万亿|万千|千|点|亿千|兆)|[零一二三四五六七八九十百千万亿]{3,9})$')
+        self.percent_num_pattern = re.compile('(百分之)')
 
         # 检测是否为人名正则
         self.chinese_family_name = re.compile(CHINESE_FAMILY_NAME)
         self.two_char_chinese_family_name = re.compile(
             '(' + TWO_CHAR_CHINESE_FAMILY_NAME + ')')
 
+        # 检查应当剔除的时间的正则，这些由组合特征学习得到，不需要参与 unigrams
+        self.time_pattern = re.compile(
+            '\d{2}年|\d{2}月(份)?|\d{2}日|\d时|\d分|\d秒')
 
         # 预处理参数，用于控制预处理方式
         self.convert_num_letter = convert_num_letter

@@ -20,19 +20,20 @@ def train(config):
 
     feature_extractor = FeatureExtractor(config)
 
+    if True:
     # ''' # 构建 特征数据集
-    with TimeIt('# build datasets'):
-        feature_extractor.build(config.train_file)
-        feature_extractor.save()
+        with TimeIt('# build datasets'):
+            feature_extractor.build(config.train_file)
+            feature_extractor.save()
 
-    with TimeIt('# make feature files'):
-        feature_extractor.convert_text_file_to_feature_idx_file(
-            config.train_file, config.feature_train_file, config.gold_train_file)
-        feature_extractor.convert_text_file_to_feature_idx_file(
-            config.test_file, config.feature_test_file, config.gold_test_file)
-    # '''
-
-    # feature_extractor = feature_extractor.load(config, config.model_dir)
+        with TimeIt('# make feature files'):
+            feature_extractor.convert_text_file_to_feature_idx_file(
+                config.train_file, config.feature_train_file, config.gold_train_file)
+            feature_extractor.convert_text_file_to_feature_idx_file(
+                config.test_file, config.feature_test_file, config.gold_test_file)
+        # '''
+    else:
+        feature_extractor = feature_extractor.load(config, config.model_dir)
 
     logging.info("\nstart training ...")
 
