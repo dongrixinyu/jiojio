@@ -28,7 +28,7 @@ inline wchar_t *getSliceStr(wchar_t *text, int start, int length, int all_len, w
  * @return PyObject*
  */
 PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
-                         PySetObject *unigram, PySetObject *bigram)
+                         PyObject *unigram, PyObject *bigram)
 {
     wchar_t *emptyStr = malloc(sizeof(wchar_t));
     memset(emptyStr, L'\0', sizeof(wchar_t));
@@ -62,7 +62,7 @@ PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
     const wchar_t *word2Left = L"wl";  // ww.l.
     const wchar_t *word2Right = L"wr"; // ww.r.
 
-    int ret;
+    int ret = -1;
     wchar_t *curC = text + idx;        // 当前字符
     wchar_t *beforeC = text + idx - 1; // 前一个字符
     wchar_t *nextC = text + idx + 1;   // 后一个字符
@@ -252,6 +252,7 @@ PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
                 if (preInTmp != NULL)
                     free(preInTmp);
             }
+            preInTmp = NULL;
         }
 
         if (postInFlag == 0)
@@ -283,6 +284,7 @@ PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
                 if (postInTmp != NULL)
                     free(postInTmp);
             }
+            postInTmp = NULL;
         }
 
         if (preExFlag == 0)
@@ -305,6 +307,7 @@ PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
                 if (preExTmp != NULL)
                     free(preExTmp);
             }
+            preExTmp = NULL;
         }
 
         if (postExFlag == 0)
@@ -328,6 +331,7 @@ PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
                 if (postExTmp != NULL)
                     free(postExTmp);
             }
+            postExTmp = NULL;
         }
     }
     // printf("## all length feature %d %d %d %d.\n",
@@ -418,4 +422,21 @@ PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
     free(emptyStr);
 
     return featureList;
+}
+
+void main()
+{
+    int index = 8;
+    const wchar_t *origText = L"所谓本质（essence）";
+    wchar_t *text = malloc(sizeof(wchar_t) * 14);
+    wcsncpy(text, origText, 14);
+    int textLen = 13;
+    PyObject *unigrams = PySet_New(0);
+    PyObject *bigrams = PySet_New(0);
+    int ret = -1;
+    ret = PySet_Add(unigrams, PyUnicode_FromWideChar(L"nc", 2));
+    ret = PySet_Add(unigrams, PyUnicode_FromWideChar(L"ckd", 3));
+    ret = PySet_Add(bigrams, PyUnicode_FromWideChar(L"nc.3e", 2));
+    PyObject *res = getNodeFeature(index, text, textLen,
+                                   unigrams, bigrams);
 }
