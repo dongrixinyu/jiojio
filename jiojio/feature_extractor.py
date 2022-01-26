@@ -116,7 +116,7 @@ class FeatureExtractor(object):
                 continue
             if not self.pre_processor.check_chinese_char(word):
                 continue
-            if len(word) > self.config.word_max:
+            if len(word) > self.config.word_max or len(word) < self.config.word_min:
                 continue
             if self.pre_processor.num_pattern.search(word):
                 continue
@@ -124,7 +124,7 @@ class FeatureExtractor(object):
                 continue
             if self.pre_processor.time_pattern.search(word):
                 continue
-            if '@' in word or '，' in word or '·' in word or word == '':
+            if '@' in word or '，' in word or '·' in word or 'ん' in word or word == '':
                 # @ 往往为网名微博起始：@小狗狗爱吃糖
                 # ， 往往为数字错误
                 # · 往往为外文名：奥拉·新德丝
@@ -140,6 +140,24 @@ class FeatureExtractor(object):
             clean_freq += freq
 
         return clean_unigrams, clean_freq / total_freq
+
+    def _cleansing_unigram_single(self, word):
+        if not self.pre_processor.check_chinese_char(word):
+            return False
+        if len(word) > self.config.word_max or len(word) < self.config.word_min:
+            return False
+        if self.pre_processor.num_pattern.search(word):
+            return False
+        if self.pre_processor.percent_num_pattern.search(word):
+            return False
+        if self.pre_processor.time_pattern.search(word):
+            return False
+        if '@' in word or '，' in word or '·' in word or 'ん' in word or word == '':
+            return False
+        if self.pre_processor.check_chinese_name(word):
+            return False
+
+        return True
 
     def build(self, train_file):
 
@@ -244,11 +262,15 @@ class FeatureExtractor(object):
         for bi_feature in self.bigram:
             pre, suf = bi_feature.split(self.mark)
             if pre not in self.unigram:
-                self.unigram.add(pre)
+                if self._cleansing_unigram_single(pre):
+                    self.unigram.add(pre)
             if suf not in self.unigram:
-                self.unigram.add(suf)
+                if self._cleansing_unigram_single(suf):
+                    self.unigram.add(suf)
         logging.info('final unigram num: {}'.format(len(self.unigram)))
-
+        with open('/home/cuichengyu/github/jiojio/jiojio/models/3500000_model/unigrams.json',
+                  'w', encoding='utf-8') as fw:
+            json.dump(list(self.unigram), fw, ensure_ascii=False, indent=4, separators=(',', ':'))
         # 第三次循环获取样本所有特征
         feature_freq = Counter()  # 计算各个特征的出现次数，减少罕见特征计数
         for sample_idx, words in enumerate(read_file_by_iter(train_file)):
@@ -327,7 +349,7 @@ class FeatureExtractor(object):
         assert self.tag_to_idx == {'B': 0, 'I': 1}, \
             'tag map must be like this for speeding up inferencing.'
         # self.idx_to_tag = FeatureExtractor._reverse_dict(self.tag_to_idx)
-        pdb.set_trace()
+        # pdb.set_trace()
 
     def get_node_features(self, idx, token_list):
         # 给定一个  token_list，找出其中 token_list[idx] 匹配到的所有特征
@@ -536,7 +558,6 @@ class FeatureExtractor(object):
                     norm_features = [feature for feature in features if feature in self.feature_to_idx]
                     if len(norm_features) < len(features):
                         norm_features.append(self.empty_feature)
-
 
                     feature_idx = [self.feature_to_idx[feat] for feat in norm_features
                                    if feat in self.feature_to_idx]

@@ -63,7 +63,7 @@ class PreProcessor(object):
 
         # 检查应当剔除的时间的正则，这些由组合特征学习得到，不需要参与 unigrams
         self.time_pattern = re.compile(
-            '\d{2}年|\d{2}月(份)?|\d{2}日|\d时|\d分|\d秒')
+            '\d年|\d月(份)?|\d日|\d(小)?时|\d分|\d秒')
 
         # 预处理参数，用于控制预处理方式
         self.convert_num_letter = convert_num_letter
@@ -244,6 +244,8 @@ if __name__ == '__main__':
         '士气大振，利用对手失误增多之机连打反击，１１号"拚命三郎"翟文明表现出色，利用快攻和准确的９米线外远'\
         '射，连得５分。'
     pre_processor = PreProcessor()
+
+    pdb.set_trace()
     with jio.TimeIt('re func'):
         for i in range(100000):
             res = pre_processor(text, normalize_num_letter=False)
