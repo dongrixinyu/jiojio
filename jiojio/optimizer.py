@@ -52,11 +52,13 @@ class SGD(Optimizer):
         return sample_num, random_index
 
     def optimize(self):
-        logging.info('model w init: {} ... {}'.format(self._model.node_weight[0][0],
+        logging.info('model w init: {:.6f} ... {:.6f}'.format(self._model.node_weight[0][0],
             self._model.edge_weight[0][0]))
 
         error_list = list()
 
+        max_weight_num = 10
+        max_step_num = 1
         sample_num, random_index = self._tune_reshuffle_samples()
 
         for t in range(0, sample_num, self.config.mini_batch):
@@ -72,14 +74,29 @@ class SGD(Optimizer):
             # update decay rates
             self.learning_rate = self.config.initial_learning_rate * \
                 np.exp((- self.training_epoch_num - t / sample_num) * self.config.dropping_rate)
-            if t % (self.config.mini_batch * 100) == 0:
-                logging.info('\tlr: {:.5f}, sample idx {}: grad: {} ... {}'.format(
+            if t % (self.config.mini_batch * 50) == 0:
+                logging.info('\tlr: {:.5f}, sample idx {}: grad: {:.6f} ... {:.6f}'.format(
                     self.learning_rate, t, node_grad[0][0], edge_grad[0][0]))
 
             # update weights
-            self._model.node_weight -= self.learning_rate * node_grad
-            self._model.edge_weight -= self.learning_rate * edge_grad
+            # 若学习率与步长的乘积大于某个数值，则说明梯度爆炸，应该进行规约
+            # pdb.set_trace()
+            node_delta = self.learning_rate * node_grad
+            edge_delta = self.learning_rate * edge_grad
+            node_delta[node_delta > max_step_num] = max_step_num
+            node_delta[node_delta < -max_step_num] = -max_step_num
 
+            self._model.node_weight -= node_delta
+            self._model.edge_weight -= edge_delta
+
+            # print('max edge_weight: {:.3f} max node_weight: {:.3f}'.format(
+            #     np.max(np.abs(self._model.edge_weight)),
+            #     np.max(np.abs(self._model.node_weight))))
+            self._model.edge_weight[self._model.edge_weight > max_weight_num] = max_weight_num
+            self._model.edge_weight[self._model.edge_weight < -max_weight_num] = -max_weight_num
+            self._model.node_weight[self._model.node_weight > max_weight_num] = max_weight_num
+            self._model.node_weight[self._model.node_weight < -max_weight_num] = -max_weight_num
+            # pdb.set_trace()
             if self.config.regularization:
                 # 参数正则化，该公式，对大参数值的惩罚越大
                 node_r2 = self.learning_rate * self._model.node_weight

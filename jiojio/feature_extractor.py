@@ -6,7 +6,6 @@ import pdb
 import sys
 from collections import Counter
 
-
 from jiojio import logging, TimeIt, unzip_file, zip_file, \
     read_file_by_iter, get_node_features_c
 from jiojio.tag_words_converter import word2tag
@@ -58,6 +57,7 @@ class FeatureExtractor(object):
         self.end_feature = '[END]'
 
         self.delim = '.'
+        self.mark = '*'
         self.empty_feature = '/'
         self.default_feature = '$$'
 
@@ -116,9 +116,13 @@ class FeatureExtractor(object):
                 continue
             if not self.pre_processor.check_chinese_char(word):
                 continue
-            if len(word) >= 10:
+            if len(word) > self.config.word_max:
                 continue
             if self.pre_processor.num_pattern.search(word):
+                continue
+            if self.pre_processor.percent_num_pattern.search(word):
+                continue
+            if self.pre_processor.time_pattern.search(word):
                 continue
             if '@' in word or '，' in word or '·' in word or word == '':
                 # @ 往往为网名微博起始：@小狗狗爱吃糖
@@ -142,7 +146,7 @@ class FeatureExtractor(object):
         word_length_info = Counter()  # 计算所有词汇长度信息
         unigrams = Counter()  # 计算各个 unigrams 出现次数，避免罕见 unigram 进入计数
         # 计算各个 bigrams 出现次数，避免罕见 bigram 进入计数，该内容非常鸡肋，且极为稀疏
-        # 因此，仅考虑出现模糊情况的双词特征，数量较少
+        # 因此，仅考虑出现模糊情况的双词特征，数量较少，且有很高的针对性
         bigrams = Counter()
 
         # 第一次遍历统计获取 self.unigram 与所有词长 word_length_info
@@ -200,7 +204,7 @@ class FeatureExtractor(object):
                 if pre in self.unigram:
                     flag = False
                     for i in range(3, 0, -1):
-                        ambigu = pre[-1] + suf[:i]
+                        ambigu = pre[-1] + suf[:i]  # 此时 suf 有可能不在 self.unigram 中
                         if ambigu in self.unigram:
                             flag = True
                             break
@@ -208,29 +212,42 @@ class FeatureExtractor(object):
                     if flag:
                         # print(pre, suf, ambigu)
                         # pdb.set_trace()
-                        bigrams.update([pre + '*' + suf])
+                        bigrams.update([pre + self.mark + suf])
                         continue
 
                 if suf in self.unigram:
                     flag = False
                     for i in range(3, 0, -1):
-                        ambigu = pre[len(pre) - i:] + suf[0]
+                        ambigu = pre[len(pre) - i:] + suf[0]  # 此时 pre 也可能不在 self.unigram 中
                         if ambigu in self.unigram:
                             flag = True
                             break
 
                     if flag:
-                        bigrams.update([pre + '*' + suf])
+                        bigrams.update([pre + self.mark + suf])
                         continue
 
         # 若 self.bigram 中的频次都不足 bigram_feature_trim 则，在后续特征删除时必然频次不足
         logging.info('orig bigram num: {}'.format(len(bigrams)))
         logging.info('# {:.2%} bigram features are saved.'.format(
             sum([freq for _, freq in bigrams.most_common()
-                 if freq > self.config.bigram_feature_trim]) / sum(list(bigrams.values()))))
+                 if freq >= self.config.bigram_feature_trim]) / sum(list(bigrams.values()))))
         self.bigram = set([bigram for bigram, freq in bigrams.items()
-                           if freq > self.config.bigram_feature_trim])
+                           if freq >= self.config.bigram_feature_trim])
         logging.info('true bigram num: {}'.format(len(self.bigram)))
+
+        # 反哺 self.unigram
+        # 由于 bigram_feature_trim 一般都比 unigram_feature_trim 值小，
+        # 则会出现一些 self.bigram 中的特征的词汇不出现在 self.unigram 中，
+        # 因此需要将这些词汇加入 self.unigram 扩充特征集
+        # 这些词汇至少出现了 bigram_feature_trim 次，但不足 unigram_feature_trim 次
+        for bi_feature in self.bigram:
+            pre, suf = bi_feature.split(self.mark)
+            if pre not in self.unigram:
+                self.unigram.add(pre)
+            if suf not in self.unigram:
+                self.unigram.add(suf)
+        logging.info('final unigram num: {}'.format(len(self.unigram)))
 
         # 第三次循环获取样本所有特征
         feature_freq = Counter()  # 计算各个特征的出现次数，减少罕见特征计数
@@ -262,8 +279,6 @@ class FeatureExtractor(object):
 
         # pdb.set_trace()
         logging.info('# orig feature num: {}'.format(len(feature_freq)))
-        # feature_set = [feature for feature, freq in feature_freq.most_common()
-        #                if freq > self.config.feature_trim]
 
         feature_set = list()
         feature_count_sum = 0
@@ -281,11 +296,11 @@ class FeatureExtractor(object):
                     feature_set.append(feature)
                     feature_count_sum += freq
             elif feature.startswith(self.word_2_left) or feature.startswith(self.word_2_right):
-                if freq > self.config.bigram_feature_trim:
+                if freq >= self.config.bigram_feature_trim:
                     feature_set.append(feature)
                     feature_count_sum += freq
             else:
-                if freq > self.config.feature_trim:
+                if freq >= self.config.feature_trim:
                     feature_set.append(feature)
                     feature_count_sum += freq
         logging.info('# {:.2%} features are saved.'.format(
@@ -312,7 +327,7 @@ class FeatureExtractor(object):
         assert self.tag_to_idx == {'B': 0, 'I': 1}, \
             'tag map must be like this for speeding up inferencing.'
         # self.idx_to_tag = FeatureExtractor._reverse_dict(self.tag_to_idx)
-        # pdb.set_trace()
+        pdb.set_trace()
 
     def get_node_features(self, idx, token_list):
         # 给定一个  token_list，找出其中 token_list[idx] 匹配到的所有特征
@@ -323,7 +338,8 @@ class FeatureExtractor(object):
         # 1 start feature
         # feature_list.append(self.default_feature)  # 取消默认特征，仅有极微小影响
 
-        # 8 unigram/bgiram feature
+        # 此种方法缺乏一个 unk 特征。例如，“c浈” 由于 “浈” 字在预料中缺少，该字特征不存在。
+
         # 当前字特征
         feature_list.append(self.char_current + cur_c)
 
@@ -387,8 +403,11 @@ class FeatureExtractor(object):
         # 寻找该字后一个词汇特征(不包含该字)
         post_list_ex = None
         for l in range(self.config.word_max, self.config.word_min - 1, -1):
-            # "suffix" token_list[n, n+l-1]
-            # current character starts word
+            # 此种方法缺少对于一个较长的词汇，词中标签的确定特征，
+            # 例如：“绝代双骄”，该方法可以为 “绝” 和 “骄” 字匹配到词汇特征，
+            # 无法为 “代” 和 “双” 匹配到该词。因此很可能造成分词错误。
+            # 这主要由跨字的“字对”特征来实现并处理，比如：当前字和后第三字组合特征
+            # 但这种方式带有一定的局限性，即对于特定的成语或更长的固定搭配不具有特定的特征
             if pre_list_in is None:
                 pre_in_tmp = get_slice_str(token_list, idx - l + 1, l, length)
                 if pre_in_tmp in self.unigram:
@@ -448,7 +467,7 @@ class FeatureExtractor(object):
 
         # 寻找连续两个词汇特征(该字在右侧词汇中)
         if pre_list_ex and post_list_in:  # 加速处理
-            bigram = pre_list_ex + self.delim + post_list_in
+            bigram = pre_list_ex + self.mark + post_list_in
             if bigram in self.bigram:
                 feature_list.append(self.word_2_left + bigram)
             feature_list.append(
@@ -457,7 +476,7 @@ class FeatureExtractor(object):
 
         # 寻找连续两个词汇特征(该字在左侧词汇中)
         if pre_list_in and post_list_ex:  # 加速处理
-            bigram = pre_list_in + self.delim + post_list_ex
+            bigram = pre_list_in + self.mark + post_list_ex
             if bigram in self.bigram:
                 feature_list.append(self.word_2_right + bigram)
             feature_list.append(
