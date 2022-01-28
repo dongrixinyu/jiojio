@@ -42,7 +42,7 @@ class Config:
         self.feature_trim = 20  # 普通特征的删减数值 (20/3)
         self.gap_1_feature_trim = 35  # 间隔为1的删减阈值(30/4)
         self.gap_3_feature_trim = 90  # 带有 3 个字的跨度的特征删除量 (80/10)
-        self.gap_2_feature_trim = 70  # 带有 2 个字的跨度的特征删除量 (60/7)
+        self.gap_2_feature_trim = 75  # 带有 2 个字的跨度的特征删除量 (60/7)
         self.unigram_feature_trim = 80  # 单词特征的数量 (80/4)
         self.bigram_feature_trim = 7  # 单词特征的数量 (7/2)
         # self.word_feature = True  # 需要返回 词汇 特征，若丢弃词汇特征，则计算耗时减少 30~40%
