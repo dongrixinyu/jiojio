@@ -259,6 +259,7 @@ class FeatureExtractor(object):
         # 则会出现一些 self.bigram 中的特征的词汇不出现在 self.unigram 中，
         # 因此需要将这些词汇加入 self.unigram 扩充特征集
         # 这些词汇至少出现了 bigram_feature_trim 次，但不足 unigram_feature_trim 次
+        invalid_bigrams = set()
         for bi_feature in self.bigram:
             pre, suf = bi_feature.split(self.mark)
             if pre not in self.unigram:
@@ -267,10 +268,15 @@ class FeatureExtractor(object):
             if suf not in self.unigram:
                 if self._cleansing_unigram_single(suf):
                     self.unigram.add(suf)
+
+            if (pre not in self.unigram) or (suf not in self.unigram):
+                invalid_bigrams.add(bi_feature)
+
+        self.bigram = self.bigram - invalid_bigrams  # 某些 bigram 失效，应当删除
+
         logging.info('final unigram num: {}'.format(len(self.unigram)))
-        with open('/home/cuichengyu/github/jiojio/jiojio/models/3500000_model/unigrams.json',
-                  'w', encoding='utf-8') as fw:
-            json.dump(list(self.unigram), fw, ensure_ascii=False, indent=4, separators=(',', ':'))
+        logging.info('final bigram num: {}'.format(len(self.bigram)))
+
         # 第三次循环获取样本所有特征
         feature_freq = Counter()  # 计算各个特征的出现次数，减少罕见特征计数
         for sample_idx, words in enumerate(read_file_by_iter(train_file)):
@@ -555,15 +561,13 @@ class FeatureExtractor(object):
                 for idx, tag in enumerate(tags):
                     features = self.get_node_features(idx, ''.join(example))
                     # 某些特征不存在，则将其转换为 `/` 特征
-                    norm_features = [feature for feature in features if feature in self.feature_to_idx]
-                    if len(norm_features) < len(features):
-                        norm_features.append(self.empty_feature)
+                    feature_idx = [self.feature_to_idx[feature] for feature in features
+                                   if feature in self.feature_to_idx]
+                    if len(feature_idx) < len(features):
+                        feature_idx.append(0)
 
-                    feature_idx = [self.feature_to_idx[feat] for feat in norm_features
-                                   if feat in self.feature_to_idx]
                     tags_idx.append(self.tag_to_idx[tag])
                     # pdb.set_trace()
-                    # norm_features.append(tag)
                     f_writer.write(",".join(map(str, feature_idx)))
                     f_writer.write("\n")
                 f_writer.write("\n")
