@@ -1,6 +1,12 @@
 #include "featureExtractor.h"
 
-inline wchar_t *getSliceStr(wchar_t *text, int start, int length, int all_len, wchar_t *emptyStr)
+#ifdef _WIN32
+#define API __declspec(dllexport)
+#else
+#define API
+#endif
+
+wchar_t *getSliceStr(wchar_t *text, int start, int length, int all_len, wchar_t *emptyStr)
 {
     if (start < 0 || start >= all_len)
     {
@@ -17,6 +23,39 @@ inline wchar_t *getSliceStr(wchar_t *text, int start, int length, int all_len, w
     return resStr;
 }
 
+static const wchar_t *startFeature = L"[START]";
+static const wchar_t *endFeature = L"[END]";
+static const wchar_t *delim = L".";
+
+// const wchar_t *emptyFeature = L"/";
+// const wchar_t *defaultFeature = L"$$";
+
+// 字符以 c 为中心，前后，z、a、b、c、d、e、f 依次扩展开
+static const wchar_t *charCurrent = L"c";
+static const wchar_t *charBefore = L"b";          // c-1.
+static const wchar_t *charNext = L"d";            // c1.
+static const wchar_t *charBefore2 = L"a";         // c-2.
+static const wchar_t *charNext2 = L"e";           // c2.
+static const wchar_t *charBefore3 = L"z";         // c-3.
+static const wchar_t *charNext3 = L"f";           // c3.
+static const wchar_t *charBeforeCurrent = L"bc";  // c-1c.
+static const wchar_t *charBefore2Current = L"ac"; // c-2c.
+static const wchar_t *charBefore3Current = L"zc"; // c-3c.
+static const wchar_t *charCurrentNext = L"cd";    // cc1.
+static const wchar_t *charCurrentNext2 = L"ce";   // cc2.
+static const wchar_t *charCurrentNext3 = L"cf";   // cc3.
+// const wchar_t *charBefore21 = L"ab";       // c-2c-1.
+// const wchar_t *charNext12 = L"de";         // c1c2.
+
+static const wchar_t *wordBefore = L"v";  // w-1.
+static const wchar_t *wordNext = L"x";    // w1.
+static const wchar_t *word2Left = L"wl";  // ww.l.
+static const wchar_t *word2Right = L"wr"; // ww.r.
+
+static const int wordMax = 4;
+static const int wordMin = 2;
+static const wchar_t *wordLength = L"234";
+
 /**
  * @brief Get the Node Feature Python object
  *
@@ -27,40 +66,11 @@ inline wchar_t *getSliceStr(wchar_t *text, int start, int length, int all_len, w
  * @param bigram
  * @return PyObject*
  */
-PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
-                         PyObject *unigram, PyObject *bigram)
+API PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
+                             PyObject *unigram, PyObject *bigram)
 {
     wchar_t *emptyStr = malloc(sizeof(wchar_t));
     memset(emptyStr, L'\0', sizeof(wchar_t));
-
-    const wchar_t *startFeature = L"[START]";
-    const wchar_t *endFeature = L"[END]";
-
-    const wchar_t *delim = L".";
-    // const wchar_t *emptyFeature = L"/";
-    // const wchar_t *defaultFeature = L"$$";
-
-    // 字符以 c 为中心，前后，z、a、b、c、d、e、f 依次扩展开
-    const wchar_t *charCurrent = L"c";
-    const wchar_t *charBefore = L"b";          // c-1.
-    const wchar_t *charNext = L"d";            // c1.
-    const wchar_t *charBefore2 = L"a";         // c-2.
-    const wchar_t *charNext2 = L"e";           // c2.
-    const wchar_t *charBefore3 = L"z";         // c-3.
-    const wchar_t *charNext3 = L"f";           // c3.
-    const wchar_t *charBeforeCurrent = L"bc";  // c-1c.
-    const wchar_t *charBefore2Current = L"ac"; // c-2c.
-    const wchar_t *charBefore3Current = L"zc"; // c-3c.
-    const wchar_t *charCurrentNext = L"cd";    // cc1.
-    const wchar_t *charCurrentNext2 = L"ce";   // cc2.
-    const wchar_t *charCurrentNext3 = L"cf";   // cc3.
-    // const wchar_t *charBefore21 = L"ab";       // c-2c-1.
-    // const wchar_t *charNext12 = L"de";         // c1c2.
-
-    const wchar_t *wordBefore = L"v";  // w-1.
-    const wchar_t *wordNext = L"x";    // w1.
-    const wchar_t *word2Left = L"wl";  // ww.l.
-    const wchar_t *word2Right = L"wr"; // ww.r.
 
     int ret = -1;
     wchar_t *curC = text + idx;        // 当前字符
@@ -209,9 +219,6 @@ PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
         free(charCurrentNext3Feature);
     }
 
-    int wordMax = 4;
-    int wordMin = 2;
-    wchar_t *wordLength = L"234";
     int preInFlag = 0; // 不仅指示是否进行双词匹配，也指示了匹配到的词汇的长度
     int preExFlag = 0;
     int postInFlag = 0;
@@ -315,8 +322,11 @@ PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
             wchar_t *postExTmp = getSliceStr(text, idx + 1, l, nodeNum, emptyStr);
             if (wcslen(postExTmp) != 0)
             {
-                ret = PySet_Contains(unigram, PyUnicode_FromWideChar(postExTmp, l));
+                PyObject *postExTmpPy = PyUnicode_FromWideChar(postExTmp, l);
                 // printf("true postExTmp:\t%d\t%ls\n", l, postExTmp);
+                ret = PySet_Contains(unigram, postExTmpPy);
+                Py_DECREF(postExTmpPy);
+                // printf("true postExTmp:\t%d\t%ls\t%d\n", l, postExTmp, ret);
                 if (ret == 1)
                 {
                     // 记录该词
@@ -334,8 +344,7 @@ PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
             postExTmp = NULL;
         }
     }
-    // printf("## all length feature %d %d %d %d.\n",
-    //        preExFlag, postInFlag, preInFlag, postExFlag);
+
     // 找到匹配的连续双词特征，此特征经过处理，仅保留具有歧义的连续双词
     if (preExFlag && postInFlag)
     {
@@ -354,9 +363,11 @@ PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
             wcsncpy(bigramLeft + 2, bigramTmp, preExFlag + postInFlag + 1);
             ret = PyList_Append(featureList, PyUnicode_FromWideChar(bigramLeft, preExFlag + postInFlag + 3));
             free(bigramLeft);
+            bigramLeft = NULL;
         }
 
         free(bigramTmp);
+        bigramTmp = NULL;
 
         // 添加词长特征
         wchar_t *bigramLeftLength = malloc(4 * sizeof(wchar_t));
@@ -365,6 +376,7 @@ PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
         wcsncpy(bigramLeftLength + 3, wordLength + postInFlag - 2, 1);
         ret = PyList_Append(featureList, PyUnicode_FromWideChar(bigramLeftLength, 4));
         free(bigramLeftLength);
+        bigramLeftLength = NULL;
     }
 
     if ((preInFlag != 0) && (postExFlag != 0))
@@ -386,9 +398,11 @@ PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
             ret = PyList_Append(featureList, PyUnicode_FromWideChar(bigramRight, preInFlag + postExFlag + 3));
             // printf("wr bigramRight: %ls %d\n", bigramRight, ret);
             free(bigramRight);
+            bigramRight = NULL;
         }
 
         free(bigramTmp);
+        bigramTmp = NULL;
 
         // 添加词长特征
         wchar_t *bigramRightLength = malloc(4 * sizeof(wchar_t));
@@ -397,6 +411,7 @@ PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
         wcsncpy(bigramRightLength + 3, wordLength + postExFlag - 2, 1);
         ret = PyList_Append(featureList, PyUnicode_FromWideChar(bigramRightLength, 4));
         free(bigramRightLength);
+        bigramRightLength = NULL;
     }
 
     if (preIn != NULL)
@@ -420,23 +435,39 @@ PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
         postEx = NULL;
     }
     free(emptyStr);
+    emptyStr = NULL;
 
     return featureList;
 }
 
-void main()
+int main()
 {
     int index = 8;
+    int ret = -1;
     const wchar_t *origText = L"所谓本质（essence）";
     wchar_t *text = malloc(sizeof(wchar_t) * 14);
     wcsncpy(text, origText, 14);
     int textLen = 13;
-    PyObject *unigrams = PySet_New(0);
-    PyObject *bigrams = PySet_New(0);
-    int ret = -1;
-    ret = PySet_Add(unigrams, PyUnicode_FromWideChar(L"nc", 2));
-    ret = PySet_Add(unigrams, PyUnicode_FromWideChar(L"ckd", 3));
-    ret = PySet_Add(bigrams, PyUnicode_FromWideChar(L"nc.3e", 2));
+
+    Py_Initialize();
+    PyObject *unigrams1 = PySet_New(0);
+    printf("# cur tag.\n");
+    PyObject *bigrams1 = PySet_New(0);
+    ret = PySet_Add(unigrams1, PyUnicode_FromWideChar(L"据", 1));
+    ret = PySet_Add(unigrams1, PyUnicode_FromWideChar(L"nc", 2));
+    ret = PySet_Add(unigrams1, PyUnicode_FromWideChar(L"ckd", 3));
+    ret = PySet_Add(unigrams1, PyUnicode_FromWideChar(L"nc.3e", 5));
+
+    PyObject *curString = PyUnicode_FromWideChar(L"nc", 2);
+    ret = PySet_Contains(unigrams1, curString);
+    Py_DECREF(curString);
+    printf("the result `nc` is %d\n.", ret);
+    // char *simpleText = "ff34ncq";
+
     PyObject *res = getNodeFeature(index, text, textLen,
-                                   unigrams, bigrams);
+                                   unigrams1, bigrams1);
+    free(text);
+    text = NULL;
+
+    Py_Finalize();
 }

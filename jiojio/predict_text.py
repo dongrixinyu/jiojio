@@ -2,7 +2,9 @@
 
 import os
 import pdb
+import ctypes
 
+from jiojio.util import get_node_features_c, tag2word_c
 from jiojio.tag_words_converter import tag2word
 from jiojio.pre_processor import PreProcessor
 from jiojio.feature_extractor import FeatureExtractor
@@ -33,17 +35,31 @@ class PredictText(object):
             convert_exception=config.convert_exception)
 
         self.pos = pos
-        if pos:
-            download_model(config.model_urls["postag"], config.jiojio_home)
-            postag_dir = os.path.join(config.jiojio_home, "postag")
-            self.pos = Postag(postag_dir)
+        # if pos:
+        #     download_model(config.model_urls["postag"], config.jiojio_home)
+        #     postag_dir = os.path.join(config.jiojio_home, "postag")
+        #     self.pos = Postag(postag_dir)
+
+        # C 方式调用
+        self.get_node_features_c = get_node_features_c
+        self.tag2word_c = tag2word_c
 
     def _cut(self, text):
 
         length = len(text)
         all_features = list()
         for idx in range(length):
-            node_features = self.feature_extractor.get_node_features(idx, text)
+
+            if self.get_node_features_c is None:
+                # 以 python 方式计算，效率较低
+                node_features = self.feature_extractor.get_node_features(idx, text)
+            else:
+                # 以 C 方式计算，效率高
+                node_features = self.get_node_features_c(
+                    idx, text, len(text), self.feature_extractor.unigram,
+                    self.feature_extractor.bigram)
+                # print('C compute get_node_features_C.')
+                # pdb.set_trace()
 
             # 此处考虑，通用未匹配特征 “/”，即索引为 0 的特征
             node_feature_idx = [
@@ -80,8 +96,14 @@ class PredictText(object):
 
         tags = self._cut(norm_text)
 
-        words_list = tag2word(text, tags)
-        if self.pos:
-            tags = self.pos.tag(ret.copy())
+        if self.tag2word_c is None:
+            # 以 python 方式进行计算
+            words_list = tag2word(text, tags)
+        else:
+            # 以 C 方式进行计算
+            words_list = self.tag2word_c(
+                text, tags.ctypes.data_as(ctypes.c_void_p), len(tags))
+            # print('C compute tag2word_C.')
+            # pdb.set_trace()
 
         return words_list

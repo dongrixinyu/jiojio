@@ -1,4 +1,5 @@
-#include <wchar.h>
+#ifndef _TAGWORDSCONVERTER_H
+#define _TAGWORDSCONVERTER_H
 
 #include <Python.h>
 // #include "numpy/arrayobject.h"
@@ -9,8 +10,9 @@
 // #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 
 // # include <stdio.h>
-// # include <vector>
-inline void PyAppend(int wordLength, int start, PyObject *wordList, const wchar_t *charList);
+void PyAppend(int wordLength, int start, PyObject *wordList, const wchar_t *charList);
 
 PyObject *tagWordsConverter(
     const wchar_t *charList, char *tags, int nodeNum);
+
+#endif
