@@ -1,13 +1,14 @@
 # -*- coding=utf-8 -*-
 
-import json
 import os
 import pdb
 import sys
+import json
 from collections import Counter
 
-from jiojio import logging, TimeIt, unzip_file, zip_file, \
-    read_file_by_iter, get_node_features_c
+from jiojio.util import get_node_features_c, unzip_file
+from jiojio import logging, TimeIt, zip_file, \
+    read_file_by_iter
 from jiojio.tag_words_converter import word2tag
 from jiojio.tag_words_converter import tag2word
 from jiojio.pre_processor import PreProcessor
@@ -25,11 +26,6 @@ def get_slice_str(iterator_obj, start, length, all_len):
     #     return ""
 
     return iterator_obj[start: start + length]
-
-    # if type(iterator_obj) is str:
-    #     return iterator_obj[start: start + length]
-    # else:
-    #     return "".join(iterator_obj[start: start + length])
 
 
 class FeatureExtractor(object):
@@ -296,7 +292,7 @@ class FeatureExtractor(object):
                     feature_freq.update(feature for feature in node_features)
             else:
                 example_length = len(example)
-                print(example)
+                # print(example)
                 for idx in range(example_length):
                     node_features = get_node_features_c(
                         idx, example, example_length, self.unigram, self.bigram)

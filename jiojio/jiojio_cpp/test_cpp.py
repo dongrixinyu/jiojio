@@ -178,7 +178,7 @@ class FeatureExtractor(object):
 
 
 dir_path = '/home/ubuntu/github/jiojio/jiojio/jiojio_cpp'
-feature_extractor = ctypes.cdll.LoadLibrary(
+feature_extractor = ctypes.PyDLL(
     os.path.join(dir_path, 'build', 'libfeatureExtractor.so'))
 get_node_feature_c = feature_extractor.getNodeFeature
 get_node_feature_c.argtypes = [
@@ -195,12 +195,14 @@ with open('/home/ubuntu/datasets/unigram.json', 'r', encoding='utf-8') as fr:
 with open('/home/ubuntu/datasets/bigram.json', 'r', encoding='utf-8') as fr:
     bigram = set(json.load(fr))
 print(text[25])
+print(len(text))
 unigram.add('nc')
 unigram.add('nc\x00')
 unigram.add('kl')
+unigram.remove('据')
 # unigram.add('kl\x00')
 # for i in range(len(text)):
-res = get_node_feature_c(25, text, len(text), unigram, bigram)
+res = get_node_feature_c(5, text, len(text), unigram, bigram)
 #    print(i, text[i], res)
 print(text)
 print(res)
