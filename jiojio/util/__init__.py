@@ -35,7 +35,7 @@ try:
     tag_words_converter = ctypes.PyDLL(
         os.path.join(dir_path, 'build', 'libtagWordsConverter.so'))
     tag2word_c = tag_words_converter.tagWordsConverter
-    tag2word_c.argtypes = [ctypes.c_wchar_p, ctypes.py_object]
+    # tag2word_c.argtypes = [ctypes.c_wchar_p, ctypes.py_object]
     tag2word_c.restype = ctypes.py_object
 
     print('# Successfully load C func `tag2word_c`.')
