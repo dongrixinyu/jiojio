@@ -280,7 +280,7 @@ API PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
         if (preInFlag == 0)
         {
             wchar_t *preInTmp = getSliceStr(text, idx - l + 1, l, nodeNum, emptyStr);
-            if (wcslen(preInTmp) != 0)
+            if (wcscmp(preInTmp, emptyStr) != 0)
             {
                 tmpPyStr = PyUnicode_FromWideChar(preInTmp, l);
                 ret = PySet_Contains(unigram, tmpPyStr);
@@ -314,7 +314,7 @@ API PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
         {
             wchar_t *postInTmp = getSliceStr(text, idx, l, nodeNum, emptyStr);
 
-            if (wcslen(postInTmp) != 0)
+            if (wcscmp(postInTmp, emptyStr) != 0)
             {
                 tmpPyStr = PyUnicode_FromWideChar(postInTmp, l);
                 ret = PySet_Contains(unigram, tmpPyStr);
@@ -345,7 +345,7 @@ API PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
         if (preExFlag == 0)
         {
             wchar_t *preExTmp = getSliceStr(text, idx - l, l, nodeNum, emptyStr);
-            if (wcslen(preExTmp) != 0)
+            if (wcscmp(preExTmp, emptyStr) != 0)
             {
                 tmpPyStr = PyUnicode_FromWideChar(preExTmp, l);
                 ret = PySet_Contains(unigram, tmpPyStr);
@@ -367,7 +367,7 @@ API PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
         if (postExFlag == 0)
         {
             wchar_t *postExTmp = getSliceStr(text, idx + 1, l, nodeNum, emptyStr);
-            if (wcslen(postExTmp) != 0)
+            if (wcscmp(postExTmp, emptyStr) != 0)
             {
                 tmpPyStr = PyUnicode_FromWideChar(postExTmp, l);
                 ret = PySet_Contains(unigram, tmpPyStr);
