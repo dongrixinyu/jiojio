@@ -1,6 +1,7 @@
 # -*- coding=utf-8 -*-
 
 import os
+import sys
 import numpy as np
 import numpy.ctypeslib as npct
 import ctypes
@@ -197,12 +198,11 @@ with open('/home/ubuntu/datasets/bigram.json', 'r', encoding='utf-8') as fr:
 print(text[25])
 print(len(text))
 unigram.add('nc')
-unigram.add('nc\x00')
+unigram.add('本质')
 unigram.add('kl')
-unigram.remove('据')
 # unigram.add('kl\x00')
 # for i in range(len(text)):
-res = get_node_feature_c(5, text, len(text), unigram, bigram)
+res = get_node_feature_c(19, text, len(text), unigram, bigram)
 #    print(i, text[i], res)
 print(text)
 print(res)
@@ -233,7 +233,7 @@ print('faster: ', (py_cost_time - c_cost_time) / (c_cost_time - pure_cost_time))
 print("if the same: ", res == res1)
 print(res)
 print(res1)
-'''
+# '''
 dir_path = '/home/ubuntu/github/jiojio/jiojio/jiojio_cpp'
 tag_words_converter = ctypes.cdll.LoadLibrary(
     os.path.join(dir_path, 'build', 'libtagWordsConverter.so'))
@@ -247,19 +247,18 @@ tag2word_c.restype = ctypes.py_object
 array_1d_int8 = npct.ndpointer(dtype=np.int8, ndim=1, flags='CONTIGUOUS')
 # tag2word.argtypes = [ctypes.POINTER(ctypes.c_wchar)] # , array_1d_int8, ctypes.c_long]
 
-text = "今天是个好天气！"
-text = text * 10
-states = np.empty(len(text), dtype=np.int8)  # 1 个字节，np.int32 为 4个字节
-for i in range(len(text)):
-    states[i] = np.random.randint(2)
 
-# states = np.array(
-#     [1, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1,
-#      1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0,
-#      0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0,
-#      0, 0, 0], dtype=np.int8)
-# text = '今天是个好天气！今天是个好天气！今天是个好天气！今天是个好天气！今天是个好天气！今天是个好天气！今天是个好天气！今天是' \
-#        '个好天气！今天是个好天气！今天是个好天'
+states = np.array(
+    [0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0,
+     1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0,
+     0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1,
+     0, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0,
+     0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,
+     0, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0,
+     1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0,
+     1, 0, 1, 0, 0, 1, 1], dtype=np.int8)
+text = '刚刚接触Cmake的时候，对于find_package的用法以及nc背后的原理经常一头雾水，官方文档比较晦涩难懂，网上的博客也都讲解的比较片面。这里通过实战代码案例进行一下详细的总结讲解。帮助自己加深理解的同时，也希望帮到更多的初学者。 此处所有代码均可在我的github项目中找到，欢迎star。后续内容我也会持续更新。'
+
 print(states, type(states))
 print(text)
 
@@ -280,6 +279,7 @@ with jio.TimeIt('c '):
     for i in range(times):
         res = tag2word_c(text, states.ctypes.data_as(ctypes.c_void_p), len(states))
 # res = tag2word(text, states, len(states))
+print('###c: ', tag2word_c(text, states.ctypes.data_as(ctypes.c_void_p), len(states)))
 # pdb.set_trace()
 with jio.TimeIt('py '):
     for i in range(times):

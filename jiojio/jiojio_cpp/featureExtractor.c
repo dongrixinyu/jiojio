@@ -18,43 +18,13 @@ wchar_t *getSliceStr(wchar_t *text, int start, int length, int all_len, wchar_t 
     }
 
     // 返回相应的子字符串
-    wchar_t *resStr = malloc(length * sizeof(wchar_t));
+    // printf("the length is %d string is %ls.\n", length, text + start);
+    wchar_t *resStr = malloc((length + 1) * sizeof(wchar_t));
     wcsncpy(resStr, text + start, length);
+    wcsncpy(resStr + length, emptyStr, 1);
+    // printf("the length of slice: %ld. %ls\n\n", wcslen(resStr), resStr);
     return resStr;
 }
-
-static const wchar_t *startFeature = L"[START]";
-static const wchar_t *endFeature = L"[END]";
-static const wchar_t *delim = L".";
-
-// const wchar_t *emptyFeature = L"/";
-// const wchar_t *defaultFeature = L"$$";
-
-// 字符以 c 为中心，前后，z、a、b、c、d、e、f 依次扩展开
-static const wchar_t *charCurrent = L"c";
-static const wchar_t *charBefore = L"b";          // c-1.
-static const wchar_t *charNext = L"d";            // c1.
-static const wchar_t *charBefore2 = L"a";         // c-2.
-static const wchar_t *charNext2 = L"e";           // c2.
-static const wchar_t *charBefore3 = L"z";         // c-3.
-static const wchar_t *charNext3 = L"f";           // c3.
-static const wchar_t *charBeforeCurrent = L"bc";  // c-1c.
-static const wchar_t *charBefore2Current = L"ac"; // c-2c.
-static const wchar_t *charBefore3Current = L"zc"; // c-3c.
-static const wchar_t *charCurrentNext = L"cd";    // cc1.
-static const wchar_t *charCurrentNext2 = L"ce";   // cc2.
-static const wchar_t *charCurrentNext3 = L"cf";   // cc3.
-// const wchar_t *charBefore21 = L"ab";       // c-2c-1.
-// const wchar_t *charNext12 = L"de";         // c1c2.
-
-static const wchar_t *wordBefore = L"v";  // w-1.
-static const wchar_t *wordNext = L"x";    // w1.
-static const wchar_t *word2Left = L"wl";  // ww.l.
-static const wchar_t *word2Right = L"wr"; // ww.r.
-
-static const int wordMax = 4;
-static const int wordMin = 2;
-static const wchar_t *wordLength = L"234";
 
 /**
  * @brief Get the Node Feature Python object
@@ -72,20 +42,58 @@ API PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
     wchar_t *emptyStr = malloc(sizeof(wchar_t));
     memset(emptyStr, L'\0', sizeof(wchar_t));
 
+    const wchar_t *startFeature = L"[START]";
+    const wchar_t *endFeature = L"[END]";
+    const wchar_t *delim = L".";
+
+    // const wchar_t *emptyFeature = L"/";
+    // const wchar_t *defaultFeature = L"$$";
+
+    // 字符以 c 为中心，前后，z、a、b、c、d、e、f 依次扩展开
+    const wchar_t *charCurrent = L"c";
+    const wchar_t *charBefore = L"b";          // c-1.
+    const wchar_t *charNext = L"d";            // c1.
+    const wchar_t *charBefore2 = L"a";         // c-2.
+    const wchar_t *charNext2 = L"e";           // c2.
+    const wchar_t *charBefore3 = L"z";         // c-3.
+    const wchar_t *charNext3 = L"f";           // c3.
+    const wchar_t *charBeforeCurrent = L"bc";  // c-1c.
+    const wchar_t *charBefore2Current = L"ac"; // c-2c.
+    const wchar_t *charBefore3Current = L"zc"; // c-3c.
+    const wchar_t *charCurrentNext = L"cd";    // cc1.
+    const wchar_t *charCurrentNext2 = L"ce";   // cc2.
+    const wchar_t *charCurrentNext3 = L"cf";   // cc3.
+    // const wchar_t *charBefore21 = L"ab";       // c-2c-1.
+    // const wchar_t *charNext12 = L"de";         // c1c2.
+
+    const wchar_t *wordBefore = L"v";  // w-1.
+    const wchar_t *wordNext = L"x";    // w1.
+    const wchar_t *word2Left = L"wl";  // ww.l.
+    const wchar_t *word2Right = L"wr"; // ww.r.
+
+    const int wordMax = 4;
+    const int wordMin = 2;
+    const wchar_t *wordLength = L"234";
+
     int ret = -1;
     wchar_t *curC = text + idx;        // 当前字符
     wchar_t *beforeC = text + idx - 1; // 前一个字符
     wchar_t *nextC = text + idx + 1;   // 后一个字符
 
     PyObject *featureList = PyList_New(0);
+    PyObject *tmpPyStr;
     // setlocale(LC_ALL, "en_US.UTF-8");
 
     // 添加当前字特征
     wchar_t *charCurrentFeature = malloc(2 * sizeof(wchar_t)); // 默认为 2，如 “c佛”
     wcsncpy(charCurrentFeature, charCurrent, 1);
     wcsncpy(charCurrentFeature + 1, curC, 1);
-    ret = PyList_Append(featureList, PyUnicode_FromWideChar(charCurrentFeature, 2));
+    // wcsncpy(charCurrentFeature + 2, emptyStr, 1);
+    tmpPyStr = PyUnicode_FromWideChar(charCurrentFeature, 2);
+    ret = PyList_Append(featureList, tmpPyStr);
+    Py_DECREF(tmpPyStr);
     free(charCurrentFeature);
+    charCurrentFeature = NULL;
 
     if (idx > 0)
     {
@@ -93,8 +101,11 @@ API PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
         wchar_t *charBeforeFeature = malloc(2 * sizeof(wchar_t)); // 默认为 2，如 “b租”
         wcsncpy(charBeforeFeature, charBefore, 1);
         wcsncpy(charBeforeFeature + 1, beforeC, 1);
-        ret = PyList_Append(featureList, PyUnicode_FromWideChar(charBeforeFeature, 2));
+        tmpPyStr = PyUnicode_FromWideChar(charBeforeFeature, 2);
+        ret = PyList_Append(featureList, tmpPyStr);
+        Py_DECREF(tmpPyStr);
         free(charBeforeFeature);
+        charBeforeFeature = NULL;
 
         // 添加当前字和前一字特征
         wchar_t *charBeforeCurrentFeature = malloc(5 * sizeof(wchar_t)); // 默认为 5，如 “bc佛.祖”
@@ -102,13 +113,18 @@ API PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
         wcsncpy(charBeforeCurrentFeature + 2, beforeC, 1);
         wcsncpy(charBeforeCurrentFeature + 3, delim, 1);
         wcsncpy(charBeforeCurrentFeature + 4, curC, 1);
-        ret = PyList_Append(featureList, PyUnicode_FromWideChar(charBeforeCurrentFeature, 5));
+        tmpPyStr = PyUnicode_FromWideChar(charBeforeCurrentFeature, 5);
+        ret = PyList_Append(featureList, tmpPyStr);
+        Py_DECREF(tmpPyStr);
         free(charBeforeCurrentFeature);
+        charBeforeCurrentFeature = NULL;
     }
     else
     {
         // 添加起始位特征
-        ret = PyList_Append(featureList, PyUnicode_FromWideChar(startFeature, 7));
+        tmpPyStr = PyUnicode_FromWideChar(startFeature, 7);
+        ret = PyList_Append(featureList, tmpPyStr);
+        Py_DECREF(tmpPyStr);
     }
 
     if (idx < nodeNum - 1)
@@ -117,8 +133,11 @@ API PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
         wchar_t *charNextFeature = malloc(2 * sizeof(wchar_t)); // 默认为 2，如 “d租”
         wcsncpy(charNextFeature, charNext, 1);
         wcsncpy(charNextFeature + 1, nextC, 1);
-        ret = PyList_Append(featureList, PyUnicode_FromWideChar(charNextFeature, 2));
+        tmpPyStr = PyUnicode_FromWideChar(charNextFeature, 2);
+        ret = PyList_Append(featureList, tmpPyStr);
+        Py_DECREF(tmpPyStr);
         free(charNextFeature);
+        charNextFeature = NULL;
 
         // 添加当前字和后一字特征
         wchar_t *charCurrentNextFeature = malloc(5 * sizeof(wchar_t)); // 默认为 2，如 “cd佛.祖”
@@ -126,13 +145,18 @@ API PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
         wcsncpy(charCurrentNextFeature + 2, curC, 1);
         wcsncpy(charCurrentNextFeature + 3, delim, 1);
         wcsncpy(charCurrentNextFeature + 4, nextC, 1);
-        ret = PyList_Append(featureList, PyUnicode_FromWideChar(charCurrentNextFeature, 5));
+        tmpPyStr = PyUnicode_FromWideChar(charCurrentNextFeature, 5);
+        ret = PyList_Append(featureList, tmpPyStr);
+        Py_DECREF(tmpPyStr);
         free(charCurrentNextFeature);
+        charCurrentNextFeature = NULL;
     }
     else
     {
         // 添加文本终止符特征
-        ret = PyList_Append(featureList, PyUnicode_FromWideChar(endFeature, 5));
+        tmpPyStr = PyUnicode_FromWideChar(endFeature, 5);
+        ret = PyList_Append(featureList, tmpPyStr);
+        Py_DECREF(tmpPyStr);
     }
 
     if (idx > 1)
@@ -143,8 +167,11 @@ API PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
         wchar_t *charBeforeC2Feature = malloc(2 * sizeof(wchar_t)); // 默认为 2，如 “a租”
         wcsncpy(charBeforeC2Feature, charBefore2, 1);
         wcsncpy(charBeforeC2Feature + 1, beforeC2, 1);
-        ret = PyList_Append(featureList, PyUnicode_FromWideChar(charBeforeC2Feature, 2));
+        tmpPyStr = PyUnicode_FromWideChar(charBeforeC2Feature, 2);
+        ret = PyList_Append(featureList, tmpPyStr);
+        Py_DECREF(tmpPyStr);
         free(charBeforeC2Feature);
+        charBeforeC2Feature = NULL;
 
         // 添加前第二字和当前字组合特征
         wchar_t *charBefore2CurrentFeature = malloc(5 * sizeof(wchar_t)); // 默认为 5，如 “sc佛.在”
@@ -152,8 +179,11 @@ API PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
         wcsncpy(charBefore2CurrentFeature + 2, beforeC2, 1);
         wcsncpy(charBefore2CurrentFeature + 3, delim, 1);
         wcsncpy(charBefore2CurrentFeature + 4, curC, 1);
-        ret = PyList_Append(featureList, PyUnicode_FromWideChar(charBefore2CurrentFeature, 5));
+        tmpPyStr = PyUnicode_FromWideChar(charBefore2CurrentFeature, 5);
+        ret = PyList_Append(featureList, tmpPyStr);
+        Py_DECREF(tmpPyStr);
         free(charBefore2CurrentFeature);
+        charBefore2CurrentFeature = NULL;
     }
 
     if (idx < nodeNum - 2)
@@ -164,8 +194,11 @@ API PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
         wchar_t *charNextC2Feature = malloc(2 * sizeof(wchar_t)); // 默认为 2，如 “e租”
         wcsncpy(charNextC2Feature, charNext2, 1);
         wcsncpy(charNextC2Feature + 1, nextC2, 1);
-        ret = PyList_Append(featureList, PyUnicode_FromWideChar(charNextC2Feature, 2));
+        tmpPyStr = PyUnicode_FromWideChar(charNextC2Feature, 2);
+        ret = PyList_Append(featureList, tmpPyStr);
+        Py_DECREF(tmpPyStr);
         free(charNextC2Feature);
+        charNextC2Feature = NULL;
 
         // 添加当前字和后第二字组合特征
         wchar_t *charCurrentNext2Feature = malloc(5 * sizeof(wchar_t)); // 默认为 5，如 “ce大.寺”
@@ -173,8 +206,11 @@ API PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
         wcsncpy(charCurrentNext2Feature + 2, curC, 1);
         wcsncpy(charCurrentNext2Feature + 3, delim, 1);
         wcsncpy(charCurrentNext2Feature + 4, nextC2, 1);
-        ret = PyList_Append(featureList, PyUnicode_FromWideChar(charCurrentNext2Feature, 5));
+        tmpPyStr = PyUnicode_FromWideChar(charCurrentNext2Feature, 5);
+        ret = PyList_Append(featureList, tmpPyStr);
+        Py_DECREF(tmpPyStr);
         free(charCurrentNext2Feature);
+        charCurrentNext2Feature = NULL;
     }
 
     if (idx > 2)
@@ -185,8 +221,11 @@ API PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
         wchar_t *charBeforeC3Feature = malloc(2 * sizeof(wchar_t)); // 默认为 2，如 “z租”
         wcsncpy(charBeforeC3Feature, charBefore3, 1);
         wcsncpy(charBeforeC3Feature + 1, beforeC3, 1);
-        ret = PyList_Append(featureList, PyUnicode_FromWideChar(charBeforeC3Feature, 2));
+        tmpPyStr = PyUnicode_FromWideChar(charBeforeC3Feature, 2);
+        ret = PyList_Append(featureList, tmpPyStr);
+        Py_DECREF(tmpPyStr);
         free(charBeforeC3Feature);
+        charBeforeC3Feature = NULL;
 
         // 添加前第三字和当前字组合特征
         wchar_t *charBefore3CurrentFeature = malloc(5 * sizeof(wchar_t)); // 默认为 5，如 “zc佛.在”
@@ -194,8 +233,11 @@ API PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
         wcsncpy(charBefore3CurrentFeature + 2, beforeC3, 1);
         wcsncpy(charBefore3CurrentFeature + 3, delim, 1);
         wcsncpy(charBefore3CurrentFeature + 4, curC, 1);
-        ret = PyList_Append(featureList, PyUnicode_FromWideChar(charBefore3CurrentFeature, 5));
+        tmpPyStr = PyUnicode_FromWideChar(charBefore3CurrentFeature, 5);
+        ret = PyList_Append(featureList, tmpPyStr);
+        Py_DECREF(tmpPyStr);
         free(charBefore3CurrentFeature);
+        charBefore3CurrentFeature = NULL;
     }
 
     if (idx < nodeNum - 3)
@@ -206,8 +248,11 @@ API PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
         wchar_t *charNextC3Feature = malloc(2 * sizeof(wchar_t)); // 默认为 2，如 “f租”
         wcsncpy(charNextC3Feature, charNext3, 1);
         wcsncpy(charNextC3Feature + 1, nextC3, 1);
-        ret = PyList_Append(featureList, PyUnicode_FromWideChar(charNextC3Feature, 2));
+        tmpPyStr = PyUnicode_FromWideChar(charNextC3Feature, 2);
+        ret = PyList_Append(featureList, tmpPyStr);
+        Py_DECREF(tmpPyStr);
         free(charNextC3Feature);
+        charNextC3Feature = NULL;
 
         // 添加当前字和后第二字组合特征
         wchar_t *charCurrentNext3Feature = malloc(5 * sizeof(wchar_t)); // 默认为 5，如 “cf大.寺”
@@ -215,8 +260,11 @@ API PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
         wcsncpy(charCurrentNext3Feature + 2, curC, 1);
         wcsncpy(charCurrentNext3Feature + 3, delim, 1);
         wcsncpy(charCurrentNext3Feature + 4, nextC3, 1);
-        ret = PyList_Append(featureList, PyUnicode_FromWideChar(charCurrentNext3Feature, 5));
+        tmpPyStr = PyUnicode_FromWideChar(charCurrentNext3Feature, 5);
+        ret = PyList_Append(featureList, tmpPyStr);
+        Py_DECREF(tmpPyStr);
         free(charCurrentNext3Feature);
+        charCurrentNext3Feature = NULL;
     }
 
     int preInFlag = 0; // 不仅指示是否进行双词匹配，也指示了匹配到的词汇的长度
@@ -229,14 +277,14 @@ API PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
     wchar_t *postEx = NULL;
     for (int l = wordMax; l > wordMin - 1; l--)
     {
-        // printf("idx: %d\n", l);
         if (preInFlag == 0)
         {
             wchar_t *preInTmp = getSliceStr(text, idx - l + 1, l, nodeNum, emptyStr);
             if (wcslen(preInTmp) != 0)
             {
-                ret = PySet_Contains(unigram, PyUnicode_FromWideChar(preInTmp, l));
-                // printf("true:\t%d\t%ls\n", l, preInTmp);
+                tmpPyStr = PyUnicode_FromWideChar(preInTmp, l);
+                ret = PySet_Contains(unigram, tmpPyStr);
+                Py_DECREF(tmpPyStr);
 
                 if (ret == 1)
                 {
@@ -244,20 +292,20 @@ API PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
                     wchar_t *wordBeforeFeature = malloc((1 + l) * sizeof(wchar_t)); // 长度不定，如 “v中国”
                     wcsncpy(wordBeforeFeature, wordBefore, 1);
                     wcsncpy(wordBeforeFeature + 1, preInTmp, l);
-                    // printf("the string is right, %ls.\n", wordBeforeFeature);
-                    ret = PyList_Append(featureList, PyUnicode_FromWideChar(wordBeforeFeature, l + 1));
+
+                    tmpPyStr = PyUnicode_FromWideChar(wordBeforeFeature, l + 1);
+                    ret = PyList_Append(featureList, tmpPyStr);
+                    Py_DECREF(tmpPyStr);
                     free(wordBeforeFeature);
-
+                    wordBeforeFeature = NULL;
                     // 记录该词
-                    // preIn = malloc(l * sizeof(wchar_t));
-                    // wcsncpy(preIn, preInTmp, l);
-                    preIn = preInTmp;
-                    preInTmp = NULL;
-
+                    preIn = malloc(l * sizeof(wchar_t));
+                    wcsncpy(preIn, preInTmp, l);
+                    // preIn = preInTmp;
                     preInFlag = l;
                 }
-                if (preInTmp != NULL)
-                    free(preInTmp);
+                // if (preInFlag == 0)
+                free(preInTmp);
             }
             preInTmp = NULL;
         }
@@ -268,28 +316,28 @@ API PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
 
             if (wcslen(postInTmp) != 0)
             {
-                ret = PySet_Contains(unigram, PyUnicode_FromWideChar(postInTmp, l));
-                // printf("true postInTmp:\t%d\t%ls\n", l, postInTmp);
-
+                tmpPyStr = PyUnicode_FromWideChar(postInTmp, l);
+                ret = PySet_Contains(unigram, tmpPyStr);
+                Py_DECREF(tmpPyStr);
                 if (ret == 1)
                 {
                     // 添加后一词特征
                     wchar_t *wordNextFeature = malloc((1 + l) * sizeof(wchar_t)); // 长度不定，如 “x中国”
                     wcsncpy(wordNextFeature, wordNext, 1);
                     wcsncpy(wordNextFeature + 1, postInTmp, l);
-                    ret = PyList_Append(featureList, PyUnicode_FromWideChar(wordNextFeature, l + 1));
+                    tmpPyStr = PyUnicode_FromWideChar(wordNextFeature, l + 1);
+                    ret = PyList_Append(featureList, tmpPyStr);
+                    Py_DECREF(tmpPyStr);
                     free(wordNextFeature);
 
                     // 记录该词
-                    // postIn = malloc(l * sizeof(wchar_t));
-                    // wcsncpy(postIn, postInTmp, l);
-                    postIn = postInTmp;
-                    postInTmp = NULL;
-
+                    postIn = malloc(l * sizeof(wchar_t));
+                    wcsncpy(postIn, postInTmp, l);
+                    // postIn = postInTmp;
                     postInFlag = l;
                 }
-                if (postInTmp != NULL)
-                    free(postInTmp);
+                // if (postInFlag == 0)
+                free(postInTmp);
             }
             postInTmp = NULL;
         }
@@ -299,20 +347,19 @@ API PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
             wchar_t *preExTmp = getSliceStr(text, idx - l, l, nodeNum, emptyStr);
             if (wcslen(preExTmp) != 0)
             {
-                ret = PySet_Contains(unigram, PyUnicode_FromWideChar(preExTmp, l));
-                // printf("true preExTmp:\t%d\t%ls\n", l, preExTmp);
+                tmpPyStr = PyUnicode_FromWideChar(preExTmp, l);
+                ret = PySet_Contains(unigram, tmpPyStr);
+                Py_DECREF(tmpPyStr);
                 if (ret == 1)
                 {
                     // 记录该词
-                    // preEx = malloc(l * sizeof(wchar_t));
-                    // wcsncpy(preEx, preExTmp, l);
-                    preEx = preExTmp;
-                    preExTmp = NULL;
-
+                    preEx = malloc(l * sizeof(wchar_t));
+                    wcsncpy(preEx, preExTmp, l);
+                    // preEx = preExTmp;
                     preExFlag = l;
                 }
-                if (preExTmp != NULL)
-                    free(preExTmp);
+                // if (preExFlag == 0)
+                free(preExTmp);
             }
             preExTmp = NULL;
         }
@@ -322,24 +369,20 @@ API PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
             wchar_t *postExTmp = getSliceStr(text, idx + 1, l, nodeNum, emptyStr);
             if (wcslen(postExTmp) != 0)
             {
-                PyObject *postExTmpPy = PyUnicode_FromWideChar(postExTmp, l);
-                // printf("true postExTmp:\t%d\t%ls\n", l, postExTmp);
-                ret = PySet_Contains(unigram, postExTmpPy);
-                Py_DECREF(postExTmpPy);
-                // printf("true postExTmp:\t%d\t%ls\t%d\n", l, postExTmp, ret);
+                tmpPyStr = PyUnicode_FromWideChar(postExTmp, l);
+                ret = PySet_Contains(unigram, tmpPyStr);
+                Py_DECREF(tmpPyStr);
                 if (ret == 1)
                 {
                     // 记录该词
-                    // postEx = malloc(l * sizeof(wchar_t));
-                    // wcsncpy(postEx, postExTmp, l);
-                    postEx = postExTmp;
-                    postExTmp = NULL;
-
+                    postEx = malloc(l * sizeof(wchar_t));
+                    wcsncpy(postEx, postExTmp, l);
+                    // postEx = postExTmp;
                     postExFlag = l;
                 }
 
-                if (postExTmp != NULL)
-                    free(postExTmp);
+                // if (postExTmp == 0)
+                free(postExTmp);
             }
             postExTmp = NULL;
         }
@@ -354,14 +397,19 @@ API PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
         wcsncpy(bigramTmp + preExFlag, delim, 1);
         wcsncpy(bigramTmp + 1 + preExFlag, postIn, postInFlag);
 
-        ret = PySet_Contains(bigram, PyUnicode_FromWideChar(bigramTmp, preExFlag + postInFlag + 1));
+        tmpPyStr = PyUnicode_FromWideChar(bigramTmp, preExFlag + postInFlag + 1);
+        ret = PySet_Contains(bigram, tmpPyStr);
+        Py_DECREF(tmpPyStr);
 
         if (ret == 1)
         {
             wchar_t *bigramLeft = malloc((preExFlag + postInFlag + 3) * sizeof(wchar_t));
             wcsncpy(bigramLeft, word2Left, 2);
             wcsncpy(bigramLeft + 2, bigramTmp, preExFlag + postInFlag + 1);
-            ret = PyList_Append(featureList, PyUnicode_FromWideChar(bigramLeft, preExFlag + postInFlag + 3));
+
+            tmpPyStr = PyUnicode_FromWideChar(bigramLeft, preExFlag + postInFlag + 3);
+            ret = PyList_Append(featureList, tmpPyStr);
+            Py_DECREF(tmpPyStr);
             free(bigramLeft);
             bigramLeft = NULL;
         }
@@ -374,7 +422,9 @@ API PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
         wcsncpy(bigramLeftLength, word2Left, 2);
         wcsncpy(bigramLeftLength + 2, wordLength + preExFlag - 2, 1);
         wcsncpy(bigramLeftLength + 3, wordLength + postInFlag - 2, 1);
-        ret = PyList_Append(featureList, PyUnicode_FromWideChar(bigramLeftLength, 4));
+        tmpPyStr = PyUnicode_FromWideChar(bigramLeftLength, 4);
+        ret = PyList_Append(featureList, tmpPyStr);
+        Py_DECREF(tmpPyStr);
         free(bigramLeftLength);
         bigramLeftLength = NULL;
     }
@@ -387,7 +437,9 @@ API PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
         wcsncpy(bigramTmp + preInFlag, delim, 1);
         wcsncpy(bigramTmp + 1 + preInFlag, postEx, postExFlag);
 
-        ret = PySet_Contains(bigram, PyUnicode_FromWideChar(bigramTmp, preInFlag + postExFlag + 1));
+        tmpPyStr = PyUnicode_FromWideChar(bigramTmp, preInFlag + postExFlag + 1);
+        ret = PySet_Contains(bigram, tmpPyStr);
+        Py_DECREF(tmpPyStr);
         // printf("wr bigramTmp: %ls %d\n", bigramTmp, ret);
         if (ret == 1)
         {
@@ -395,8 +447,9 @@ API PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
             wcsncpy(bigramRight, word2Right, 2);
             wcsncpy(bigramRight + 2, bigramTmp, preInFlag + postExFlag + 1);
 
-            ret = PyList_Append(featureList, PyUnicode_FromWideChar(bigramRight, preInFlag + postExFlag + 3));
-            // printf("wr bigramRight: %ls %d\n", bigramRight, ret);
+            tmpPyStr = PyUnicode_FromWideChar(bigramRight, preInFlag + postExFlag + 3);
+            ret = PyList_Append(featureList, tmpPyStr);
+            Py_DECREF(tmpPyStr);
             free(bigramRight);
             bigramRight = NULL;
         }
@@ -409,7 +462,10 @@ API PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
         wcsncpy(bigramRightLength, word2Right, 2);
         wcsncpy(bigramRightLength + 2, wordLength + preInFlag - 2, 1);
         wcsncpy(bigramRightLength + 3, wordLength + postExFlag - 2, 1);
-        ret = PyList_Append(featureList, PyUnicode_FromWideChar(bigramRightLength, 4));
+
+        tmpPyStr = PyUnicode_FromWideChar(bigramRightLength, 4);
+        ret = PyList_Append(featureList, tmpPyStr);
+        Py_DECREF(tmpPyStr);
         free(bigramRightLength);
         bigramRightLength = NULL;
     }
@@ -451,23 +507,22 @@ int main()
 
     Py_Initialize();
     PyObject *unigrams1 = PySet_New(0);
-    printf("# cur tag.\n");
     PyObject *bigrams1 = PySet_New(0);
-    ret = PySet_Add(unigrams1, PyUnicode_FromWideChar(L"据", 1));
-    ret = PySet_Add(unigrams1, PyUnicode_FromWideChar(L"nc", 2));
-    ret = PySet_Add(unigrams1, PyUnicode_FromWideChar(L"ckd", 3));
-    ret = PySet_Add(unigrams1, PyUnicode_FromWideChar(L"nc.3e", 5));
-
-    PyObject *curString = PyUnicode_FromWideChar(L"nc", 2);
-    ret = PySet_Contains(unigrams1, curString);
-    Py_DECREF(curString);
-    printf("the result `nc` is %d\n.", ret);
-    // char *simpleText = "ff34ncq";
+    // ret = PySet_Add(unigrams1, PyUnicode_FromWideChar(L"据", 1));
+    // ret = PySet_Add(unigrams1, PyUnicode_FromWideChar(L"nc", 2));
+    // ret = PySet_Add(unigrams1, PyUnicode_FromWideChar(L"ckd", 3));
+    // ret = PySet_Add(unigrams1, PyUnicode_FromWideChar(L"nc.3e", 5));
 
     PyObject *res = getNodeFeature(index, text, textLen,
                                    unigrams1, bigrams1);
+
+    Py_DECREF(bigrams1);
+    Py_DECREF(unigrams1);
+    Py_DECREF(res);
     free(text);
     text = NULL;
+    printf("ref count: %ld", Py_REFCNT(res));
 
     Py_Finalize();
+    return 0;
 }

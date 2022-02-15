@@ -8,9 +8,11 @@
 
 void PyAppend(int wordLength, int start, PyObject *wordList, const wchar_t *charList)
 {
-    int ret = PyList_Append(wordList, PyUnicode_FromWideChar(charList + start, wordLength));
-    if (ret == -1)
-        printf("Failed to append string to list.");
+    PyObject *tmpPyStr = PyUnicode_FromWideChar(charList + start, wordLength);
+    int ret = PyList_Append(wordList, tmpPyStr);
+    Py_DECREF(tmpPyStr);
+    // if (ret == -1)
+    //     printf("Failed to append string to list.");
 }
 
 /**
@@ -82,4 +84,17 @@ API PyObject *tagWordsConverter(const wchar_t *charList, char *tags, int nodeNum
     }
 
     return wordList;
+}
+
+int main()
+{
+    const wchar_t *charList = L"你知道吗？冰雪运动的发源地，原来在我国阿勒泰地区";
+    char tags[] = {0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1};
+    int nodeNums = 24;
+
+    Py_Initialize();
+    PyObject *res = tagWordsConverter(charList, tags, nodeNums);
+    // printf("the pyobject: %ls\n", res);
+    // Py_DECREF(res);
+    Py_Finalize();
 }
