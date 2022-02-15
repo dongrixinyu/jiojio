@@ -12,7 +12,6 @@
 // # include <stdio.h>
 void PyAppend(int wordLength, int start, PyObject *wordList, const wchar_t *charList);
 
-PyObject *tagWordsConverter(
-    const wchar_t *charList, char *tags, int nodeNum);
+PyObject *tagWordsConverter(const wchar_t *charList, char *tags, int nodeNum);
 
 #endif

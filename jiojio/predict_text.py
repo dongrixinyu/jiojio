@@ -2,6 +2,7 @@
 
 import os
 import pdb
+import sys
 import ctypes
 
 from jiojio.util import get_node_features_c, tag2word_c
@@ -58,9 +59,11 @@ class PredictText(object):
                 node_features = self.get_node_features_c(
                     idx, text, len(text), self.feature_extractor.unigram,
                     self.feature_extractor.bigram)
-                # print('C compute get_node_features_C.')
-                # pdb.set_trace()
 
+            # if node_features != self.feature_extractor.get_node_features(idx, text):
+            #     print(node_features)
+            #     print(self.feature_extractor.get_node_features(idx, text))
+            #     pdb.set_trace()
             # 此处考虑，通用未匹配特征 “/”，即索引为 0 的特征
             node_feature_idx = [
                 self.feature_extractor.feature_to_idx[node_feature]
@@ -72,7 +75,6 @@ class PredictText(object):
 
             # node_feature_idx = map(lambda i:self.feature_extractor.feature_to_idx.get(i, 0),
             #                        node_features)
-
             all_features.append(node_feature_idx)
 
         Y = get_log_Y_YY(all_features, self.model.node_weight)
@@ -103,7 +105,5 @@ class PredictText(object):
             # 以 C 方式进行计算
             words_list = self.tag2word_c(
                 text, tags.ctypes.data_as(ctypes.c_void_p), len(tags))
-            # print('C compute tag2word_C.')
-            # pdb.set_trace()
 
         return words_list

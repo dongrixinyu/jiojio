@@ -270,7 +270,7 @@ def get_log_Y_YY(sequence_feature_list, node_weight):
 
     for i in range(node_num):
         # method 1:
-        # 速度相对于 numpy 下面方法较慢
+        # 速度相对于 numpy 该方法较慢
         # 此时须设  node_score 初始值为 zeros
         # for node_feature in sequence_feature_list[i]:
         #     node_score[i] += node_weight[node_feature]
