@@ -59,8 +59,8 @@ class PredictText(object):
                 node_features = self.get_node_features_c(
                     idx, text, len(text), self.feature_extractor.unigram,
                     self.feature_extractor.bigram)
-                print(node_features)
-                pdb.set_trace()
+                # print(node_features)
+                # pdb.set_trace()
 
             # if node_features != self.feature_extractor.get_node_features(idx, text):
             #     print(node_features)
@@ -107,6 +107,6 @@ class PredictText(object):
             # 以 C 方式进行计算
             words_list = self.tag2word_c(
                 text, tags.ctypes.data_as(ctypes.c_void_p), len(tags))
-            print(words_list)
-            pdb.set_trace()
+            # print(words_list)
+            # pdb.set_trace()
         return words_list
