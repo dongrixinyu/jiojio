@@ -23,6 +23,11 @@ __all__ = ['init', 'cut', 'train', 'test']
 global jiojio_obj
 
 
+def usage():
+    print('here is an example for a quick start:\n    >>> import jiojio\n' \
+          '    >>> jiojio.init()\n    >>> jiojio.cut("这是一个测试用例。")\n')
+
+
 def init(model_name=None, pos=False, user_dict=None):
     """ 初始化模型
 
