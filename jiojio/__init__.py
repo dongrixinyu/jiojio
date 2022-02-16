@@ -1,7 +1,7 @@
 # -*- coding=utf-8 -*-
 
-__doc__ = 'for fast Chinese Word Segmentation(CWS) and Part of Speech(POS).'
-__version__ = '0.0.2'
+__doc__ = 'jiojio: for fast Chinese Word Segmentation(CWS) and Part of Speech(POS) based on CPU.'
+__version__ = '1.0.1'
 
 import os
 import pdb
@@ -17,6 +17,7 @@ from .util import TimeIt, zip_file, read_file_by_iter, \
 from .config import config
 import jiojio.trainer as trainer
 from jiojio.predict_text import PredictText
+
 
 __all__ = ['init', 'cut', 'train', 'test']
 
@@ -55,9 +56,9 @@ def train(train_file, test_file, train_dir=None,
     """用于训练模型，分析、确定参数"""
 
     if not os.path.exists(train_file):
-        raise Exception("train_file does not exist.")
+        raise Exception('train_file does not exist.')
     if not os.path.exists(test_file):
-        raise Exception("test_file does not exist.")
+        raise Exception('test_file does not exist.')
 
     if (train_dir is None) or (type(train_dir) is not str):
         logging.info('using the default `train_dir` in `./jiojio/config.py`.')
@@ -90,7 +91,7 @@ def _test_single_proc(input_file, model_name=None, user_dict=None, pos=False):
         seg = PredictText(config, model_name, user_dict, pos=pos)
 
     if not os.path.exists(input_file):
-        raise Exception("input_file {} does not exist.".format(input_file))
+        raise Exception('input_file {} does not exist.'.format(input_file))
 
     total_token_num = 0
     total_sample_num = 0
