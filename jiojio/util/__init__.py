@@ -13,10 +13,10 @@ from .trie_tree import TrieTree
 
 dir_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                         'jiojio_cpp')
-file_list = os.listdir(os.path.join(dir_path, 'build'))
 
 # load `get_node_features_c`
 try:
+    file_list = os.listdir(os.path.join(dir_path, 'build'))
     file_name = ''
     for _file_name in file_list:
         if 'libfeatureExtractor' in _file_name and _file_name.endswith('.so'):
@@ -34,12 +34,13 @@ try:
 
 except Exception:
     get_node_features_c = None
-    print('# Failed to load C func `get_node_features_c`, use py func `get_node_features` instead.')
+    print('# Failed to load C func `get_node_features_c`, use py func instead.')
     # print('# Failed to load C func `get_node_features_c` {}.'.format(
     #     traceback.format_exc()))
 
 # load `tag_words_converter_c`
 try:
+    file_list = os.listdir(os.path.join(dir_path, 'build'))
     file_name = ''
     for _file_name in file_list:
         if 'libtagWordsConverter' in _file_name and _file_name.endswith('.so'):
@@ -56,6 +57,6 @@ try:
 
 except Exception:
     tag2word_c = None
-    print('# Failed to load C func `tag2word_c`, use py func `tag2word` instead.')
+    print('# Failed to load C func `tag2word_c`, use py func instead.')
     # print('# Failed to load C func `tag2word_c` {}.'.format(
     #     traceback.format_exc()))

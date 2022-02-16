@@ -597,7 +597,7 @@ class FeatureExtractor(object):
         zip_feature_path = os.path.join(model_dir, "features.zip")
 
         if (not os.path.exists(feature_path)) and os.path.exists(zip_feature_path):
-            logging.info('unzip `{}` to `{}`.'.format(zip_feature_path, feature_path))
+            logging.info('\n\tunzip `{}`\n\tto `{}`.'.format(zip_feature_path, feature_path))
             unzip_file(zip_feature_path)
 
         if os.path.exists(feature_path):

@@ -2,10 +2,33 @@
 
 import os
 import re
+import sys
 import setuptools
 
-from setuptools import Extension
-from distutils.command.build_ext import build_ext
+if sys.platform == 'linux':
+    from setuptools import Extension
+    from distutils.command.build_ext import build_ext
+
+
+    class build_ext(build_ext):
+
+        def build_extension(self, ext):
+            self._ctypes = isinstance(ext, CTypes)
+            return super().build_extension(ext)
+
+        def get_export_symbols(self, ext):
+            if self._ctypes:
+                return ext.export_symbols
+            return super().get_export_symbols(ext)
+
+        def get_ext_filename(self, ext_name):
+            if self._ctypes:
+                return ext_name + '.so'
+            return super().get_ext_filename(ext_name)
+
+
+    class CTypes(Extension):
+        pass
 
 
 DIR_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -21,40 +44,22 @@ with open(os.path.join(DIR_PATH, 'README.md'), 'r', encoding='utf-8') as f:
     LONG_DOC = '\n'.join(readme_lines)
 
 
-class build_ext(build_ext):
-
-    def build_extension(self, ext):
-        self._ctypes = isinstance(ext, CTypes)
-        return super().build_extension(ext)
-
-    def get_export_symbols(self, ext):
-        if self._ctypes:
-            return ext.export_symbols
-        return super().get_export_symbols(ext)
-
-    def get_ext_filename(self, ext_name):
-        if self._ctypes:
-            return ext_name + '.so'
-        return super().get_ext_filename(ext_name)
-
-
-class CTypes(Extension): pass
-
-
 def setup_package():
-
-    extensions = [
-        Extension(
-            'jiojio.jiojio_cpp.build.libfeatureExtractor',
-            ['jiojio/jiojio_cpp/featureExtractor.c'],
-            language='c'
-        ),
-        Extension(
-            'jiojio.jiojio_cpp.build.libtagWordsConverter',
-            ['jiojio/jiojio_cpp/tagWordsConverter.c'],
-            language='c'
-        ),
-    ]
+    if sys.platform == 'linux':
+        extensions = [
+            Extension(
+                'jiojio.jiojio_cpp.build.libfeatureExtractor',
+                ['jiojio/jiojio_cpp/featureExtractor.c'],
+                language='c'
+            ),
+            Extension(
+                'jiojio.jiojio_cpp.build.libtagWordsConverter',
+                ['jiojio/jiojio_cpp/tagWordsConverter.c'],
+                language='c'
+            ),
+        ]
+    else:
+        extensions = None
 
     setuptools.setup(
         name='jiojio',
@@ -79,7 +84,7 @@ def setup_package():
         install_requires=['numpy>=1.16.0'],
         ext_modules=extensions,
         zip_safe=False,
-        cmdclass={'build_ext': build_ext}
+        cmdclass={'build_ext': build_ext} if sys.platform == 'linux' else {}
     )
 
 
