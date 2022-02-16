@@ -27,8 +27,8 @@ class PredictText(object):
             config, model_dir=config.model_dir)
         self.model = Model.load()
 
-        self.idx_to_tag = {idx: tag
-            for tag, idx in self.feature_extractor.tag_to_idx.items()}
+        self.idx_to_tag = {
+            idx: tag for tag, idx in self.feature_extractor.tag_to_idx.items()}
 
         self.pre_processor = PreProcessor(
             convert_num_letter=config.convert_num_letter,
