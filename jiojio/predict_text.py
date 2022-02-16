@@ -88,8 +88,6 @@ class PredictText(object):
         tags_idx = run_viterbi(Y, self.model.edge_weight)
 
         return tags_idx
-        # tags = [self.idx_to_tag[tag_idx] for tag_idx in tags_idx]
-        # return tags
 
     def cut(self, text):
 
