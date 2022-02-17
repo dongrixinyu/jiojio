@@ -51,7 +51,7 @@ $ pip install jiojio
 - 增加词典
 ```
 >>> import jiojio
->>> jiojio.init(dictionary='/path/to/dictionary.txt')
+>>> jiojio.init(user_dict='/path/to/dictionary.txt')
 >>> words = jiojio.cut('欧盟各成员国内部也存在着种种分歧。')
 >>> print(words)
 # ['欧盟', '各', '成员国', '内部', '也, '存在', '着', '种种', '分歧', '。']
