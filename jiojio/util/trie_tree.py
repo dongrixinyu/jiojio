@@ -1,4 +1,10 @@
 # -*- coding=utf-8 -*-
+# Library: jiojio
+# Author: dongrixinyu
+# License: GPL-3.0
+# Email: dongrixinyu.89@163.com
+# Github: https://github.com/dongrixinyu/jiojio
+# Description: fast Chinese Word Segmentation(CWS) and Part of Speech(POS) based on CPU.'
 
 
 class TrieTree(object):

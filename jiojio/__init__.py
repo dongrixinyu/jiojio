@@ -1,88 +1,159 @@
 # -*- coding=utf-8 -*-
+# Library: jiojio
+# Author: dongrixinyu
+# License: GPL-3.0
+# Email: dongrixinyu.89@163.com
+# Github: https://github.com/dongrixinyu/jiojio
+# Description: fast Chinese Word Segmentation(CWS) and Part of Speech(POS) based on CPU.'
+
 
 __doc__ = 'jiojio: for fast Chinese Word Segmentation(CWS) and Part of Speech(POS) based on CPU.'
-__version__ = '1.0.1'
+__version__ = '1.0.2'
 
 import os
 import pdb
 
 from multiprocessing import Process, Queue, get_start_method
 
-from .util.logger import set_logger
+from .util import TimeIt, zip_file, unzip_file, read_file_by_iter, \
+    write_file_by_line, TrieTree, set_logger
 
 logging = set_logger(level='INFO', log_dir_name='.jiojio_logs')
 
-from .util import TimeIt, zip_file, read_file_by_iter, \
-    write_file_by_line, TrieTree
-from .config import config
-import jiojio.trainer as trainer
-from jiojio.predict_text import PredictText
+from .model import Model
+
+from .cws import CWSPredictText
+from .pos import POSPredictText
+from jiojio.cws.config import cws_config
+from jiojio.pos.config import pos_config
+
+import jiojio.cws.trainer as cws_trainer
+import jiojio.pos.trainer as pos_trainer
 
 
-__all__ = ['init', 'cut', 'train', 'test']
+__all__ = ['init', 'cut', 'train', 'test', 'help']
 
-global jiojio_obj
+global jiojio_cws_obj, jiojio_pos_obj, jiojio_pos_flag
 
 
-def usage():
-    print('here is an example for a quick start:\n    >>> import jiojio\n' \
+def help():
+    print('Here is an example for a quick start:\n    >>> import jiojio\n' \
           '    >>> jiojio.init()\n    >>> jiojio.cut("这是一个测试用例。")\n')
 
 
-def init(model_name=None, pos=False, user_dict=None):
-    """ 初始化模型
+def init(cws_model_dir=None, cws_user_dict=None, pos=False,
+         pos_model_dir=None, pos_user_dict=None):
+    """ 初始化模型，包括分别初始化分词模型与词性标注模型。
 
     Args:
-        model_name(str): 模型名称，若为 None，则加载默认模型 default_model
-        pos(bool): 是否加载词性标注，默认为 False
-        user_dict(str): 指定加载用户自定义词典的路径，若不指定则不加载
+        cws_model_dir(str): 分词模型名称，若为 None，则加载默认模型 default_cws_model；
+            若自训练模型，则建议填写为模型目录的绝对路径，若仅仅为目录名（相对路径），如
+            “self_train_cws_model” ，则加载时默认该模型目录存储在 “jiojio/models” 目录下。
+        cws_user_dict(str): 指定加载分词的用户自定义词典文件的绝对路径，若不指定则不加载，
+            默认不加载。
+        pos(bool): 是否加载词性标注，默认为 False。
+        pos_model_dir(str): 词性标注模型名称，若为 None，则加载默认模型 default_pos_model；
+            若自训练模型，则建议填写为模型目录的绝对路径，若仅仅为目录名（相对路径），如
+            “self_train_pos_model” ，则加载时默认该模型目录存储在 “jiojio/models” 目录下。
+            在 pos 为 True 时生效。
+        pos_user_dict(str): 指定加载词性标注用户自定义词典文件的绝对路径，若不指定则不加载，
+            默认不加载。在 pos 为 True 时生效。
 
     Returns:
         None
 
     """
-    global jiojio_obj
-    jiojio_obj = PredictText(config, model_name=model_name,
-                             user_dict=user_dict, pos=pos)
+    global jiojio_cws_obj, jiojio_pos_obj, jiojio_pos_flag
+
+    jiojio_cws_obj = CWSPredictText(
+        model_dir=cws_model_dir, user_dict=cws_user_dict)
+
+    if pos:
+        jiojio_pos_flag = True
+        jiojio_pos_obj = POSPredictText(
+            model_dir=pos_model_dir, user_dict=pos_user_dict)
+    else:
+        jiojio_pos_flag = False
 
 
 def cut(text):
-    words = jiojio_obj.cut(text)
-    return words
+    """ 对文本进行分词和词性标注 """
+    if jiojio_pos_flag:
+        words, norm_words = jiojio_cws_obj.cut_with_pos(text)
+        tags = jiojio_pos_obj.cut(norm_words)
+
+        return [words, tags]
+
+    else:
+        words = jiojio_cws_obj.cut(text)
+
+        return words
 
 
 def train(train_file, test_file, train_dir=None,
-          model_dir=None, train_epoch=0):
-    """用于训练模型，分析、确定参数"""
+          model_dir=None, train_epoch=0, task='cws'):
+    """用于训练模型，分析、确定参数
 
-    if not os.path.exists(train_file):
-        raise Exception('train_file does not exist.')
-    if not os.path.exists(test_file):
-        raise Exception('test_file does not exist.')
+    Args:
+        train_file: 训练数据文件，建议指定绝对路径。
+        test_file: 测试数据文件，建议指定绝对路径。
+        train_dir: 训练数据保存路径，主要为训练临时文件，例如，标注文本进行特征抽取后的中间文件等，
+            用于分析数据，不用于推理，训练完后可删除。
+        model_dir: 模型文件保存路径，训练模型文件、特征索引文件、以及推理参数文件，用于推理加载。
+        train_epoch: 训练轮数。
+        task: 训练任务，只支持 cws（分词）和 pos（词性标注）两种。
+
+    """
+
+    if task == 'cws':
+        config = cws_config
+    elif task == 'pos':
+        config = pos_config
+    else:
+        raise ValueError('the param `task` must be `cws` or `pos`.')
 
     if (train_dir is None) or (type(train_dir) is not str):
-        logging.info('using the default `train_dir` in `./jiojio/config.py`.')
+        logging.info('using the default `train_dir` in `./jiojio/{}/config.py`.'.format(task))
     else:
-        config.train_dir = train_dir
+        default_train_dir = config.jiojio_home
+        if os.path.isabs(train_dir):
+            config.train_dir = train_dir
+        else:
+            config.train_dir = os.path.join(default_train_dir, train_dir)
+
     if not os.path.exists(config.train_dir):
         os.makedirs(config.train_dir)
 
     if (model_dir is None) or (type(model_dir) is not str):
-        logging.info('using the default `model_dir` in `./jiojio/config.py`.')
+        logging.info('using the default `model_dir` in `./jiojio/{}/config.py`.'.format(task))
     else:
-        config.model_dir = model_dir
+        default_model_dir = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), 'models')
+        if os.path.isabs(model_dir):
+            config.model_dir = model_dir
+        else:
+            config.model_dir = os.path.join(default_model_dir, model_dir)
+
     if not os.path.exists(config.model_dir):
         os.makedirs(config.model_dir)
 
+    if not os.path.exists(train_file):
+        raise ValueError('train_file does not exist.')
+    if not os.path.exists(test_file):
+        raise ValueError('test_file does not exist.')
     config.train_file = train_file
     config.test_file = test_file
 
-    config.nThread = 1
-    if train_epoch != 0:
+    # config.nThread = 1
+    if train_epoch > 0 and (type(train_epoch) is int):
         config.train_epoch = train_epoch
 
     with TimeIt('total training time'):
-        trainer.train(config)
+        if task == 'cws':
+            cws_trainer.train(config)
+        elif task == 'pos':
+            # pdb.set_trace()
+            pos_trainer.train(config)
 
 
 def _test_single_proc(input_file, model_name=None, user_dict=None, pos=False):

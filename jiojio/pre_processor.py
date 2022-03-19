@@ -1,4 +1,10 @@
 # -*- coding=utf-8 -*-
+# Library: jiojio
+# Author: dongrixinyu
+# License: GPL-3.0
+# Email: dongrixinyu.89@163.com
+# Github: https://github.com/dongrixinyu/jiojio
+# Description: fast Chinese Word Segmentation(CWS) and Part of Speech(POS) based on CPU.'
 
 """
 方法说明：
@@ -53,7 +59,13 @@ class PreProcessor(object):
         # 检查是否包含中文字符
         self.chinese_char_pattern = re.compile('[一-龥]')
         self.num_pattern = re.compile(
-            '^(\d+(,\d+)?(\.\d+)?(万|亿|万亿|万千|千|点|亿千|兆)|[零一二三四五六七八九十百千万亿]{3,9})$')
+            '^(\d+(,\d+)?(\.\d+)?(万|亿|万亿|万千|千万|千|点|亿千|兆)|[\d]+(%|％)?|'\
+            '([\d]+)?\.([\d]+)?(%|％)?|'\
+            '[\d]+\:[\d]+|'\
+            '[零一二三四五六七八九十百千万亿]{3,9})$')
+        self.pure_num_pattern = re.compile(
+            '^([\d]+(%|％)?|'\
+            '([\d]+)?\.([\d]+)?(%|％)?)$')
         self.percent_num_pattern = re.compile('(百分之)')
 
         # 检测是否为人名正则

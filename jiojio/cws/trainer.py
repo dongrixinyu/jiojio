@@ -1,4 +1,10 @@
 # -*- coding=utf-8 -*-
+# Library: jiojio
+# Author: dongrixinyu
+# License: GPL-3.0
+# Email: dongrixinyu.89@163.com
+# Github: https://github.com/dongrixinyu/jiojio
+# Description: fast Chinese Word Segmentation(CWS) and Part of Speech(POS) based on CPU.'
 
 import os
 import pdb
@@ -6,14 +12,15 @@ import time
 import numpy as np
 from multiprocessing import Process, Queue
 
-from jiojio import TimeIt, config, logging
+from jiojio import TimeIt, logging
+
 from jiojio.dataset import DataSet
-from jiojio.feature_extractor import FeatureExtractor
+from jiojio.cws.feature_extractor import CWSFeatureExtractor
+from jiojio.cws.scorer import F1_score
 
 from jiojio.model import Model
 from jiojio.inference import decodeViterbi_fast
 from jiojio.optimizer import SGD
-from jiojio.scorer import F1_score
 
 
 def train(config):
@@ -21,7 +28,7 @@ def train(config):
     feature_extractor = FeatureExtractor(config)
 
     if True:
-    # ''' # 构建 特征数据集
+        # 构建 特征数据集
         with TimeIt('# build datasets'):
             feature_extractor.build(config.train_file)
             feature_extractor.save()
@@ -31,7 +38,7 @@ def train(config):
                 config.train_file, config.feature_train_file, config.gold_train_file)
             feature_extractor.convert_text_file_to_feature_idx_file(
                 config.test_file, config.feature_test_file, config.gold_test_file)
-        # '''
+
     else:
         feature_extractor = feature_extractor.load(config, config.model_dir)
 
@@ -47,7 +54,6 @@ def train(config):
         logging.info('- epoch {}:'.format(i))
         with TimeIt('training epoch {}'.format(i)):
             err, diff = trainer.train_epoch()
-            # pass
 
         # 测试
         with TimeIt('loading valid dataset'):
@@ -82,6 +88,7 @@ def train(config):
         logging.info("-" * 50 + "\n")
 
     trainer.model.save()
+    config.to_json()
 
     logging.info("finished.")
 
@@ -93,7 +100,7 @@ class Trainer(object):
         self.n_feature = dataset.n_feature
         self.n_tag = dataset.n_tag
 
-        self.model = Model(self.n_feature, self.n_tag)
+        self.model = Model(config, self.n_feature, self.n_tag)
 
         self.optim = self._get_optimizer(dataset, self.model)
 
@@ -122,7 +129,7 @@ class Trainer(object):
         return
 
     def _decode(self, test_set: DataSet, model: Model):
-        if config.nThread == 1:
+        if self.config.nThread == 1:
             self._decode_single(test_set, model)
         else:
             self._decode_multi_proc(test_set, model)
@@ -134,7 +141,6 @@ class Trainer(object):
             example.tags = list(map(int, example.tags.split(',')))
             tags = decodeViterbi_fast(example.features, model)
             example.predicted_tags = tags
-            # pdb.set_trace()
             example.features = None
 
     @staticmethod
@@ -159,6 +165,8 @@ class Trainer(object):
             procs.append(p)
 
         for idx, example in enumerate(test_set):
+            example.features = [list(map(int, feature_line.split(",")))
+                                for feature_line in example.features.split("\n")]
             in_queue.put((idx, example.features))
 
         for proc in procs:
@@ -183,6 +191,7 @@ class Trainer(object):
         token_total = 0
         for example in dataset:
             pred_tags.append(example.predicted_tags)
+            example.tags = list(map(int, example.tags.split(',')))
             gold_tags.append(example.tags)
 
             flag = False

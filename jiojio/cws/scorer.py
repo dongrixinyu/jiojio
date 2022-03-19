@@ -1,5 +1,12 @@
+# -*- coding=utf-8 -*-
+# Library: jiojio
+# Author: dongrixinyu
+# License: GPL-3.0
+# Email: dongrixinyu.89@163.com
+# Github: https://github.com/dongrixinyu/jiojio
+# Description: fast Chinese Word Segmentation(CWS) and Part of Speech(POS) based on CPU.'
+
 import pdb
-from jiojio.config import Config
 
 
 def F1_score(gold_tags_list, pred_tags_list, idx_to_chunk_tag):
@@ -50,15 +57,16 @@ def get_chunks(tags_list):
     for tags in tags_list:
         chunks = list()
         for i in range(len(tags)):
-            if tags[i] == "B":
+            if tags[i] == 'B':
                 pos = i
                 length = 1
                 for j in range(i + 1, len(tags)):
-                    if tags[j] == "I":
+                    if tags[j] == 'I':
                         length += 1
                     else:
                         break
 
                 chunks.append(str(length) + "*" + str(pos))
         chunks_list.append(chunks)
+
     return chunks_list

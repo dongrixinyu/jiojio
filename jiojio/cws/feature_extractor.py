@@ -1,4 +1,10 @@
 # -*- coding=utf-8 -*-
+# Library: jiojio
+# Author: dongrixinyu
+# License: GPL-3.0
+# Email: dongrixinyu.89@163.com
+# Github: https://github.com/dongrixinyu/jiojio
+# Description: fast Chinese Word Segmentation(CWS) and Part of Speech(POS) based on CPU.'
 
 import os
 import pdb
@@ -6,11 +12,10 @@ import sys
 import json
 from collections import Counter
 
-from jiojio.util import get_node_features_c, unzip_file
-from jiojio import logging, TimeIt, zip_file, \
-    read_file_by_iter
-from jiojio.tag_words_converter import word2tag
-from jiojio.tag_words_converter import tag2word
+# from jiojio.util import unzip_file
+from . import cws_get_node_features_c
+from jiojio import logging, TimeIt, zip_file, unzip_file, read_file_by_iter
+from .tag_words_converter import word2tag, tag2word
 from jiojio.pre_processor import PreProcessor
 
 
@@ -28,7 +33,7 @@ def get_slice_str(iterator_obj, start, length, all_len):
     return iterator_obj[start: start + length]
 
 
-class FeatureExtractor(object):
+class CWSFeatureExtractor(object):
 
     def __init__(self, config):
         self.unigram = set()
@@ -43,7 +48,7 @@ class FeatureExtractor(object):
         self.config = config
         self._create_features()
 
-        if get_node_features_c is None:
+        if cws_get_node_features_c is None:
             self.get_node_features_c = None
         else:
             self.get_node_features_c = True
@@ -183,6 +188,7 @@ class FeatureExtractor(object):
         # 对 self.unigram 的清理和整理
         logging.info('orig unigram num: {}'.format(len(unigrams)))
         clean_unigrams, unigram_ratio = self.cleansing_unigrams(unigrams)
+        # unigram_ratio = 1.0
         logging.info('{:.2%} unigram features are saved.'.format(unigram_ratio))
         # clean_unigrams = dict(unigrams.most_common())  # 不做任何处理
 
@@ -290,6 +296,8 @@ class FeatureExtractor(object):
                 for idx in range(len(example)):
                     node_features = self.get_node_features(idx, example)
                     feature_freq.update(feature for feature in node_features)
+                    # print(node_features)
+                    # pdb.set_trace()
             else:
                 example_length = len(example)
                 # print(example)
@@ -426,6 +434,7 @@ class FeatureExtractor(object):
         pre_list_ex = None
         # 寻找该字后一个词汇特征(不包含该字)
         post_list_ex = None
+
         for l in range(self.config.word_max, self.config.word_min - 1, -1):
             # 此种方法缺少对于一个较长的词汇，词中标签的确定特征，
             # 例如：“绝代双骄”，该方法可以为 “绝” 和 “骄” 字匹配到词汇特征，
@@ -507,6 +516,16 @@ class FeatureExtractor(object):
                 self.word_2_right + self.length_feature_pattern.format(
                     len(pre_list_in), len(post_list_ex)))
 
+        # 长词中间字符特征族
+        # 特征标志位为 self.word_middle = 'wm'  # word middle，几乎对应了其标签为 “I”
+        # 此种特征目前缺失，例如：“断子绝孙” 词中，应当将其标为一个词，并且对于 “断” 和 “孙”
+        # 字，分别找出了其对应的词汇特征，但是针对 “子” 和 “绝” 则没有给出，导致该词的 “绝”
+        # 字可能给出 “B” 标签。这种问题在一定程度上可以由字符组合特征进行规避，但是依然无法
+        # 覆盖所有，因此可以考虑在之后添加该种特征。
+        # 此种特征的要求即为，词汇必须存在于 self.unigram 中，这就导致特征的存在较为有限，
+        # 超出 self.unigram 的词汇则无法套用该特征，而 self.unigram 中的词汇频率较高，通过
+        # 字符组合特征应该在很大程度上可以覆盖该种特征，规避这种问题。
+
         return feature_list
 
     def _create_label(self):
@@ -538,7 +557,6 @@ class FeatureExtractor(object):
     def convert_text_file_to_feature_idx_file(
             self, text_file, feature_idx_file, gold_idx_file):
         # 从文本中，构建所有的特征和训练标注数据
-        B, B_single, I_first, I, I_end = self._create_label()
 
         with open(feature_idx_file, "w", encoding="utf8") as f_writer, \
                 open(gold_idx_file, "w", encoding="utf8") as g_writer:
@@ -575,63 +593,42 @@ class FeatureExtractor(object):
             model_dir = self.config.model_dir
 
         data = dict()
-        data["unigram"] = sorted(list(self.unigram))
-        data["bigram"] = sorted(list(self.bigram))
-        data["feature_to_idx"] = self.feature_to_idx
-        data["tag_to_idx"] = self.tag_to_idx
+        data['unigram'] = sorted(list(self.unigram))
+        data['bigram'] = sorted(list(self.bigram))
+        data['feature_to_idx'] = self.feature_to_idx
+        data['tag_to_idx'] = self.tag_to_idx
 
-        feature_path = os.path.join(model_dir, "features.json")
+        feature_path = os.path.join(model_dir, 'features.json')
 
-        with open(feature_path, "w", encoding="utf8") as f_w:
+        with open(feature_path, 'w', encoding='utf8') as f_w:
             json.dump(data, f_w, ensure_ascii=False, indent=4, separators=(',', ':'))
 
         zip_file(feature_path)
 
     @classmethod
-    def load(cls, config, model_dir=None):
+    def load(cls, config=None, model_dir=None):
+        # config 在推理时加载推理参数，在训练时加载训练参数
         extractor = cls.__new__(cls)
         extractor.config = config
         extractor._create_features()
 
-        feature_path = os.path.join(model_dir, "features.json")
-        zip_feature_path = os.path.join(model_dir, "features.zip")
+        feature_path = os.path.join(model_dir, 'features.json')
+        zip_feature_path = os.path.join(model_dir, 'features.zip')
 
         if (not os.path.exists(feature_path)) and os.path.exists(zip_feature_path):
             logging.info('\n\tunzip `{}`\n\tto `{}`.'.format(zip_feature_path, feature_path))
             unzip_file(zip_feature_path)
 
         if os.path.exists(feature_path):
-            with open(feature_path, "r", encoding="utf8") as reader:
+            with open(feature_path, 'r', encoding='utf8') as reader:
                 data = json.load(reader)
 
-            extractor.unigram = set(data["unigram"])
-            extractor.bigram = set(data["bigram"])
-            extractor.feature_to_idx = data["feature_to_idx"]
-            extractor.tag_to_idx = data["tag_to_idx"]
+            extractor.unigram = set(data['unigram'])
+            extractor.bigram = set(data['bigram'])
+            extractor.feature_to_idx = data['feature_to_idx']
+            extractor.tag_to_idx = data['tag_to_idx']
 
             # extractor.idx_to_tag = extractor._reverse_dict(extractor.tag_to_idx)
             return extractor
 
-        logging.warn("WARNING: features.json does not exist, try loading using old format")
-        with open(os.path.join(model_dir, "unigram_word.txt"), "r", encoding="utf8") as reader:
-            extractor.unigram = set([line.strip() for line in reader])
-
-        with open(os.path.join(model_dir, "bigram_word.txt"), "r", encoding="utf8") as reader:
-            extractor.bigram = set(line.strip() for line in reader)
-
-        extractor.feature_to_idx = dict()
-        feature_base_name = os.path.join(model_dir, "featureIndex.txt")
-        for i in range(10):
-            with open("{}_{}".format(feature_base_name, i), "r", encoding="utf8") as reader:
-                for line in reader:
-                    feature, index = line.split(" ")
-                    feature = ".".join(feature.split(".")[1:])
-                    extractor.feature_to_idx[feature] = int(index)
-
-        extractor.tag_to_idx = dict()
-        with open(os.path.join(model_dir, "tagIndex.txt"), "r", encoding="utf8") as reader:
-            for line in reader:
-                tag, index = line.split(" ")
-                extractor.tag_to_idx[tag] = int(index)
-
-        return extractor
+        raise FileNotFoundError('`features.json` does not exist.')

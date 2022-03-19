@@ -1,4 +1,10 @@
 # -*- coding=utf-8 -*-
+# Library: jiojio
+# Author: dongrixinyu
+# License: GPL-3.0
+# Email: dongrixinyu.89@163.com
+# Github: https://github.com/dongrixinyu/jiojio
+# Description: fast Chinese Word Segmentation(CWS) and Part of Speech(POS) based on CPU.'
 
 import os
 import pdb
@@ -7,7 +13,7 @@ import numpy as np
 from jiojio import logging, read_file_by_iter, TrieTree
 
 
-class AddDict2Model(object):
+class CWSAddDict2Model(object):
     """ 向模型中添加词典，提高模型泛化
     """
     def __init__(self, user_dict_path=None):
@@ -50,14 +56,13 @@ class AddDict2Model(object):
         while i < text_length:
             pointer = text[i: self.trie_tree_obj.depth + i]
             # pointer = pointer_orig.lower()  # 不需要，因预处理已处理过 TODO
-            step, typing = self.trie_tree_obj.search(pointer)
-            if typing is not None:
-                node_states[i][0] += typing
-                for j in range(i + 1, i + step):
-                    node_states[j][1] += typing
+            step, val = self.trie_tree_obj.search(pointer)
+            if val is not None:
+                # pdb.set_trace()
+                node_states[i, 0] += val
+                node_states[i + 1: i + step, 1] += val
+
                 if i + step < text_length:
-                    node_states[i + step][0] += typing
+                    node_states[i + step, 0] += val
 
             i += step
-
-        # return node_states

@@ -99,7 +99,7 @@ def log_multiply(A, B):
     return ret
 
 
-def get_beliefs(belief, Y, YY, bi_ratio=1.):
+def get_beliefs(belief, Y, YY):
     """求解 Z 值。
     由于搜索空间巨大，将全局概率转换为 HMM 的转移概率进行计算。
 
@@ -137,8 +137,7 @@ def get_beliefs(belief, Y, YY, bi_ratio=1.):
 
     # alpha_Y = np.zeros(tag_num)  # 表示当前节点 t 处，状态 s 为 i 的概率，此处为各个状态的矩阵形式
     alpha_Y = np.empty(tag_num)  # 加速计算
-
-    YY_trans = YY.transpose() * bi_ratio
+    YY_trans = YY.transpose()
     YY_t_r = YY_trans.reshape(-1)
     sum_edge = np.zeros(tag_num * tag_num)
 
@@ -147,7 +146,7 @@ def get_beliefs(belief, Y, YY, bi_ratio=1.):
         # 此时为逆序，即计算 beta_t(i) 的状态值，方便后续计算
         # 对当前的初始状态 bel_state，加上当前状态 Y，乘以转移概率 YY，形成前一个标签的状态
         tmp_Y = node_states[i] + Y[i]  # 转移得到的特征值与当前特征值相加得到的结果
-        node_states[i-1] = log_multiply(YY * bi_ratio, tmp_Y)  # 公式 (F1)
+        node_states[i-1] = log_multiply(YY, tmp_Y)  # 公式 (F1)
 
     for i in range(node_num):  # 正序计算
         if i > 0:
@@ -188,7 +187,7 @@ def get_beliefs(belief, Y, YY, bi_ratio=1.):
     return Z, sum_edge
 
 
-def get_masked_beliefs(belief, Y, bi_ratio=1.):
+def get_masked_beliefs(belief, Y):
     """该方法为使用 get_beliefs 求解 masked_Y, YY 对应的 node_states,
     transition_states 的简便方法。
 
@@ -233,29 +232,12 @@ def get_masked_beliefs(belief, Y, bi_ratio=1.):
     for i in range(1, node_num):
         y_pre_idx = max_idx_count[i-1]
         y_idx = max_idx_count[i]
-        sum_edge[y_idx * tag_num + y_pre_idx] += bi_ratio
-    # pdb.set_trace()
+        sum_edge[y_idx * tag_num + y_pre_idx] += 1
+
     return sum_edge
 
 
-def bi_ratio_loss(node_score, node_score_masked, edge_score, bi_ratio=1.):
-    """ 计算 bi_ratio 的损失值， 即，当每次迭代计算时，应当保证
-    node_score[i] + bi_ratio * edge_score 依然可以转移到正确的 node_score[i-1] 上
-    即通过 viterbi 解码的方式来控制调整 bi_ratio 的值
-    """
-    with_edge_tags_idx = viterbi(node_score, edge_score, bi_ratio=bi_ratio)
-
-    without_edge_tags_idx = node_score.argmax(axis=1)
-    correct_tags_idx = node_score_masked.argmax(axis=1)
-
-    with_edge_correct_num = np.sum(correct_tags_idx == with_edge_tags_idx)
-    without_edge_correct_num = np.sum(correct_tags_idx == without_edge_tags_idx)
-    node_num = node_score.shape[0]
-
-    return node_num, with_edge_correct_num, without_edge_correct_num
-
-
-def viterbi(node_score, edge_score, bi_ratio=1.):
+def viterbi(node_score, edge_score):
     node_num, tag_num = node_score.shape
     max_score = np.empty((node_num, tag_num), dtype=np.float32)
     pre_tag = np.empty((node_num, tag_num), dtype=np.int8)
@@ -285,7 +267,7 @@ def viterbi(node_score, edge_score, bi_ratio=1.):
         #     pre_tag[i, y] = tmp_array.argmax()  # 最大值索引
 
         # 方法2：viterbi 算法的 矩阵计算形式，规避 for 循环
-        tmp_array = edge_score * bi_ratio + max_score[i + 1]
+        tmp_array = edge_score + max_score[i + 1]
         max_score[i] = tmp_array.max(axis=1) + node_score[i]
         pre_tag[i] = tmp_array.argmax(axis=1)
 
@@ -296,6 +278,7 @@ def viterbi(node_score, edge_score, bi_ratio=1.):
 
     for i in range(1, node_num):
         states[i] = pre_tag[i-1, states[i-1]]
+    # pdb.set_trace()
 
     return states
 
@@ -333,6 +316,7 @@ def get_log_Y_YY(sequence_feature_list, node_weight):
         #     node_score[i] += node_weight[node_feature]
 
         # method 2:
+        # print(sequence_feature_list[i])
         node_score[i] = np.sum(node_weight[sequence_feature_list[i]], axis=0)
 
     return node_score
@@ -351,22 +335,18 @@ def mask_Y(tags, node_num, tag_num, Y):
     mask_Yi = Y.copy()
 
     for i in range(node_num):
-        # 方法一：带循环
-        # for s in range(tag_num):
-        #     # if tags[i] != s:  # 将不符合标注序列的部分置为负无穷
-        #     #     mask_Yi[i, s] = - np.inf
-        #     if tags[i] == s:  # 为计算简便加速而如此做
-        #         mask_Yi[i, s] = np.inf
-
-        # 方法二：
-        mask_Yi[i, tags[i]] = np.inf
+        for s in range(tag_num):
+            # if tags[i] != s:  # 将不符合标注序列的部分置为负无穷
+            #     mask_Yi[i, s] = - np.inf
+            if tags[i] == s:  # 为计算简便加速而如此做
+                mask_Yi[i, s] = np.inf
 
     return mask_Yi
 
 
 def decodeViterbi_fast(features_list, model):
     Y = get_log_Y_YY(features_list, model.node_weight)
-    tags = viterbi(Y, model.edge_weight, bi_ratio=model.bi_ratio)
+    tags = viterbi(Y, model.edge_weight)
 
     return tags
 
