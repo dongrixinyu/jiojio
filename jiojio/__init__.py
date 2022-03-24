@@ -22,7 +22,7 @@ logging = set_logger(level='INFO', log_dir_name='.jiojio_logs')
 
 from .model import Model
 
-from .cws import CWSPredictText
+from .cws import CWSPredictText  # , F1_score, word2tag
 from .pos import POSPredictText
 from jiojio.cws.config import cws_config
 from jiojio.pos.config import pos_config
@@ -159,16 +159,18 @@ def train(train_file, test_file, train_dir=None,
 def _test_single_proc(input_file, model_name=None, user_dict=None, pos=False):
 
     with TimeIt('# loading model'):
-        seg = PredictText(config, model_name, user_dict, pos=pos)
+        seg = CWSPredictText(model_name, user_dict)
 
     if not os.path.exists(input_file):
         raise Exception('input_file {} does not exist.'.format(input_file))
 
     total_token_num = 0
     total_sample_num = 0
+    orig_tag_list = list()
+    pred_tag_list = list()
     with TimeIt('# cutting text') as ti:
         diff_results = list()
-        for idx, line in enumerate(read_file_by_iter(input_file,)):  # line_num=3000):
+        for idx, line in enumerate(read_file_by_iter(input_file, line_num=100000)):
             text = ''.join(line)
             if idx % 1e5 == 0:
                 print(idx)
@@ -177,6 +179,7 @@ def _test_single_proc(input_file, model_name=None, user_dict=None, pos=False):
             total_token_num += len(text)
 
             words_list = seg.cut(text)
+            '''
             if words_list != line:
                 # diff_results.append(line)
                 min_len = min(len(words_list), len(line))
@@ -186,6 +189,7 @@ def _test_single_proc(input_file, model_name=None, user_dict=None, pos=False):
                         diff_results.append(words_list[max(0, idx - 5):idx + 7] + ['⚫'] + line[max(0, idx - 5):idx + 7])
                         # pdb.set_trace()
                         break
+            '''
 
             # assert len(''.join(words_list)) == len(text)
             # print('true: ' , line)
@@ -199,8 +203,8 @@ def _test_single_proc(input_file, model_name=None, user_dict=None, pos=False):
         total_sample_num, total_token_num / total_sample_num))
     logging.info("# {} chars per second".format(total_token_num / (cost_time)))
 
-    write_file_by_line(diff_results,
-                       '/home/cuichengyu/dataset/diff_pred_cws_samples.txt')
+    # write_file_by_line(diff_results,
+    #                    '/home/cuichengyu/dataset/diff_pred_cws_samples.txt')
 
 
 def _proc(seg, in_queue, out_queue):
@@ -237,7 +241,7 @@ def _test_multi_proc(input_file, nthread, model_name="default_model",
                      user_dict=None, pos=False):
 
     with TimeIt('# select method of starting subprocess'):
-        alt = get_start_method() == "spawn"
+        alt = get_start_method() == 'spawn'
         # spawn 启动方式是 windows 的默认方式，fork 为 unix 的默认启动方式
 
         if alt:
@@ -246,7 +250,7 @@ def _test_multi_proc(input_file, nthread, model_name="default_model",
             seg = PredictText(config, model_name, user_dict, pos)
 
     if not os.path.exists(input_file):
-        raise Exception("input_file {} does not exist.".format(input_file))
+        raise Exception('input_file {} does not exist.'.format(input_file))
 
     in_queue = Queue()
     out_queue = Queue()
@@ -283,9 +287,9 @@ def _test_multi_proc(input_file, nthread, model_name="default_model",
     for p in procs:
         p.join()
 
-    logging.info("# total sample:{:},\t average {:} chars per sample ".format(
+    logging.info('# total sample:{:},\t average {:} chars per sample '.format(
         total_sample_num, total_token_num / total_sample_num))
-    logging.info("# {} chars per second".format(total_token_num / (cost_time)))
+    logging.info('# {} chars per second'.format(total_token_num / (cost_time)))
 
 
 def test(input_file, model_name=None, user_dict=None, nthread=1, pos=False):

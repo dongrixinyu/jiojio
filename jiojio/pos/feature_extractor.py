@@ -15,7 +15,7 @@ from collections import Counter
 
 from jiojio.util import unzip_file
 from jiojio import logging, TimeIt, zip_file, \
-    read_file_by_iter
+    read_file_by_iter, write_file_by_line
 
 from jiojio.pre_processor import PreProcessor
 from . import pos_get_node_features_c
@@ -158,10 +158,10 @@ class POSFeatureExtractor(object):
     def _print_pos_tag_freq_info(self, pos_tag_num_info):
         """ 打印所有词性数量 """
         total_num = sum(list(pos_tag_num_info.values()))
-        logging.info("\tpos\tname\ttoken num\tratio:")
+        logging.info('\tpos\tname\ttoken num\tratio:')
 
         for pos_tag, pos_num in list(pos_tag_num_info.items()):
-            logging.info("\t{}\t{:\u3000<8s} {: <10d} \t {:.2%}".format(
+            logging.info('\t{}\t{:\u3000<8s} {: <10d} \t {:.2%}'.format(
                 pos_tag, self.pos_types['model_type'][pos_tag], pos_num,
                 pos_num / total_num))
 
@@ -172,6 +172,7 @@ class POSFeatureExtractor(object):
         clean_unigrams = dict()
         total_freq = 0
         clean_freq = 0
+
         for word, freq in unigrams.most_common():
             total_freq += freq
 
@@ -207,7 +208,7 @@ class POSFeatureExtractor(object):
 
     def build(self, train_file):
 
-        pos_tag_num_info = Counter()  # 计算所有词性的出现数量
+        pos_tag_num_info = Counter()  # 计算所有词性的出现频次
         unigrams = Counter()  # 计算所有词汇的频次
         chars = Counter()  # 计算所有字的频次
         parts = Counter()  # 计算词汇的部分特征，包括前半部分，后半部分
@@ -232,9 +233,6 @@ class POSFeatureExtractor(object):
                 chars.update(word)
                 for i in range(1, len(word)):
                     parts.update([word[:i], word[i:]])
-                # parts.update()
-                    # print(word, [word[:i], word[i:]])
-                    # pdb.set_trace()
 
             # 统计词的各个词性及频次
             for word, pos_tag in zip(words, pos_tags):
@@ -257,6 +255,10 @@ class POSFeatureExtractor(object):
         # 若 self.unigram 中的频次都不足 unigram_feature_trim 则，在后续特征删除时必然频次不足
         self.unigram = set([unigram for unigram, freq in clean_unigrams.items()])
         logging.info('true unigram num: {}'.format(len(self.unigram)))
+        # 再获取脏 unigram 并存入文件中
+        all_unigram = set([unigram for unigram, freq in unigrams.items()])
+        dirty_unigram = list(all_unigram - self.unigram)
+        write_file_by_line(dirty_unigram, os.path.join(self.config.train_dir, 'dirty_unigram.json'))
 
         logging.info('orig chars num: {}'.format(len(chars)))
         total_num = sum([freq for _, freq in chars.items()])
@@ -271,17 +273,20 @@ class POSFeatureExtractor(object):
         single_pos_word = list()
         single_tag_num = 0
         for word, pos_dict in word_pos_freq.items():
-            if len(pos_dict) == 1 and sum(pos_dict.values()) >= self.config.unigram_feature_trim:
-                if word in self.unigram and 'nr' not in pos_dict:  # 刨除一些人名等信息进入词典以及一些特殊的词性，如人名
+            pos_val_list = list(pos_dict.values())
+            # 近似 100% 的单词性词汇
+            if (max(pos_val_list) / sum(pos_val_list) > 0.995) and sum(pos_dict.values()) >= self.config.unigram_feature_trim:
+            # 绝对 100% 的单词性词汇
+            # if len(pos_dict) == 1 and sum(pos_dict.values()) >= self.config.unigram_feature_trim:
+                if word in self.unigram and 'nr' not in pos_dict:
+                    # 刨除一些人名等信息进入词典以及一些特殊的词性，如人名
                     single_pos_word.append(word)
                     # print(word, pos_dict.keys())
                     single_tag_num += sum(pos_dict.values())
-                    # pdb.set_trace()
 
         self.single_pos_word = set(single_pos_word)
         logging.info('single pos word num: {}, ratio: {:.2%}.'.format(
             len(self.single_pos_word), single_tag_num / total_tag_num))
-        # pdb.set_trace()
 
         # 统计词缀的特征
         # 词缀主要用于处理人名、地名、机构名等信息，例如“霍元甲”、“山岗村”、“组织部” 等
@@ -292,7 +297,6 @@ class POSFeatureExtractor(object):
         #    “条不紊”、“不紊”，可以观察，“有条不紊” 是无效的
         # 过长的特征：
         #    “study_few” 等，该种特征无效
-        # pdb.set_trace()
         parts = [(part, freq) for part, freq in parts.items()
                  if len(part) <= self.config.part_length_trim
                  and not self.pre_processor.pure_num_pattern.search(part)]
@@ -300,7 +304,6 @@ class POSFeatureExtractor(object):
 
         parts = sorted(parts, key=lambda item: len(item[0]), reverse=True)
 
-        # pdb.set_trace()
         chinese_parts = [item[0] for item in parts if self.pre_processor.check_chinese_char(item[0])
                          and item[1] >= self.config.part_feature_trim]
         non_chinese_parts = [item[0] for item in parts if not self.pre_processor.check_chinese_char(item[0])
@@ -316,7 +319,7 @@ class POSFeatureExtractor(object):
         unk_words_list = list()
         for sample_idx, samples in enumerate(read_file_by_iter(train_file)):
 
-            if sample_idx % 1e5 == 0:
+            if sample_idx % 1e6 == 0:
                 logging.info(sample_idx)
 
             words, pos_tags = samples
@@ -349,7 +352,7 @@ class POSFeatureExtractor(object):
         # 此步即不再管理剩余的异常词汇特征，如若再有常见的词汇位于此类 unk_words 中，说明参数
         # trim 存在失误，或语料实在缺乏某些常见词汇。
         common_chars = unk_words & self.char
-        self.unigram = self.unigram | common_chars
+        self.unigram = self.unigram | common_chars  # 反哺一些 chars 进入 self.unigram 中
         unk_words = unk_words - self.char
         unk_words_path = os.path.join(self.config.model_dir, 'unk_words.json')
 
@@ -368,74 +371,6 @@ class POSFeatureExtractor(object):
         #   4、“信息通信技术”：“通信”为名动词
         # 从该例可以看出，仅仅抓取两个连续词汇作为 bigram 特征稍显不足，因为词性的表达非常复杂。
         # 此种类型根据后续进度进行调整
-        '''
-        before_bigram_dict = dict()
-        after_bigram_dict = dict()
-        # 第二次循环获取所有 bigram 特征
-        for sample_idx, samples in enumerate(read_file_by_iter(train_file)):
-
-            if sample_idx % 1e5 == 0:
-                logging.info(sample_idx)
-
-            words, pos_tags = samples
-
-            bigram_list = [[before_word, after_word]
-                           for before_word, after_word in zip(words[:-1], words[1:])
-                           if self.pre_processor.check_chinese_char(after_word) and
-                           self.pre_processor.check_chinese_char(before_word)]
-                           # 仅处理带有中文的 bigram
-
-            for item in bigram_list:
-                before_word = item[0]
-                after_word = item[1]
-                bigram_tmp = before_word + self.mark + after_word
-
-                before_flag = True
-                if word in self.single_pos_word:
-                    # 单词性词无必要找双词特征
-                    before_flag = False
-
-                elif before_word not in self.unigram:
-                    # 词汇不属于大规模特征词
-                    before_flag = False
-
-                if before_flag:
-                    if bigram_tmp in before_bigram_dict:
-                        before_bigram_dict[bigram_tmp] += 1
-                    else:
-                        before_bigram_dict.update({bigram_tmp: 1})
-
-                after_flag = True
-                if after_word in single_pos_word:
-                    # 单词性词无必要找双词特征
-                    after_flag = False
-
-                elif after_word not in self.unigram:
-                    # 词汇不属于大规模特征词
-                    after_flag = False
-
-                if after_flag:
-                    if bigram_tmp in after_bigram_dict:
-                        after_bigram_dict[bigram_tmp] += 1
-                    else:
-                        after_bigram_dict.update({bigram_tmp: 1})
-
-        before_bigram_list = list()
-        for before_bigram, val in before_bigram_dict.items():
-            if val >= self.config.bigram_feature_trim:
-                before_bigram_list.append(before_bigram)
-
-        after_bigram_list = list()
-        for after_bigram, val in after_bigram_dict.items():
-            if val >= self.config.bigram_feature_trim:
-                after_bigram_list.append(after_bigram)
-
-        self.before_bigram = set(before_bigram_list)
-        self.after_bigram = set(after_bigram_list)
-        logging.info('before_bigram num: {}'.format(len(self.before_bigram)))
-        logging.info('after_bigram num: {}'.format(len(self.after_bigram)))
-        '''
-        # pdb.set_trace()
 
         # 第三次循环获取样本所有特征
         feature_freq = Counter()  # 计算各个特征的出现次数，减少罕见特征计数
@@ -443,7 +378,7 @@ class POSFeatureExtractor(object):
 
             words, pos_tags = samples
 
-            if sample_idx % 1e5 == 0:
+            if sample_idx % 1e6 == 0:
                 logging.info(sample_idx)
 
             # 对文本进行归一化和整理
@@ -455,7 +390,7 @@ class POSFeatureExtractor(object):
                 for idx in range(len(words)):
                     node_features = self.get_node_features(idx, words)
                     feature_freq.update(feature for feature in node_features)
-                    tmp = [item for item in node_features if 'c1'in item]
+                    # tmp = [item for item in node_features if 'c1' in item]
                     # if len(tmp) > 0:
                     #     print('    '.join(words[max(0, idx - 2): min(idx + 3, len(words))]))
                     #     print(node_features)
@@ -487,9 +422,6 @@ class POSFeatureExtractor(object):
         for len_feature in unigram_len_feature:
             if len_feature not in feature_set:
                 feature_set.append(len_feature)
-            else:
-                # print(len_feature)
-                pass
 
         self.feature_to_idx = {feature: idx for idx, feature in enumerate(feature_set, 0)}
         logging.info('# true feature_num: {}'.format(len(self.feature_to_idx)))
@@ -646,7 +578,6 @@ class POSFeatureExtractor(object):
                     feature_list.append(self.char_current_5 + cur_w[-2])
                     feature_list.append(self.char_current_6 + cur_w[-1])
 
-
         if idx < len(token_list) - 1:
             next_w = token_list[idx + 1]
             # 后一个词特征
@@ -655,7 +586,6 @@ class POSFeatureExtractor(object):
                 next_word = next_w
             else:
                 # 后第一词 parts 特征
-                # before_w2_length = len(before_w2)
                 has_part = False
                 for i in range(1, len(next_w)):
                     left_tmp = next_w[:i]
@@ -698,6 +628,7 @@ class POSFeatureExtractor(object):
                 if not has_part:
                     feature_list.append(self.word_next_2_unknown)
         '''
+
         # bigram 特征
         if current_word is not None:
             if before_word is not None:
@@ -776,8 +707,6 @@ class POSFeatureExtractor(object):
                         feature_list.append(
                             self.bi_part_current_right_part_next_right + current_right + self.mark + next_right)
 
-
-
         return feature_list
 
     def _create_label(self):
@@ -789,11 +718,11 @@ class POSFeatureExtractor(object):
             self, text_file, feature_idx_file, gold_idx_file):
         # 从文本中，构建所有的特征和训练标注数据
 
-        with open(feature_idx_file, "w", encoding="utf8") as f_writer, \
-                open(gold_idx_file, "w", encoding="utf8") as g_writer:
+        with open(feature_idx_file, 'w', encoding='utf-8') as f_writer, \
+                open(gold_idx_file, 'w', encoding='utf-8') as g_writer:
 
-            f_writer.write("{}\n\n".format(len(self.feature_to_idx)))
-            g_writer.write("{}\n\n".format(len(self.tag_to_idx)))
+            f_writer.write('{}\n\n'.format(len(self.feature_to_idx)))
+            g_writer.write('{}\n\n'.format(len(self.tag_to_idx)))
 
             for samples in read_file_by_iter(text_file):
 
@@ -811,9 +740,7 @@ class POSFeatureExtractor(object):
                                    if feature in self.feature_to_idx]
 
                     tags_idx.append(self.tag_to_idx[tag])
-                    # if '我' == words[idx]:
-                    #     print('我', tag)
-                    #     pdb.set_trace()
+
                     f_writer.write(",".join(map(str, feature_idx)))
                     f_writer.write("\n")
 

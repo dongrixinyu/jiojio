@@ -66,3 +66,4 @@ from .feature_extractor import CWSFeatureExtractor
 from .add_dict_to_model import CWSAddDict2Model
 from .scorer import F1_score
 from .predict_text import CWSPredictText
+# from .tag_words_converter import word2tag, tag2word

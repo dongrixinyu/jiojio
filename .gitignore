@@ -10,3 +10,7 @@ tmp/
 data/
 features.json
 *stats
+jiojio/models/test_cws_model/
+jiojio/models/test_pos_model/
+jiojio/models/default_cws_model/
+jiojio/models/default_pos_model/

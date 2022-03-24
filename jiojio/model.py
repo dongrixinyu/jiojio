@@ -31,12 +31,12 @@ class Model(object):
 
             self.node_weight = self.node_weight.astype(np.float32)
             self.edge_weight = self.edge_weight.astype(np.float32)
-            self.bi_ratio = np.random.random()  # 介于 0 ~ 1 的 float
-            self.bi_ratio = 0.5
+            self.bi_ratio = np.array(np.random.random(), dtype=np.float32)  # 介于 0 ~ 1 的 float
+            # self.bi_ratio = 0.5
         else:
             self.node_weight = np.zeros(self.n_feature, self.n_tag, dtype=np.float32)
             self.edge_weight = np.zeros(self.n_tag, self.n_tag, dtype=np.float32)
-            self.bi_ratio = 1.0
+            self.bi_ratio = np.array(1., dtype=np.float32)
 
     @classmethod
     def load(cls, model_dir):
@@ -45,7 +45,7 @@ class Model(object):
         if os.path.exists(model_path):
             npz = np.load(model_path)
             sizes = npz['sizes']
-            bi_ratio = npz['bi_ratio']
+            bi_ratio = np.array(npz['bi_ratio'], dtype=np.float32)
 
             node_weight = npz['node_weight'].astype(np.float32)  # 强制转换 数据类型
             edge_weight = npz['edge_weight'].astype(np.float32)  # 强制转换 数据类型
@@ -68,6 +68,6 @@ class Model(object):
 
     def save(self):
         sizes = np.array([self.n_tag, self.n_feature])
-        np.savez(os.path.join(self.config.model_dir, "weights.npz"),
+        np.savez(os.path.join(self.config.model_dir, 'weights.npz'),
             sizes=sizes, bi_ratio=self.bi_ratio,
             node_weight=self.node_weight, edge_weight=self.edge_weight)

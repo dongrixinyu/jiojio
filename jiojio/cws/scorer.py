@@ -41,6 +41,7 @@ def F1_score(gold_tags_list, pred_tags_list, idx_to_chunk_tag):
 
 
 def tag_idx_2_token(tag_map, tags_list):
+    '''
     res_list = list()
     for tags in tags_list:
         sample_list = list()
@@ -49,7 +50,8 @@ def tag_idx_2_token(tag_map, tags_list):
         res_list.append(sample_list)
 
     return res_list
-    # return [[tag_map[tag] for tag in tags] for tags in tags_list]
+    '''
+    return [[tag_map[tag] for tag in tags] for tags in tags_list]
 
 
 def get_chunks(tags_list):

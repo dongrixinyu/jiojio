@@ -31,19 +31,19 @@ class Config(object):
 
         # training params
         self.initial_learning_rate = 0.004  # 梯度初始值
-        self.dropping_rate = 0.7  # 维持学习速率，越大则下降越快(0~1) 推荐(0.7~0.999)
+        self.dropping_rate = 0.6  # 维持学习速率，越大则下降越快(0~1) 推荐(0.7~0.999)
         self.random_init = True  # False for 0-init of model weights, True for random init of model weights
-        self.train_epoch = 8  # 训练迭代次数
-        self.mini_batch = 2000  # mini-batch in stochastic training
+        self.train_epoch = 6  # 训练迭代次数
+        self.mini_batch = 3000  # mini-batch in stochastic training
         self.nThread = 10  # number of processes in testing and training
         self.regularization = True  # 建议保持
         self.sample_ratio = 0.03  # 抽取总数据集中做训练中途验证的数据集比例
         self.interval = 50  # 按多少间隔 batch 打印日志
 
-        self.feature_train_file = os.path.join(self.train_dir, "feature_train.txt")
-        self.gold_train_file = os.path.join(self.train_dir, "gold_train.txt")
-        self.feature_test_file = os.path.join(self.train_dir, "feature_test.txt")
-        self.gold_test_file = os.path.join(self.train_dir, "gold_test.txt")
+        self.feature_train_file = os.path.join(self.train_dir, 'feature_train.txt')
+        self.gold_train_file = os.path.join(self.train_dir, 'gold_train.txt')
+        self.feature_test_file = os.path.join(self.train_dir, 'feature_test.txt')
+        self.gold_test_file = os.path.join(self.train_dir, 'gold_test.txt')
 
         # features params
         self.norm_text = True  # 将所有的 数字、字母正规化，但该参数基本上是必选参数，否则造成特征稀疏与 F1 值降低
@@ -52,15 +52,17 @@ class Config(object):
         self.convert_exception = True  # 将所有异常字符全部转为固定常见字符 ん
 
         self.char_feature_trim = 20  # 普通字符的频次删减数值 (20/5)
-        self.feature_trim = 20  # 普通特征的删减数值 (20/3)
-        self.unigram_feature_trim = 80  # 单词特征的数量 (80/4)
-
+        self.part_length_trim = 3  # part 词缀长度的最大值，超过此值删除，一般固定不变
+        self.part_feature_trim = 30  # 词缀特征出现次数，该特征数应当小于 unigram_feature_trim 以便把低频的特征抽取出
+        self.part_feature_non_chinese_trim = 50  # 词缀特征出现次数，低于该值的频次被删除，此为应对英文等字符情况
+        self.feature_trim = 14  # 普通特征的删减数值 (20/3)
+        self.unigram_feature_trim = 40  # 单词特征的数量 (40/4)
         self.word_max = 4  # 越大，则计算耗时越长，因此不建议超过 6，过短如 3 则会造成模型效果下降
 
-        if True:
+        if False:
             self.interval = 5  # 按多少间隔打印日志
             self.initial_learning_rate = 0.5  # 梯度初始值
-            self.bi_ratio_times = int(1 / self.initial_learning_rate)
+            # self.bi_ratio_times = int(1 / self.initial_learning_rate)
             self.dropping_rate = 0.3  # 维持学习速率，越大则下降越快(0~1) 推荐(0.7~0.999)
             self.train_epoch = 4  # 训练迭代次数
 
@@ -69,7 +71,6 @@ class Config(object):
             self.part_feature_trim = 3  # 词缀特征出现次数，该特征数应当小于 unigram_feature_trim 以便把低频的特征抽取出
             self.part_feature_non_chinese_trim = 5  # 词缀特征出现次数，低于该值的频次被删除，此为应对英文等字符情况
             self.feature_trim = 3
-            self.bigram_feature_trim = 3  # 双词特征的删减
             self.unigram_feature_trim = 5
             self.sample_ratio = 0.3  # 抽取总数据集中做训练中途验证的数据集比例
 
@@ -77,6 +78,7 @@ class Config(object):
         assert self.initial_learning_rate > 0
         assert self.train_epoch > 0
         assert self.mini_batch > 0
+        assert self.part_feature_trim < self.part_feature_non_chinese_trim
 
     def to_json(self):
         # 将关键推理参数，导出为 json 数据，存入模型目录下

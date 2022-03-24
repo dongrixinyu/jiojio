@@ -92,22 +92,23 @@ class SGD(Optimizer):
             # 若学习率与步长的乘积大于某个数值，则说明梯度爆炸，应该进行规约
             node_delta = self.learning_rate * node_grad
             edge_delta = self.learning_rate * edge_grad
-            bi_ratio_delta = bi_ratio_grad * self.config.bi_ratio_times
+            bi_ratio_grad = bi_ratio_grad / (0.01 * self._model.bi_ratio)  # 真正的梯度
+            bi_ratio_delta = bi_ratio_grad * self.learning_rate
             node_delta[node_delta > max_step_num] = max_step_num
             node_delta[node_delta < -max_step_num] = -max_step_num
+            # if t % (self.config.mini_batch * self.config.interval) == 0:
+            #     print('grad:   ', node_delta[0][:5])
+            #     print('weight: ', self._model.node_weight[0][:5])
+
+            self._model.bi_ratio += bi_ratio_delta
+            if self._model.bi_ratio < 0:
+                self._model.bi_ratio = 1e-6
+            self._model.bi_ratio = np.array(self._model.bi_ratio, dtype=np.float32)
+
             if t % (self.config.mini_batch * self.config.interval) == 0:
-                print('grad:   ', node_delta[0][:5])
-                print('weight: ', self._model.node_weight[0][:5])
+                logging.info('current bi_ratio: {:.6f}, delta: {:.4f}, max edge_w: {:.4f}'.format(
+                             self._model.bi_ratio, bi_ratio_delta, np.max(self._model.edge_weight)))
 
-            # self._model.bi_ratio -= bi_ratio_delta
-            # if self._model.bi_ratio < 0:
-            #     self._model.bi_ratio = 0.
-
-            print('current bi_ratio: {:.4f}, max edge_w: {:.4f}'.format(
-                self._model.bi_ratio, np.max(self._model.edge_weight)))
-
-            # pdb.set_trace()
-            print()
             self._model.node_weight -= node_delta
             self._model.edge_weight -= edge_delta
 
@@ -118,12 +119,11 @@ class SGD(Optimizer):
             self._model.edge_weight[self._model.edge_weight < -max_weight_num] = -max_weight_num
             self._model.node_weight[self._model.node_weight > max_weight_num] = max_weight_num
             self._model.node_weight[self._model.node_weight < -max_weight_num] = -max_weight_num
-            # pdb.set_trace()
+
             if self.config.regularization:
                 # 参数正则化，该公式，对大参数值的惩罚越大
                 node_r2 = self.learning_rate * self._model.node_weight
                 edge_r2 = self.learning_rate * self._model.edge_weight
-                # print('\tsum(abs(regular)): {:.4f}'.format(abs(r2).sum()))
 
                 self._model.node_weight -= node_r2
                 self._model.edge_weight -= edge_r2

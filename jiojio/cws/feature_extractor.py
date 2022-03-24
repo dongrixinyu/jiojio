@@ -94,15 +94,15 @@ class CWSFeatureExtractor(object):
     def _print_word_freq_info(word_length_info):
         short_token_total_length = 0
         total_length = sum(list(word_length_info.values()))
-        logging.info("token length\ttoken num\tratio:")
+        logging.info('\ttoken length\ttoken num\tratio:')
         for length in range(1, 12):
             if length <= 10:
                 short_token_total_length += word_length_info[length]
-                logging.info("\t{} \t {} \t {:.2%}".format(
+                logging.info('\t{} \t{: <10d} \t {:.2%}'.format(
                     length, word_length_info[length],
                     word_length_info[length] / total_length))
             else:
-                logging.info("\t{}+\t {} \t {:.2%}".format(
+                logging.info('\t{}+\t{: <10d} \t {:.2%}'.format(
                     length, total_length - short_token_total_length,
                     (total_length - short_token_total_length) / total_length))
 
@@ -183,14 +183,12 @@ class CWSFeatureExtractor(object):
             unigrams.update(words)
 
         # 打印全语料不同长度词 token 的计数和比例
-        FeatureExtractor._print_word_freq_info(word_length_info)
+        CWSFeatureExtractor._print_word_freq_info(word_length_info)
 
         # 对 self.unigram 的清理和整理
         logging.info('orig unigram num: {}'.format(len(unigrams)))
         clean_unigrams, unigram_ratio = self.cleansing_unigrams(unigrams)
-        # unigram_ratio = 1.0
         logging.info('{:.2%} unigram features are saved.'.format(unigram_ratio))
-        # clean_unigrams = dict(unigrams.most_common())  # 不做任何处理
 
         # 若 self.unigram 中的频次都不足 unigram_feature_trim 则，在后续特征删除时必然频次不足
         self.unigram = set([unigram for unigram, freq in clean_unigrams.items()])

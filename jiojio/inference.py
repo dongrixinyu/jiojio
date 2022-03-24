@@ -21,14 +21,13 @@
 import pdb
 import time
 import numpy as np
-from numba import jit
+# from numba import jit
 
 
 class Belief(object):
     def __init__(self, num_node, num_tag):
         self.node_states = np.empty((num_node, num_tag), dtype=np.float32)
         self.transition_states = np.empty((num_node, num_tag * num_tag), dtype=np.float32)
-        self.Z = 0
 
 
 class MaskedBelief(object):
@@ -140,7 +139,6 @@ def get_beliefs(belief, Y, YY, bi_ratio=1.):
 
     YY_trans = YY.transpose() * bi_ratio
     YY_t_r = YY_trans.reshape(-1)
-    sum_edge = np.zeros(tag_num * tag_num)
 
     node_states[node_num - 1] = 0
     for i in range(node_num - 1, 0, -1):
@@ -151,7 +149,6 @@ def get_beliefs(belief, Y, YY, bi_ratio=1.):
 
     for i in range(node_num):  # 正序计算
         if i > 0:
-            # tmp_Y = alpha_Y.copy()
             new_alpha_Y = log_multiply(YY_trans, alpha_Y) + Y[i]  # 公式 (F1)
         else:
             new_alpha_Y = Y[i].copy()
@@ -169,12 +166,12 @@ def get_beliefs(belief, Y, YY, bi_ratio=1.):
             #             tmp_Y[y] + alpha_Y[yPre]
 
             # 方法二：numpy 计算方式，时间相比方法一在 pos 任务上减少了 72%
-            tmp_Y_expand = np.expand_dims(tmp_Y, axis=0).repeat(tmp_Y.shape[0], axis=0).T
-            alpha_Y_expand = np.expand_dims(alpha_Y, axis=0).repeat(alpha_Y.shape[0], axis=0)
+            tmp_Y_expand = np.expand_dims(tmp_Y, axis=0).repeat(tag_num, axis=0).T
+            alpha_Y_expand = np.expand_dims(alpha_Y, axis=0).repeat(tag_num, axis=0)
             array_sum = tmp_Y_expand + alpha_Y_expand
             transition_states[i] = array_sum.reshape(-1) + YY_t_r
 
-        node_states[i] = node_states[i] + new_alpha_Y
+        node_states[i] += new_alpha_Y
         alpha_Y = new_alpha_Y
 
     Z = log_sum(alpha_Y)
@@ -182,13 +179,18 @@ def get_beliefs(belief, Y, YY, bi_ratio=1.):
     for i in range(node_num):
         node_states[i] = np.exp(node_states[i] - Z)  # 转换为真实概率值
 
-    for i in range(1, node_num):
-        sum_edge += np.exp(transition_states[i] - Z)  # 转移概率转换为真实概率值，加和
+    # 计算转移概率的前向计算值
+    # 方法一：速度较慢
+    # sum_edge = np.zeros(tag_num * tag_num)
+    # for i in range(1, node_num):
+    #     sum_edge += np.exp(transition_states[i] - Z)  # 转移概率转换为真实概率值，加和
+    # 方法二：取消迭代
+    sum_edge = np.sum(np.exp(transition_states[1:] - Z), axis=0)
 
     return Z, sum_edge
 
 
-def get_masked_beliefs(belief, Y, bi_ratio=1.):
+def get_masked_beliefs(belief, Y):
     """该方法为使用 get_beliefs 求解 masked_Y, YY 对应的 node_states,
     transition_states 的简便方法。
 
@@ -233,7 +235,7 @@ def get_masked_beliefs(belief, Y, bi_ratio=1.):
     for i in range(1, node_num):
         y_pre_idx = max_idx_count[i-1]
         y_idx = max_idx_count[i]
-        sum_edge[y_idx * tag_num + y_pre_idx] += bi_ratio
+        sum_edge[y_idx * tag_num + y_pre_idx] += 1  # bi_ratio 是错误的，因为会导致 edge_weight 越来越小，值分布不稳定
     # pdb.set_trace()
     return sum_edge
 
@@ -243,23 +245,27 @@ def bi_ratio_loss(node_score, node_score_masked, edge_score, bi_ratio=1.):
     node_score[i] + bi_ratio * edge_score 依然可以转移到正确的 node_score[i-1] 上
     即通过 viterbi 解码的方式来控制调整 bi_ratio 的值
     """
+    # 当前 bi_ratio 值的结果
     with_edge_tags_idx = viterbi(node_score, edge_score, bi_ratio=bi_ratio)
 
-    without_edge_tags_idx = node_score.argmax(axis=1)
+    # 移动 delta 值的结果
+    delta_bi_ratio = np.array(0.99 * bi_ratio, dtype=np.float32)  # 取一个微小的步长，计算 bi_ratio 梯度值
+    with_delta_edge_tags_idx = viterbi(node_score, edge_score, bi_ratio=delta_bi_ratio)
+
+    # 正确的结果
     correct_tags_idx = node_score_masked.argmax(axis=1)
 
     with_edge_correct_num = np.sum(correct_tags_idx == with_edge_tags_idx)
-    without_edge_correct_num = np.sum(correct_tags_idx == without_edge_tags_idx)
+    with_delta_edge_correct_num = np.sum(correct_tags_idx == with_delta_edge_tags_idx)
     node_num = node_score.shape[0]
 
-    return node_num, with_edge_correct_num, without_edge_correct_num
+    return node_num, with_edge_correct_num, with_delta_edge_correct_num
 
 
 def viterbi(node_score, edge_score, bi_ratio=1.):
     node_num, tag_num = node_score.shape
     max_score = np.empty((node_num, tag_num), dtype=np.float32)
     pre_tag = np.empty((node_num, tag_num), dtype=np.int8)
-
     max_score[node_num - 1] = node_score[node_num - 1]
 
     for i in range(node_num - 2, -1, -1):

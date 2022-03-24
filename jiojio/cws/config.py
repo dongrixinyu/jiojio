@@ -21,7 +21,7 @@ class Config(object):
         self.jiojio_home = os.path.expanduser('~/.jiojio')
         self.train_dir = os.path.join(self.jiojio_home, 'cws_train_dir')
         self.model_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)),
-                                      "models/default_cws_model")
+                                      'models/default_cws_model')
 
         # training params
         self.initial_learning_rate = 0.008  # 梯度初始值
@@ -34,10 +34,10 @@ class Config(object):
         self.sample_ratio = 0.03  # 抽取总数据集中做训练中途验证的数据集比例
         self.interval = 50  # 按多少间隔 batch 打印日志
 
-        self.feature_train_file = os.path.join(self.train_dir, "feature_train.txt")
-        self.gold_train_file = os.path.join(self.train_dir, "gold_train.txt")
-        self.feature_test_file = os.path.join(self.train_dir, "feature_test.txt")
-        self.gold_test_file = os.path.join(self.train_dir, "gold_test.txt")
+        self.feature_train_file = os.path.join(self.train_dir, 'feature_train.txt')
+        self.gold_train_file = os.path.join(self.train_dir, 'gold_train.txt')
+        self.feature_test_file = os.path.join(self.train_dir, 'feature_test.txt')
+        self.gold_test_file = os.path.join(self.train_dir, 'gold_test.txt')
 
         # features params
         self.norm_text = True  # 将所有的 数字、字母正规化，但该参数基本上是必选参数，否则造成特征稀疏与 F1 值降低
@@ -56,8 +56,9 @@ class Config(object):
         self.word_min = 2  # 此值基本固定不变
         self.label_num = 2  # 标签数量，即 B,I 两个，有助于模型计算加速
 
-        if False:  # 针对小数据集的参数
+        if True:  # 针对小数据集的参数
             self.interval = 5  # 按多少间隔打印日志
+            self.train_epoch = 8  # 训练轮数
             self.initial_learning_rate = 0.2  # 梯度初始值
             self.dropping_rate = 0.8  # 梯度下降率
             self.feature_trim = 2  # 普通特征的删减数值 (20/3)
