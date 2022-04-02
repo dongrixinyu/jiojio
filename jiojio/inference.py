@@ -306,7 +306,7 @@ def viterbi(node_score, edge_score, bi_ratio=1.):
     return states
 
 
-def get_log_Y_YY(sequence_feature_list, node_weight):
+def get_log_Y_YY(sequence_feature_list, node_weight, dtype=np.float32):
     """根据模型的参数，以及 x 序列，匹配得到特征值，计算得到两个矩阵
     node_score 和 transition_score，即每个节点，对应各个标签的得分。
 
@@ -329,7 +329,7 @@ def get_log_Y_YY(sequence_feature_list, node_weight):
     node_num = len(sequence_feature_list)
     tag_num = node_weight.shape[1]
     # 每个节点的得分
-    node_score = np.empty((node_num, tag_num), dtype=np.float32)
+    node_score = np.empty((node_num, tag_num), dtype=dtype)
 
     for i in range(node_num):
         # method 1:

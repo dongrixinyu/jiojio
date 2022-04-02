@@ -59,7 +59,7 @@ class Config(object):
         self.unigram_feature_trim = 40  # 单词特征的数量 (40/4)
         self.word_max = 4  # 越大，则计算耗时越长，因此不建议超过 6，过短如 3 则会造成模型效果下降
 
-        if False:
+        if True:
             self.interval = 5  # 按多少间隔打印日志
             self.initial_learning_rate = 0.5  # 梯度初始值
             # self.bi_ratio_times = int(1 / self.initial_learning_rate)

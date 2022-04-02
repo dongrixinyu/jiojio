@@ -25,9 +25,9 @@ class Config(object):
 
         # training params
         self.initial_learning_rate = 0.008  # 梯度初始值
-        self.dropping_rate = 0.7  # 维持学习速率，越大则下降越快(0~1) 推荐(0.7~0.999)
+        self.dropping_rate = 0.1  # 维持学习速率，越大则下降越快(0~1) 推荐(0.7~0.999)
         self.random_init = True  # False for 0-init of model weights, True for random init of model weights
-        self.train_epoch = 8  # 训练迭代次数
+        self.train_epoch = 6  # 训练迭代次数
         self.mini_batch = 4000  # mini-batch in stochastic training
         self.nThread = 20  # number of processes in testing and training
         self.regularization = True  # 建议保持
@@ -50,23 +50,27 @@ class Config(object):
         self.gap_2_feature_trim = 65  # 带有 2 个字的跨度的特征删除量 (60/7)
         self.gap_3_feature_trim = 80  # 带有 3 个字的跨度的特征删除量 (80/10)
         self.unigram_feature_trim = 70  # 单词特征的数量 (80/4)
-        self.bigram_feature_trim = 7  # 单词特征的数量 (7/2)
+        self.bigram_feature_trim = 6  # 单词特征的数量 (6/2)
         # self.word_feature = True  # 需要返回 词汇 特征，若丢弃词汇特征，则计算耗时减少 30~40%
         self.word_max = 4  # 越大，则计算耗时越长，因此不建议超过 6，过短如 3 则会造成模型效果下降
         self.word_min = 2  # 此值基本固定不变
         self.label_num = 2  # 标签数量，即 B,I 两个，有助于模型计算加速
 
         if True:  # 针对小数据集的参数
-            self.interval = 5  # 按多少间隔打印日志
-            self.train_epoch = 8  # 训练轮数
+            self.interval = 2  # 按多少间隔打印日志
+            self.train_epoch = 3  # 训练轮数
             self.initial_learning_rate = 0.2  # 梯度初始值
-            self.dropping_rate = 0.8  # 梯度下降率
+            self.dropping_rate = 0.4  # 梯度下降率
+            self.mini_batch = 1000
+
             self.feature_trim = 2  # 普通特征的删减数值 (20/3)
-            self.gap_1_feature_trim = 3  # 间隔为1的删减阈值(30/4)
-            self.gap_2_feature_trim = 4  # 带有 2 个字的跨度的特征删除量 (60/7)
-            self.gap_3_feature_trim = 5  # 带有 3 个字的跨度的特征删除量 (80/10)
+            self.gap_1_feature_trim = 2  # 间隔为1的删减阈值(30/4)
+            self.gap_2_feature_trim = 3  # 带有 2 个字的跨度的特征删除量 (60/7)
+            self.gap_3_feature_trim = 4  # 带有 3 个字的跨度的特征删除量 (80/10)
             self.unigram_feature_trim = 2  # 单词特征的数量 (80/4)
             self.bigram_feature_trim = 1  # 单词特征的数量 (7/2)
+
+            self.sample_ratio = 0.3
 
     def params_check(self):
         assert self.initial_learning_rate > 0

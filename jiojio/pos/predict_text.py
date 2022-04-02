@@ -11,6 +11,7 @@ import pdb
 import sys
 import json
 import ctypes
+import numpy as np
 
 from jiojio.pre_processor import PreProcessor
 from jiojio.inference import get_log_Y_YY, viterbi
@@ -24,7 +25,7 @@ from .add_dict_to_model import POSAddDict2Model
 
 class POSPredictText(object):
     """ 预测文本，用于对外暴露接口 """
-    def __init__(self, model_dir=None, user_dict=None):
+    def __init__(self, model_dir=None, user_dict=None, with_viterbi=True):
         """初始化函数，加载模型及用户词典"""
         default_model_dir = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'models')
@@ -52,9 +53,12 @@ class POSPredictText(object):
         else:
             self.user_dict = None
 
+        self.with_viterbi = with_viterbi
         self.feature_extractor = POSFeatureExtractor.load(
             config=pos_config, model_dir=model_dir)
-        self.model = Model.load(model_dir)
+
+        self.dtype = np.float16  # 原因在于模型不需要太高精度就可以做区分，此值不需要变
+        self.model = Model.load(model_dir, dtype=self.dtype)
 
         self.idx_to_tag = {
             idx: tag for tag, idx in self.feature_extractor.tag_to_idx.items()}
@@ -98,7 +102,7 @@ class POSPredictText(object):
             #                        node_features)
             all_features.append(node_feature_idx)
 
-        Y = get_log_Y_YY(all_features, self.model.node_weight)
+        Y = get_log_Y_YY(all_features, self.model.node_weight, dtype=self.dtype)
         '''
         for idx in range(length):
             print(words[idx])
@@ -107,13 +111,16 @@ class POSPredictText(object):
             print(Y[idx])
             print(self.idx_to_tag[Y[idx].argmax()])
             pdb.set_trace()
-        '''
+        # '''
         # 添加词典
         if self.user_dict is not None:
             self.user_dict(words, Y)
-        # pure_tags_idx = Y.argmax(axis=1)
-        tags_idx = viterbi(Y, self.model.edge_weight, bi_ratio=0.2)
-        # pdb.set_trace()
+
+        if self.with_viterbi:
+            tags_idx = viterbi(Y, self.model.edge_weight, bi_ratio=self.model.bi_ratio)
+        else:
+            tags_idx = Y.argmax(axis=1)
+
         return tags_idx
 
     def cut(self, word_list):

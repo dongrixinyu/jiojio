@@ -39,16 +39,16 @@ class Model(object):
             self.bi_ratio = np.array(1., dtype=np.float32)
 
     @classmethod
-    def load(cls, model_dir):
+    def load(cls, model_dir, dtype=np.float32):
 
-        model_path = os.path.join(model_dir, "weights.npz")
+        model_path = os.path.join(model_dir, 'weights.npz')
         if os.path.exists(model_path):
             npz = np.load(model_path)
             sizes = npz['sizes']
-            bi_ratio = np.array(npz['bi_ratio'], dtype=np.float32)
+            bi_ratio = np.array(npz['bi_ratio'], dtype=dtype)
 
-            node_weight = npz['node_weight'].astype(np.float32)  # 强制转换 数据类型
-            edge_weight = npz['edge_weight'].astype(np.float32)  # 强制转换 数据类型
+            node_weight = npz['node_weight'].astype(dtype)  # 强制转换 数据类型
+            edge_weight = npz['edge_weight'].astype(dtype)  # 强制转换 数据类型
 
             model = cls.__new__(cls)
             model.n_tag = int(sizes[0])

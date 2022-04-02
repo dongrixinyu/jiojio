@@ -127,14 +127,13 @@ def params_cut(node_weight, feature_to_idx):
         new_idx_to_feature.update({idx: idx_to_feature[idx]})
         new_node_weight_list.append(idx)
 
-    print('cut {} params from total {}, cut ratio.'.format(
+    logging.info('cut {} params from total {}, cut ratio {}.'.format(
         len(params_being_cut), node_weight.shape[0],
         len(params_being_cut) / node_weight.shape[0]))
 
     random.shuffle(params_being_cut)
-    print(', '.join(params_being_cut[:100]))
+    logging.info(', '.join(params_being_cut[:100]))
 
-    # pdb.set_trace()
     new_node_weight = node_weight[new_node_weight_list]
     new_feature_to_idx = dict([(value, key) for key, value in new_idx_to_feature.items()])
 

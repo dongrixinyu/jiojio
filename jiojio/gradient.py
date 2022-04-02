@@ -36,7 +36,7 @@ def get_grad_SGD_minibatch(node_grad: np.ndarray, edge_grad: np.ndarray,
         # print('time: {:.2f}, len: {}, ratio: {:.2f}'.format(
         #     time.time() - start_time, len(x.features.split('\n')), len(x.features.split('\n')) / (time.time() - start_time)))
         errors += error
-        # pdb.set_trace()
+
         for i in feature_id_set:
             if i in feature_id_dict:
                 feature_id_dict[i] += 1
@@ -47,7 +47,7 @@ def get_grad_SGD_minibatch(node_grad: np.ndarray, edge_grad: np.ndarray,
         node_grad[feature_id] /= num
 
     # 由于梯度值是基于 bi_ratio 为 1 base 计算，因此，将edge_grad 的变化幅度减小 model.bi_raito 倍
-    edge_grad *= model.bi_ratio
+    # edge_grad *= model.bi_ratio
     edge_grad /= len(X)
 
     # print('total: {}, with_edge_num: {}, with_delta_edge_num: {}.'.format(
@@ -83,6 +83,7 @@ def get_grad_CRF(node_grad: np.ndarray, edge_grad: np.ndarray,
     Y, YY, masked_Y = get_Y_YY(model, x)
 
     Z, sum_edge = get_beliefs(belief, Y, YY, model.bi_ratio)
+    sum_edge_masked = get_masked_beliefs(belief_masked, masked_Y)
 
     for i, node_feature_list in enumerate(x.features):
         diff = belief.node_states[i] - belief_masked.node_states[i]
@@ -91,8 +92,6 @@ def get_grad_CRF(node_grad: np.ndarray, edge_grad: np.ndarray,
             feature_id_set.add(feature_id)  # 需要更新梯度值的特征值索引
             node_grad[feature_id] += diff  # 计算梯度
 
-    sum_edge_masked = get_masked_beliefs(belief_masked, masked_Y)
-
     # 处理 bi_ratio 参数
     node_num, with_edge_correct_num, without_edge_correct_num = bi_ratio_loss(
         Y, belief_masked.node_states, YY, bi_ratio=model.bi_ratio)
@@ -100,6 +99,7 @@ def get_grad_CRF(node_grad: np.ndarray, edge_grad: np.ndarray,
     # 更新转移概率梯度
     edge_grad += np.reshape(sum_edge - sum_edge_masked, (n_tag, n_tag))
 
+    # pdb.set_trace()
     #还原数据，节省内存
     x.features = orig_features
     x.tags = orig_tags

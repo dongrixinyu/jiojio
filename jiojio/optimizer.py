@@ -61,8 +61,8 @@ class SGD(Optimizer):
         return sample_num, random_index
 
     def optimize(self):
-        logging.info('model w init: {:.6f} ... {:.6f}'.format(self._model.node_weight[0][0],
-            self._model.edge_weight[0][0]))
+        logging.info('model w init: {:.6f} ... {:.6f}'.format(
+            self._model.node_weight[0][0], self._model.edge_weight[0][0]))
 
         error_list = list()
 
