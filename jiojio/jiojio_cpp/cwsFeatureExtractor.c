@@ -1,4 +1,4 @@
-#include "featureExtractor.h"
+#include "cwsFeatureExtractor.h"
 
 #ifdef _WIN32
 #define API __declspec(dllexport)
@@ -36,8 +36,8 @@ wchar_t *getSliceStr(wchar_t *text, int start, int length, int all_len, wchar_t 
  * @param bigram
  * @return PyObject*
  */
-API PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
-                             PyObject *unigram, PyObject *bigram)
+API PyObject *getCwsNodeFeature(int idx, wchar_t *text, int nodeNum,
+                                PyObject *unigram, PyObject *bigram)
 {
     wchar_t *emptyStr = malloc(sizeof(wchar_t));
     memset(emptyStr, L'\0', sizeof(wchar_t));
@@ -513,8 +513,8 @@ int main()
     // ret = PySet_Add(unigrams1, PyUnicode_FromWideChar(L"ckd", 3));
     // ret = PySet_Add(unigrams1, PyUnicode_FromWideChar(L"nc.3e", 5));
 
-    PyObject *res = getNodeFeature(index, text, textLen,
-                                   unigrams1, bigrams1);
+    PyObject *res = getCwsNodeFeature(index, text, textLen,
+                                      unigrams1, bigrams1);
 
     Py_DECREF(bigrams1);
     Py_DECREF(unigrams1);

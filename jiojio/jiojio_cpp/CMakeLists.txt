@@ -12,9 +12,11 @@ message("Python_LIBRARIES: ${PYTHON_LIBRARIES}")
 include_directories(${PYTHON_INCLUDE_DIRS})
 
 add_library(tagWordsConverter SHARED ${PROJECT_SOURCE_DIR}/tagWordsConverter.c)
-add_library(featureExtractor SHARED ${PROJECT_SOURCE_DIR}/featureExtractor.c)
+add_library(cwsFeatureExtractor SHARED ${PROJECT_SOURCE_DIR}/cwsFeatureExtractor.c)
+add_library(posFeatureExtractor SHARED ${PROJECT_SOURCE_DIR}/posFeatureExtractor.c)
 
-target_link_libraries(featureExtractor ${PYTHON_LIBRARIES})
 target_link_libraries(tagWordsConverter ${PYTHON_LIBRARIES})
+target_link_libraries(cwsFeatureExtractor ${PYTHON_LIBRARIES})
+target_link_libraries(posFeatureExtractor ${PYTHON_LIBRARIES})
 
 message("Successfully build `*.so` file.")

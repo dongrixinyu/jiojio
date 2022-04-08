@@ -445,8 +445,6 @@ class POSFeatureExtractor(object):
             feature_list.append(self.word_current + cur_w)
             return feature_list
 
-        length = len(token_list)
-
         # before_2_words = None
         # before_2_lefts = list()
         # before_2_rights = list()

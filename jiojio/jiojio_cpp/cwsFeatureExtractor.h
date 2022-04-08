@@ -1,5 +1,5 @@
-#ifndef _FEATUREEXTRACTOR_H
-#define _FEATUREEXTRACTOR_H
+#ifndef _CWSFEATUREEXTRACTOR_H
+#define _CWSFEATUREEXTRACTOR_H
 
 #include "Python.h"
 #include <stdio.h>
@@ -11,7 +11,7 @@
 wchar_t *getSliceStr(wchar_t *text, int start, int length,
                      int all_len, wchar_t *emptyStr);
 
-PyObject *getNodeFeature(int idx, wchar_t *text, int nodeNum,
-                         PyObject *unigram, PyObject *bigram);
+PyObject *getCwsNodeFeature(int idx, wchar_t *text, int nodeNum,
+                            PyObject *unigram, PyObject *bigram);
 
 #endif
