@@ -25,7 +25,8 @@ from .add_dict_to_model import POSAddDict2Model
 
 class POSPredictText(object):
     """ 预测文本，用于对外暴露接口 """
-    def __init__(self, model_dir=None, user_dict=None, with_viterbi=True):
+    def __init__(self, model_dir=None, user_dict=None, with_viterbi=True,
+                 pos_rule_types=True):
         """初始化函数，加载模型及用户词典"""
         default_model_dir = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'models')
@@ -54,6 +55,8 @@ class POSPredictText(object):
             self.user_dict = None
 
         self.with_viterbi = with_viterbi
+        self.pos_rule_types = pos_rule_types
+
         self.feature_extractor = POSFeatureExtractor.load(
             config=pos_config, model_dir=model_dir)
 

@@ -427,10 +427,12 @@ class POSFeatureExtractor(object):
         logging.info('# true feature_num: {}'.format(len(self.feature_to_idx)))
 
         # create tag map
-        pos_tag_set = self._create_label()
-        self.tag_to_idx = {tag: idx for idx, tag in enumerate(sorted(pos_tag_set))}
+        # pos_tag_set = self._create_label()
+        pos_tag_dict = dict(pos_tag_num_info)
+        self.tag_to_idx = {tag: idx for idx, tag in enumerate(sorted(pos_tag_dict))}
         print(self.tag_to_idx)
         self.idx_to_tag = dict([(v, k) for k, v in self.tag_to_idx.items()])
+        # pdb.set_trace()
 
     def get_node_features(self, idx, token_list):
         # 给定一个 token_list，找出其中 token_list[idx] 匹配到的所有特征
@@ -444,6 +446,8 @@ class POSFeatureExtractor(object):
         if cur_w in self.single_pos_word:
             feature_list.append(self.word_current + cur_w)
             return feature_list
+
+        length = len(token_list)
 
         # before_2_words = None
         # before_2_lefts = list()

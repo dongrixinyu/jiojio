@@ -18,9 +18,10 @@ from multiprocessing import Process, Queue, get_start_method
 from .util import TimeIt, zip_file, unzip_file, read_file_by_iter, \
     write_file_by_line, TrieTree, set_logger
 
-logging = set_logger(level='INFO', log_dir_name='.jiojio_logs')
+logging = set_logger(level='INFO', log_dir_name='.jiojio/jiojio_logs')
 
 from .model import Model
+from .parse_rule_type import Extractor
 
 from .cws import CWSPredictText  # , F1_score, word2tag
 from .pos import POSPredictText
@@ -42,7 +43,9 @@ def help():
 
 
 def init(cws_model_dir=None, cws_user_dict=None, pos=False,
-         pos_model_dir=None, pos_user_dict=None, pos_with_viterbi=True):
+         pos_model_dir=None, pos_user_dict=None,
+         cws_with_viterbi=False, pos_with_viterbi=False,
+         cws_rule=False, pos_rule=False):
     """ 初始化模型，包括分别初始化分词模型与词性标注模型。
 
     Args:
@@ -58,10 +61,19 @@ def init(cws_model_dir=None, cws_user_dict=None, pos=False,
             在 pos 为 True 时生效。
         pos_user_dict(str): 指定加载词性标注用户自定义词典文件的绝对路径，若不指定则不加载，
             默认不加载。在 pos 为 True 时生效。
-        pos_with_viterbi(bool): 是否在推断时采用 viterbi 解码。默认为 True。仅在 pos 为
+        cws_with_viterbi(bool): 是否在推断时采用 viterbi 解码。默认为 False。该参数原因在于
+            分词模型由于 node_weight 参数强力的表达能力，以及转移参数过少导致的不可泛化，
+            bi_ratio 参数值往往极小，此时可以考虑不经过 viterbi 转码，以节省推断时间。
+        pos_with_viterbi(bool): 是否在推断时采用 viterbi 解码。默认为 False。仅在 pos 为
             True 时有效。该参数原因在于词性标注模型由于 node_weight 参数强力的表达能力，以及
-            转移参数过少导致的不可泛化，bi_ratio 参数值往往非常小，此时可以考虑不经过 viterbi
+            转移参数过少导致的不可泛化，bi_ratio 参数值往往极小，此时可以考虑不经过 viterbi
             转码，以节省推断时间。
+        cws_rule(bool): 是否返回由规则切分词汇，默认为 False。规则词性类型包括：email、
+            身份证号(id)、ip地址(ip)、日文(jp)、俄文(ru)、韩文(ko)、url。这些类型绝大多数
+            并非由 CWS 模型返回，而是在模型返回结果基础上，再次套用规则计算得到。
+        pos_rule(bool): 是否返回规则词性类型，默认为 False。规则词性类型包括：email、
+            身份证号(id)、ip地址(ip)、日文(jp)、俄文(ru)、韩文(ko)、url。这些类型并非由 POS
+            模型返回，而是在模型返回结果基础上，再次套用规则计算得到。
 
     Returns:
         None
@@ -69,13 +81,18 @@ def init(cws_model_dir=None, cws_user_dict=None, pos=False,
     """
     global jiojio_cws_obj, jiojio_pos_obj, jiojio_pos_flag
 
+    if pos_rule:
+        cws_rule = True
+
     jiojio_cws_obj = CWSPredictText(
-        model_dir=cws_model_dir, user_dict=cws_user_dict)
+        model_dir=cws_model_dir, user_dict=cws_user_dict,
+        with_viterbi=cws_with_viterbi, rule_extractor=cws_rule)
 
     if pos:
         jiojio_pos_flag = True
         jiojio_pos_obj = POSPredictText(
-            model_dir=pos_model_dir, user_dict=pos_user_dict, with_viterbi=pos_with_viterbi)
+            model_dir=pos_model_dir, user_dict=pos_user_dict,
+            with_viterbi=pos_with_viterbi, pos_rule_types=pos_rule)
     else:
         jiojio_pos_flag = False
 

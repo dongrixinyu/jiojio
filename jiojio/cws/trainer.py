@@ -28,7 +28,7 @@ def train(config):
 
     feature_extractor = CWSFeatureExtractor(config)
 
-    if True:
+    if True:  # 否则直接加载内置的已预处理的数据集文件
         # 构建 特征数据集
         with TimeIt('# build datasets'):
             feature_extractor.build(config.train_file)
@@ -86,7 +86,11 @@ def train(config):
                      "\t  average-weight={:.4f}  average-abs-weight={:.4f}".format(
                          i, diff, err, max_weight, min_weight,
                          average_weight, average_abs_weight))
-        logging.info("-" * 50 + "\n")
+
+        logging.info('saving the epoch model.')
+        feature_extractor.save()
+        trainer.model.save()
+        logging.info('-' * 50 + '\n')
 
     # 重新整理参数，将哪些不生效的参数剔除，例如，node_score 中，B 和 I 的值几乎相同，且远低于特征的平均值
     new_node_weight, new_feature_to_idx = params_cut(
