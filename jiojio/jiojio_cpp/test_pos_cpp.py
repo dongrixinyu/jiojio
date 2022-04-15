@@ -424,15 +424,17 @@ for i in range(times):
 '''
 
 pdb.set_trace()
+index = 1
 print('before:', sys.gettotalrefcount())
 # with jio.TimeIt('c ', no_print=True) as ti:
+
 for i in range(times):
-    index = i % len(word_list)
-    # index = 0
-    res = get_pos_node_feature_c(
+    # index = i % len(word_list)
+
+    get_pos_node_feature_c(
         index, word_list, single_pos_word, part, unigram, bigram)
 print('after: ', sys.gettotalrefcount())
-print(res)
+# print(res)
 pdb.set_trace()
 #     c_cost_time = ti.break_point()
 

@@ -169,7 +169,7 @@ API PyObject *getPosNodeFeature(
                     wchar_t *beforeWordPartRightFeature = malloc((i + 2) * sizeof(wchar_t));
                     wcsncpy(beforeWordPartRightFeature, partBeforeRightToken, 2);
                     wcsncpy(beforeWordPartRightFeature + 2, beforeWordPartRight, i);
-                    printf("cur right feature %ls\n", beforeWordPartRightFeature);
+                    // printf("cur right feature %ls\n", beforeWordPartRightFeature);
                     tmpPyStr = PyUnicode_FromWideChar(beforeWordPartRightFeature, i + 2);
                     ret = PyList_Append(featureList, tmpPyStr);
 
@@ -209,7 +209,7 @@ API PyObject *getPosNodeFeature(
         Py_DECREF(tmpPyStr);
     }
 
-    Py_DECREF(curWord);
+    // Py_DECREF(curWord);
 
     Py_DECREF(beforeLeftWordsList);
     Py_DECREF(beforeRightWordsList);
