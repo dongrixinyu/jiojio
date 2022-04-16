@@ -17,27 +17,28 @@ dir_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__
                         'jiojio_cpp')
 
 # load `cws_get_node_features_c`，加载分词的特征抽取 C 优化函数
-try:
-    file_list = os.listdir(os.path.join(dir_path, 'build'))
-    file_name = ''
-    for _file_name in file_list:
-        if 'libfeatureExtractor' in _file_name and _file_name.endswith('.so'):
-            file_name = _file_name
-            break
+# try:
+file_list = os.listdir(os.path.join(dir_path, 'build'))
+file_name = ''
+for _file_name in file_list:
+    if 'libcwsFeatureExtractor' in _file_name and _file_name.endswith('.so'):
+        file_name = _file_name
+        break
 
-    feature_extractor = ctypes.PyDLL(os.path.join(dir_path, 'build', file_name))
-    get_node_features_c = feature_extractor.getNodeFeature
-    get_node_features_c.argtypes = [
-        ctypes.c_int, ctypes.c_wchar_p, ctypes.c_int, ctypes.py_object, ctypes.py_object]
-    cws_get_node_features_c.restype = ctypes.py_object
+feature_extractor = ctypes.PyDLL(os.path.join(dir_path, 'build', file_name))
+cws_get_node_features_c = feature_extractor.getCwsNodeFeature
+cws_get_node_features_c.argtypes = [
+    ctypes.c_int, ctypes.c_wchar_p, ctypes.c_int, ctypes.py_object, ctypes.py_object]
+cws_get_node_features_c.restype = ctypes.py_object
 
-    print('# Successfully load C func `cws_get_node_features_c`.')
+print('# Successfully load C func `cws_get_node_features_c`.')
 
-except Exception:
-    cws_get_node_features_c = None
-    print('# Failed to load C func `cws_get_node_features_c`, use py func instead.')
+# except Exception:
+#     cws_get_node_features_c = None
+#     print('# Failed to load C func `cws_get_node_features_c`, use py func instead.')
     # print('# Failed to load C func `cws_get_node_features_c` {}.'.format(
     #     traceback.format_exc()))
+
 
 # load `tag_words_converter_c`，加载分词的标签词汇转换 C 优化函数
 try:

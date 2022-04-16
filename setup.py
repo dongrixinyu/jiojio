@@ -1,9 +1,12 @@
 # -*- coding=utf-8 -*-
+# `setup.py` file for jiojio
+# with C accelarating code version for linux x86-64 OS
 
 import os
 import re
 import sys
 import setuptools
+
 
 if sys.platform == 'linux':
     from setuptools import Extension
@@ -44,17 +47,27 @@ with open(os.path.join(DIR_PATH, 'README.md'), 'r', encoding='utf-8') as f:
     LONG_DOC = '\n'.join(readme_lines)
 
 
+with open(os.path.join(DIR_PATH, 'requirements.txt'),
+          'r', encoding='utf-8') as f:
+    requirements = f.readlines()
+
+
 def setup_package():
     if sys.platform == 'linux':
         extensions = [
             Extension(
-                'jiojio.jiojio_cpp.build.libfeatureExtractor',
-                ['jiojio/jiojio_cpp/featureExtractor.c'],
+                'jiojio.jiojio_cpp.build.libcwsFeatureExtractor',
+                ['jiojio/jiojio_cpp/cwsFeatureExtractor.c'],
                 language='c'
             ),
             Extension(
                 'jiojio.jiojio_cpp.build.libtagWordsConverter',
                 ['jiojio/jiojio_cpp/tagWordsConverter.c'],
+                language='c'
+            ),
+            Extension(
+                'jiojio.jiojio_cpp.build.libposFeatureExtractor',
+                ['jiojio/jiojio_cpp/posFeatureExtractor.c'],
                 language='c'
             ),
         ]
@@ -81,7 +94,7 @@ def setup_package():
             'License :: Other/Proprietary License',
             'Operating System :: OS Independent',
         ],
-        install_requires=['numpy>=1.16.0'],
+        install_requires=requirements,
         ext_modules=extensions,
         zip_safe=False,
         cmdclass={'build_ext': build_ext} if sys.platform == 'linux' else {}

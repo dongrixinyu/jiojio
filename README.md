@@ -8,7 +8,7 @@
     <a alt="Downloads">
         <img src="https://img.shields.io/pypi/dm/jiojio?color=yellow" /></a>
     <a alt="Version">
-        <img src="https://img.shields.io/badge/version-1.1.1-green" /></a>
+        <img src="https://img.shields.io/badge/version-1.1.2-green" /></a>
     <a href="https://github.com/dongrixinyu/jiojio/pulse" alt="Activity">
         <img src="https://img.shields.io/github/commit-activity/m/dongrixinyu/jiojio?color=blue" /></a>
 </p>
