@@ -1,6 +1,11 @@
 # -*- coding=utf-8 -*-
-# `setup.py` file for jiojio
-# with C accelarating code version for linux x86-64 OS
+# Library: jiojio
+# Author: dongrixinyu
+# License: GPL-3.0
+# Email: dongrixinyu.89@163.com
+# Github: https://github.com/dongrixinyu/jiojio
+# Description: fast Chinese Word Segmentation(CWS) and Part of Speech(POS) based on CPU.'
+
 
 import os
 import re
@@ -74,6 +79,8 @@ def setup_package():
     else:
         extensions = None
 
+    # 本行参数用于构建纯 py wheel 文件
+    # extensions = None
     setuptools.setup(
         name='jiojio',
         version=__version__,
@@ -91,8 +98,10 @@ def setup_package():
         include_package_data=True,
         classifiers=[
             'Programming Language :: Python :: 3',
-            'License :: Other/Proprietary License',
+            'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
             'Operating System :: OS Independent',
+            'Topic :: Text Processing',
+            'Topic :: Scientific/Engineering :: Artificial Intelligence',
         ],
         install_requires=requirements,
         ext_modules=extensions,
