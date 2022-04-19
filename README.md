@@ -20,7 +20,7 @@
 - 基于 C 优化的 Python 接口分词器，单进程运行性能达 **5.2 万字/秒**，[**多个分词工具性能对比**](https://github.com/dongrixinyu/jiojio/wiki/多种常见开源分词工具的性能对比)
 - 基于 CRF 算法，精细优化的 **字符特征选择**，可进行特征增减，节约内存，[**模型特征说明**](https://github.com/dongrixinyu/jiojio/wiki/jiojio-分词CRF特征总结)
 - 将词典加入模型，共同预测分词序列，流程一致性强，[**词典配置说明**](https://github.com/dongrixinyu/jiojio/wiki/向分词模型添加自定义词典)
-- 将规则加入模型，有效克服某些类型文本受限于模型处理的情况。[**分词-添加正则**](../../wiki/jiojio-使用说明文档#user-content-分词-添加正则)
+- 将规则加入模型，有效克服某些类型文本受限于模型处理的情况，[**分词-添加正则**](../../wiki/jiojio-使用说明文档#user-content-分词-添加正则)
 - 支持词性标注功能，与 [**JioNLP**](https://github.com/dongrixinyu/JioNLP) 联合实现**关键短语抽取**、**新闻地域识别** 等功能
 
 # 安装
