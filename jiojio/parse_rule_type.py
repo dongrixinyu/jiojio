@@ -47,123 +47,102 @@ class Extractor(object):
             r'(?<=[^\d])(([\(（])?0\d{2,3}[\)） —-]{1,2}\d{7,8}|\d{3,4}[ -]\d{3,4}[ -]\d{4})(?=[^\d])')
 
     @staticmethod
-    def _extract_base(pattern, text, with_offset=False, typing='none'):
+    def _extract_base(pattern, text, typing):
         """ 正则抽取器的基础函数
 
         Args:
             pattern(re.compile): 正则表达式对象
             text(str): 字符串文本
-            with_offset(bool): 是否携带 offset （抽取内容字段在文本中的位置信息）
             type(str): 抽取的字段类型
 
         Returns:
             list: 返回结果
 
         """
-        if with_offset:
-            results = [{'text': item.group(1),
-                        'offset': (item.span()[0] - 1, item.span()[1] - 1),
-                        'type': typing}
-                       for item in pattern.finditer(text)]
-        else:
-            results = [item.group(1) for item in pattern.finditer(text)]
+        # `s` is short for text string,
+        # `o` is short for offset
+        # `t` is short for type
+        return [{'s': item.group(1),
+                 'o': (item.span()[0] - 1, item.span()[1] - 1),
+                 't': typing}
+                for item in pattern.finditer(text)]
 
-        return results
-
-    def extract_email(self, text, detail=False):
+    def extract_email(self, text):
         """ 提取文本中的 E-mail
 
         Args:
             text(str): 字符串文本
-            detail(bool): 是否携带 offset （E-mail 在文本中的位置信息）
 
         Returns:
             list: email列表
 
         """
-        text = ''.join(['#', text, '#'])
-        results = self._extract_base(
-            self.email_pattern, text, with_offset=detail, typing='email')
+        return self._extract_base(
+            self.email_pattern, text, typing='email')
 
-        if not detail:
-            return results
-        else:
-            detail_results = list()
-            for item in results:
-                detail_results.append(item)
-            return detail_results
-
-    def extract_id_card(self, text, detail=False):
+    def extract_id_card(self, text):
         """ 提取文本中的 ID 身份证号
 
         Args:
             text(str): 字符串文本
-            detail(bool): 是否携带 offset （身份证在文本中的位置信息）
 
         Returns:
             list: 身份证信息列表
 
         """
-        text = ''.join(['#', text, '#'])
         return self._extract_base(
-            self.id_card_pattern, text, with_offset=detail, typing='id')
+            self.id_card_pattern, text, typing='id')
 
-    def extract_ip_address(self, text, detail=False):
+    def extract_ip_address(self, text):
         """ 提取文本中的 IP 地址
 
         Args:
             text(str): 字符串文本
-            detail(bool): 是否携带 offset （IP 地址在文本中的位置信息）
 
         Returns:
             list: IP 地址列表
 
         """
-        text = ''.join(['#', text, '#'])
         return self._extract_base(
-            self.ip_address_pattern, text, with_offset=detail, typing='ip')
+            self.ip_address_pattern, text, typing='ip')
 
-    def extract_phone_number(self, text, detail=False):
+    def extract_phone_number(self, text):
         """从文本中抽取出电话号码
 
         Args:
             text(str): 字符串文本
-            detail(bool): 是否携带 offset （电话号码在文本中的位置信息）
 
         Returns:
             list: 电话号码列表
 
         """
-        text = ''.join(['#', text, '#'])
         cell_results = self._extract_base(
-            self.cell_phone_pattern, text, with_offset=detail, typing='tel')
+            self.cell_phone_pattern, text, typing='tel')
         landline_results = self._extract_base(
-            self.landline_phone_pattern, text, with_offset=detail, typing='tel')
+            self.landline_phone_pattern, text, typing='tel')
 
-        if not detail:
-            return cell_results + landline_results
-        else:
-            detail_results = list()
-            for item in cell_results:
-                item.update({'type': 'cell_phone'})
-                detail_results.append(item)
-            for item in landline_results:
-                item.update({'type': 'landline_phone'})
-                detail_results.append(item)
-            return detail_results
+        return cell_results + landline_results
 
-    def extract_url(self, text, detail=False):
+    def extract_url(self, text):
         """提取文本中的url链接
 
         Args:
             text(str): 字符串文本
-            detail(bool): 是否携带 offset （URL 在文本中的位置信息）
 
         Returns:
             list: url列表
 
         """
-        text = ''.join(['￥', text, '￥'])  # 因 # 可出现于 url
+        return self._extract_base(self.url_pattern, text, typing='url')
 
-        return self._extract_base(
-            self.url_pattern, text, with_offset=detail, typing='url')
+    def extract_info(self, text):
+        text = ''.join(['￥', text, '￥'])  # 因 # 可能出现在 url 中
+
+        results_list = list()
+        results_list.extend(self.extract_email(text))
+        results_list.extend(self.extract_id_card(text))
+        results_list.extend(self.extract_ip_address(text))
+        results_list.extend(self.extract_phone_number(text))
+        results_list.extend(self.extract_url(text))
+
+        return results_list

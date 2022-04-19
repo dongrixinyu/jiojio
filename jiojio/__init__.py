@@ -8,7 +8,7 @@
 
 
 __doc__ = 'jiojio: for fast Chinese Word Segmentation(CWS) and Part of Speech(POS) based on CPU.'
-__version__ = '1.1.2'
+__version__ = '1.1.3'
 
 
 import os
@@ -17,7 +17,7 @@ import pdb
 from multiprocessing import Process, Queue, get_start_method
 
 from .util import TimeIt, zip_file, unzip_file, read_file_by_iter, \
-    write_file_by_line, TrieTree, set_logger
+    write_file_by_line, TrieTree, set_logger, download_model
 
 logging = set_logger(level='INFO', log_dir_name='.jiojio/jiojio_logs')
 
@@ -39,8 +39,28 @@ global jiojio_cws_obj, jiojio_pos_obj, jiojio_pos_flag
 
 
 def help():
-    print('Here is an example for a quick start:\n    >>> import jiojio\n' \
-          '    >>> jiojio.init()\n    >>> jiojio.cut("这是一个测试用例。")\n')
+    print('    `jiojio` is an efficient Chinese Word Segmenter and Part of Speech tool.\n' \
+          'It uses Python to wrap C for accelarating processing speed in CPU machines.\n')
+
+    print('    Here is an example for a quick start:\n' \
+          '>>> import jiojio\n' \
+          '>>> jiojio.init()\n' \
+          '>>> jiojio.cut("这是一个测试用例。")\n')
+
+    print('    If you use computers with x86 structrue and linux OS, then when you execute\n' \
+          '`import jiojio` to get the following words\n' \
+          '```\n' \
+          '# Successfully load C func `cws_get_node_features_c`.\n' \
+          '# Successfully load C func `cws_tag2word_c`.\n' \
+          '```\n' \
+          '    It means that you can get fast processing speed with C code. Otherwise you \n' \
+          'would get the following words\n' \
+          '```\n' \
+          '# Failed to load C func `cws_get_node_features_c`, use py func instead.\n' \
+          '# Failed to load C func `cws_tag2word_c`, use py func instead.\n' \
+          '```\n' \
+          '    This does NOT mean `jiojio` is not being imported correctly. It means you could\n' \
+          'only run this tool relatively slow in Python methods.\n\n')
 
 
 def init(cws_model_dir=None, cws_user_dict=None, pos=False,
@@ -101,9 +121,9 @@ def init(cws_model_dir=None, cws_user_dict=None, pos=False,
 def cut(text):
     """ 对文本进行分词和词性标注 """
     if jiojio_pos_flag:
-        words, norm_words = jiojio_cws_obj.cut_with_pos(text)
-        tags = jiojio_pos_obj.cut(norm_words)
+        words, norm_words, word_pos_map = jiojio_cws_obj.cut_with_pos(text)
 
+        tags = jiojio_pos_obj.cut(norm_words, word_pos_map=word_pos_map)
         return [words, tags]
 
     else:

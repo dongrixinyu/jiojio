@@ -16,6 +16,7 @@ import numpy as np
 from jiojio.pre_processor import PreProcessor
 from jiojio.inference import get_log_Y_YY, viterbi
 from jiojio.model import Model
+from jiojio import download_model
 
 from . import pos_get_node_features_c
 from .config import Config
@@ -31,9 +32,14 @@ class POSPredictText(object):
         default_model_dir = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'models')
 
-        # 指定分词模型目录
+        # 指定 POS 模型目录
         if model_dir is None:
             model_dir = os.path.join(default_model_dir, 'default_pos_model')
+
+            if not os.path.exists(model_dir):  # 下载模型
+                default_url = ''
+                download_model(default_url, default_model_dir)
+
         else:
             if os.path.isabs(model_dir):
                 pass
@@ -65,6 +71,7 @@ class POSPredictText(object):
 
         self.idx_to_tag = {
             idx: tag for tag, idx in self.feature_extractor.tag_to_idx.items()}
+        self.tag_num = len(self.idx_to_tag)
 
         self.pre_processor = PreProcessor(
             convert_num_letter=pos_config.convert_num_letter,
@@ -126,9 +133,17 @@ class POSPredictText(object):
 
         return tags_idx
 
-    def cut(self, word_list):
+    def cut(self, word_list, word_pos_map=None):
 
         tags_idx = self._cut(word_list)
         tags_list = [self.idx_to_tag[idx] for idx in tags_idx]
-        # pdb.set_trace()
-        return tags_list
+        if word_pos_map is None:
+            return tags_list
+
+        else:
+            for idx in range(len(word_list)):
+                if word_list[idx] in word_pos_map:
+                    tags_list[idx] = word_pos_map[word_list[idx]]
+
+            # pdb.set_trace()
+            return tags_list

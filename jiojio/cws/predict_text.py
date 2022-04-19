@@ -13,6 +13,8 @@ import sys
 import json
 import ctypes
 
+import numpy as np
+
 from jiojio.pre_processor import PreProcessor
 from jiojio.inference import get_log_Y_YY, viterbi
 from jiojio.model import Model
@@ -67,6 +69,7 @@ class CWSPredictText(object):
 
         self.idx_to_tag = {
             idx: tag for tag, idx in self.feature_extractor.tag_to_idx.items()}
+        self.tag_num = len(self.idx_to_tag)
 
         self.pre_processor = PreProcessor(
             convert_num_letter=cws_config.convert_num_letter,
@@ -89,14 +92,16 @@ class CWSPredictText(object):
             else:
                 # 以 C 方式计算，效率高
                 node_features = self.get_node_features_c(
-                    idx, text, len(text), self.feature_extractor.unigram,
+                    idx, text, length, self.feature_extractor.unigram,
                     self.feature_extractor.bigram)
                 # pdb.set_trace()
 
+            # 测试:
             # if node_features != self.feature_extractor.get_node_features(idx, text):
             #     print(node_features)
             #     print(self.feature_extractor.get_node_features(idx, text))
             #     pdb.set_trace()
+
             # 此处考虑，通用未匹配特征 “/”，即索引为 0 的特征
             node_feature_idx = [
                 self.feature_extractor.feature_to_idx[node_feature]
@@ -106,8 +111,6 @@ class CWSPredictText(object):
             if len(node_feature_idx) != len(node_features):
                 node_feature_idx.append(0)
 
-            # node_feature_idx = map(lambda i:self.feature_extractor.feature_to_idx.get(i, 0),
-            #                        node_features)
             all_features.append(node_feature_idx)
 
         Y = get_log_Y_YY(all_features, self.model.node_weight)
@@ -119,38 +122,34 @@ class CWSPredictText(object):
         if self.with_viterbi:
             tags_idx = viterbi(Y, self.model.edge_weight, bi_ratio=self.model.bi_ratio)
         else:
-            tags_idx = tags_idx = Y.argmax(axis=1)
+            tags_idx = Y.argmax(axis=1).astype(np.int8)
 
         return tags_idx
 
     def _cut_with_rule(self, text):
+        """采用规则抽取出某些词汇，如ip地址，email，身份证号，url，电话号码等等"""
+        rule_res_list = self.rule_extractor.extract_info(text)
 
-        rule_res_list = list()
-        rule_res_list.extend(self.rule_extractor.extract_ip_address(text, detail=True))
-        rule_res_list.extend(self.rule_extractor.extract_email(text, detail=True))
-        rule_res_list.extend(self.rule_extractor.extract_id_card(text, detail=True))
-        rule_res_list.extend(self.rule_extractor.extract_url(text, detail=True))
-        rule_res_list.extend(self.rule_extractor.extract_phone_number(text, detail=True))
+        # pdb.set_trace()
+        if len(rule_res_list) == 0:
+            # 空匹配
+            return [text], [], False, False
 
         start_flag = False
         end_flag = False
 
-        if rule_res_list == []:
-            # 空匹配
-            return [text], [], False, False
-
-        rule_res_list = sorted(rule_res_list, key=lambda item: item['offset'][0])
+        rule_res_list = sorted(rule_res_list, key=lambda item: item['o'][0])
 
         seg_list = list()
         for idx in range(len(rule_res_list)):
-            item = rule_res_list[idx]['offset']
+            item = rule_res_list[idx]['o']
             if idx == 0:
                 if item[0] != 0:
                     seg_list.append(text[: item[0]])
                 else:
                     start_flag = True
 
-                next_item = rule_res_list[idx + 1]['offset']
+                next_item = rule_res_list[idx + 1]['o']
                 seg_list.append(text[item[1]: next_item[0]])
 
             elif idx == len(rule_res_list) - 1:
@@ -160,9 +159,9 @@ class CWSPredictText(object):
                     end_flag = True
 
             else:
-                next_item = rule_res_list[idx + 1]['offset']
+                next_item = rule_res_list[idx + 1]['o']
                 seg_list.append(text[item[1]: next_item[0]])
-        # pdb.set_trace()
+
         return seg_list, rule_res_list, start_flag, end_flag
 
     def cut(self, text):
@@ -170,14 +169,15 @@ class CWSPredictText(object):
         if not text:
             return list()
 
-        norm_text = self.pre_processor(text)
-
         if self.rule_extractor:
-            seg_list, rule_res_list, start_flag, end_flag = self._cut_with_rule(norm_text)
+            seg_list, rule_res_list, start_flag, end_flag = self._cut_with_rule(text)
+
             seg_res_list = list()
             for segment in seg_list:
 
-                tags = self._cut(segment)
+                norm_segment = self.pre_processor(segment)
+                tags = self._cut(norm_segment)
+
                 if self.tag2word_c is None:
                     # 以 python 方式进行计算
                     words_list = tag2word(segment, tags)
@@ -192,7 +192,7 @@ class CWSPredictText(object):
 
             if start_flag:
                 for idx in range(len(seg_res_list)):
-                    words_list.append(rule_res_list[idx]['text'])
+                    words_list.append(rule_res_list[idx]['s'])
                     words_list.extend(seg_res_list[idx])
                 if end_flag:
                     words_list.append(rule_res_list[-1])
@@ -201,7 +201,7 @@ class CWSPredictText(object):
                 # pdb.set_trace()
                 for idx in range(len(rule_res_list)):
                     words_list.extend(seg_res_list[idx])
-                    words_list.append(rule_res_list[idx]['text'])
+                    words_list.append(rule_res_list[idx]['s'])
                 if not end_flag:
                     words_list.extend(seg_res_list[-1])
 
@@ -209,6 +209,7 @@ class CWSPredictText(object):
 
         else:
             # 不进行分片切分的结果
+            norm_text = self.pre_processor(text)
             tags = self._cut(norm_text)
 
             if self.tag2word_c is None:
@@ -227,19 +228,79 @@ class CWSPredictText(object):
         if not text:
             return list()
 
-        norm_text = self.pre_processor(text)
-        tags = self._cut(norm_text)
+        if self.rule_extractor:
+            seg_list, rule_res_list, start_flag, end_flag = self._cut_with_rule(text)
+            seg_res_list = list()
+            norm_seg_res_list = list()
+            for segment in seg_list:
 
-        if self.tag2word_c is None:
-            # 以 python 方式进行计算
-            words_list = tag2word(text, tags)
-            norm_words_list = tag2word(norm_text, tags)
+                norm_segment = self.pre_processor(segment)
+                tags = self._cut(norm_segment)
+
+                if self.tag2word_c is None:
+                    # 以 python 方式进行计算
+                    words_list = tag2word(segment, tags)
+                    norm_words_list = tag2word(norm_segment, tags)
+                else:
+                    # 以 C 方式进行计算
+                    words_list = self.tag2word_c(
+                        segment, tags.ctypes.data_as(ctypes.c_void_p), len(tags))
+                    norm_words_list = self.tag2word_c(
+                        norm_segment, tags.ctypes.data_as(ctypes.c_void_p), len(tags))
+
+                seg_res_list.append(words_list)
+                norm_seg_res_list.append(norm_words_list)
+
+            words_list = list()
+            norm_words_list = list()
+
+            if start_flag:
+                for idx in range(len(seg_res_list)):
+                    words_list.append(rule_res_list[idx]['s'])
+                    words_list.extend(seg_res_list[idx])
+
+                    norm_words_list.append(rule_res_list[idx]['s'])
+                    norm_words_list.extend(norm_seg_res_list[idx])
+                if end_flag:
+                    words_list.append(rule_res_list[-1])
+                    norm_words_list.append(rule_res_list[-1])
+
+            else:
+                # pdb.set_trace()
+                for idx in range(len(rule_res_list)):
+                    words_list.extend(seg_res_list[idx])
+                    words_list.append(rule_res_list[idx]['s'])
+
+                    norm_words_list.extend(norm_seg_res_list[idx])
+                    norm_words_list.append(rule_res_list[idx]['s'])
+                if not end_flag:
+                    words_list.extend(seg_res_list[-1])
+                    norm_words_list.extend(norm_seg_res_list[-1])
+
+            if len(rule_res_list) == 0:  # 为了避免一遍循环
+                word_pos_map = None
+
+            else:
+                word_pos_map = dict()
+                for item in rule_res_list:
+                    word_pos_map.update({item['s']: item['t']})
+
+            return words_list, norm_words_list, word_pos_map
+
         else:
-            # 以 C 方式进行计算
-            words_list = self.tag2word_c(
-                text, tags.ctypes.data_as(ctypes.c_void_p), len(tags))
-            norm_words_list = self.tag2word_c(
-                norm_text, tags.ctypes.data_as(ctypes.c_void_p), len(tags))
-            # pdb.set_trace()
+            norm_text = self.pre_processor(text)
+            tags = self._cut(norm_text)
 
-        return words_list, norm_words_list
+            if self.tag2word_c is None:
+                # 以 python 方式进行计算
+                words_list = tag2word(text, tags)
+                norm_words_list = tag2word(norm_text, tags)
+            else:
+                # 以 C 方式进行计算
+                words_list = self.tag2word_c(
+                    text, tags.ctypes.data_as(ctypes.c_void_p), len(tags))
+                norm_words_list = self.tag2word_c(
+                    norm_text, tags.ctypes.data_as(ctypes.c_void_p), len(tags))
+                # pdb.set_trace()
+
+            return words_list, norm_words_list, None
