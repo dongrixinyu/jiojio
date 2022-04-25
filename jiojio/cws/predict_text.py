@@ -66,7 +66,7 @@ class CWSPredictText(object):
         self.feature_extractor = CWSFeatureExtractor.load(
             config=cws_config, model_dir=model_dir)
         self.model = Model.load(model_dir, task='cws')
-        # self.model = Model.load(model_dir, task=None)
+        # self.model = Model.load(model_dir, task=None)  # 与 cws 指定有区别
 
         self.idx_to_tag = {
             idx: tag for tag, idx in self.feature_extractor.tag_to_idx.items()}
@@ -120,13 +120,15 @@ class CWSPredictText(object):
             self.user_dict(text, Y)
 
         if self.with_viterbi:
-            tags_idx = viterbi(Y, self.model.edge_weight, bi_ratio=self.model.bi_ratio)
+            tags_idx = viterbi(
+                Y, self.model.edge_weight, bi_ratio=self.model.bi_ratio,
+                dtype=np.float16)
         else:
             tags_idx = Y.argmax(axis=1).astype(np.int8)
 
-        print(text)
-        print(tags_idx)
-        pdb.set_trace()
+        # print(text)
+        # print(tags_idx)
+        # pdb.set_trace()
         return tags_idx
 
     def _cut_with_rule(self, text):

@@ -262,9 +262,9 @@ def bi_ratio_loss(node_score, node_score_masked, edge_score, bi_ratio=1.):
     return node_num, with_edge_correct_num, with_delta_edge_correct_num
 
 
-def viterbi(node_score, edge_score, bi_ratio=1.):
+def viterbi(node_score, edge_score, bi_ratio=1., dtype=np.float32):
     node_num, tag_num = node_score.shape
-    max_score = np.empty((node_num, tag_num), dtype=np.float32)
+    max_score = np.empty((node_num, tag_num), dtype=dtype)
     pre_tag = np.empty((node_num, tag_num), dtype=np.int8)
     max_score[node_num - 1] = node_score[node_num - 1]
 
