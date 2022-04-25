@@ -593,7 +593,8 @@ class CWSFeatureExtractor(object):
         data = dict()
         data['unigram'] = sorted(list(self.unigram))
         data['bigram'] = sorted(list(self.bigram))
-        data['feature_to_idx'] = self.feature_to_idx
+        # 此方式用以压缩模型文件大小
+        data['feature_to_idx'] = list(self.feature_to_idx.keys())
         data['tag_to_idx'] = self.tag_to_idx
 
         feature_path = os.path.join(model_dir, 'features.json')
@@ -623,7 +624,9 @@ class CWSFeatureExtractor(object):
 
             extractor.unigram = set(data['unigram'])
             extractor.bigram = set(data['bigram'])
-            extractor.feature_to_idx = data['feature_to_idx']
+            feature_list = data['feature_to_idx']
+            extractor.feature_to_idx = dict(
+                [(feature, idx) for idx, feature in enumerate(feature_list)])
             extractor.tag_to_idx = data['tag_to_idx']
 
             # extractor.idx_to_tag = extractor._reverse_dict(extractor.tag_to_idx)

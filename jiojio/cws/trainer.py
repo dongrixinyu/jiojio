@@ -109,29 +109,22 @@ def train(config):
 def params_cut(node_weight, feature_to_idx):
     idx_to_feature = dict([(value, key) for key, value in feature_to_idx.items()])
 
-    weight_mean = node_weight.mean()
-    weight_max = node_weight.max()
-    weight_min = node_weight.min()
-    weight_gap = (weight_max - weight_min) * 1e-4
+    weight_gap = 1e-4  # 由 np.float16 的最小分辨精度决定
     weight_max_mean = node_weight.max(axis=1).mean()
 
-    new_idx_to_feature = dict()
+    new_feature_list = list()
     new_node_weight_list = list()
-
     params_being_cut = list()
     for idx in range(node_weight.shape[0]):
-        cur_weight_mean = node_weight[idx].mean()
         if node_weight[idx].max() - node_weight[idx].min() < weight_gap:
             # 权重分布均匀，无较大的区分度
-            if cur_weight_mean * 10 <= weight_mean:
-                # 当前平均权重不足总平均权重的 十分之一
-                params_being_cut.append(idx_to_feature[idx])
-                continue
+            params_being_cut.append(idx_to_feature[idx])
+            continue
 
-        new_idx_to_feature.update({idx: idx_to_feature[idx]})
+        new_feature_list.append(idx_to_feature[idx])
         new_node_weight_list.append(idx)
 
-    logging.info('cut {} params from total {}, cut ratio {}.'.format(
+    logging.info('cut {} params from total {}, cut ratio {:.6%}.'.format(
         len(params_being_cut), node_weight.shape[0],
         len(params_being_cut) / node_weight.shape[0]))
 
@@ -139,7 +132,8 @@ def params_cut(node_weight, feature_to_idx):
     logging.info(', '.join(params_being_cut[:100]))
 
     new_node_weight = node_weight[new_node_weight_list]
-    new_feature_to_idx = dict([(value, key) for key, value in new_idx_to_feature.items()])
+    new_feature_to_idx = dict([(key, idx) for idx, key in enumerate(new_feature_list)])
+    assert new_node_weight.shape[0] == len(new_feature_to_idx)
 
     return new_node_weight, new_feature_to_idx
 

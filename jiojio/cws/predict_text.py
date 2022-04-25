@@ -65,7 +65,8 @@ class CWSPredictText(object):
 
         self.feature_extractor = CWSFeatureExtractor.load(
             config=cws_config, model_dir=model_dir)
-        self.model = Model.load(model_dir)
+        self.model = Model.load(model_dir, task='cws')
+        # self.model = Model.load(model_dir, task=None)
 
         self.idx_to_tag = {
             idx: tag for tag, idx in self.feature_extractor.tag_to_idx.items()}
@@ -81,7 +82,6 @@ class CWSPredictText(object):
         self.tag2word_c = cws_tag2word_c
 
     def _cut(self, text):
-
         length = len(text)
         all_features = list()
         for idx in range(length):
@@ -113,7 +113,7 @@ class CWSPredictText(object):
 
             all_features.append(node_feature_idx)
 
-        Y = get_log_Y_YY(all_features, self.model.node_weight)
+        Y = get_log_Y_YY(all_features, self.model.node_weight, dtype=np.float16)
 
         # 添加词典
         if self.user_dict.trie_tree_obj is not None:
@@ -124,6 +124,9 @@ class CWSPredictText(object):
         else:
             tags_idx = Y.argmax(axis=1).astype(np.int8)
 
+        print(text)
+        print(tags_idx)
+        pdb.set_trace()
         return tags_idx
 
     def _cut_with_rule(self, text):
@@ -139,9 +142,10 @@ class CWSPredictText(object):
         end_flag = False
 
         rule_res_list = sorted(rule_res_list, key=lambda item: item['o'][0])
-
+        rule_res_length = len(rule_res_list)
+        # pdb.set_trace()
         seg_list = list()
-        for idx in range(len(rule_res_list)):
+        for idx in range(rule_res_length):
             item = rule_res_list[idx]['o']
             if idx == 0:
                 if item[0] != 0:
@@ -149,8 +153,11 @@ class CWSPredictText(object):
                 else:
                     start_flag = True
 
-                next_item = rule_res_list[idx + 1]['o']
-                seg_list.append(text[item[1]: next_item[0]])
+                if rule_res_length == 1:
+                    seg_list.append(text[item[1]:])
+                else:
+                    next_item = rule_res_list[idx + 1]['o']
+                    seg_list.append(text[item[1]: next_item[0]])
 
             elif idx == len(rule_res_list) - 1:
                 if item[1] != len(text):

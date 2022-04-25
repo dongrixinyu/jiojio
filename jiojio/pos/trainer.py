@@ -136,7 +136,7 @@ def params_cut(node_weight, feature_to_idx):
 
     # pdb.set_trace()
     new_node_weight = node_weight[new_node_weight_list]
-    new_feature_to_idx = dict([(value, key) for key, value in new_idx_to_feature.items()])
+    new_feature_to_idx = dict([(value, idx) for idx, (key, value) in enumerate(new_idx_to_feature.items())])
 
     return new_node_weight, new_feature_to_idx
 

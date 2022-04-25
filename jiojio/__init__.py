@@ -102,7 +102,7 @@ def init(cws_model_dir=None, cws_user_dict=None, pos=False,
     """
     global jiojio_cws_obj, jiojio_pos_obj, jiojio_pos_flag
 
-    if pos_rule:
+    if pos_rule and pos:
         cws_rule = True
 
     jiojio_cws_obj = CWSPredictText(

@@ -78,6 +78,16 @@ class POSPredictText(object):
             normalize_num_letter=pos_config.normalize_num_letter,
             convert_exception=pos_config.convert_exception)
 
+        '''
+        tmp = dict([(val, k) for k, val in self.feature_extractor.feature_to_idx.items()])
+        for i in range(len(tmp)):
+            if i not in tmp:
+                print(i)
+                pdb.set_trace()
+        print(len(tmp))
+        print(self.model.node_weight[0])
+        pdb.set_trace()
+        '''
         # C 方式调用
         self.get_node_features_c = pos_get_node_features_c
 

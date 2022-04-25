@@ -9,11 +9,17 @@
 import os
 import pdb
 import sys
+import json
 import numpy as np
+
+from jiojio import logging
 
 
 class Model(object):
-    def __init__(self, config, n_feature, n_tag):
+    def __init__(self, config, n_feature, n_tag, task=None):
+        # task 可取 cws 或 pos，其用意在于针对不同的模型有不同的压缩方法
+        # 当 task 取 None 时，不采用任何压缩方法，直接存储为文件
+        self.task = task
         self.config = config
         self.n_tag = n_tag
         self.n_feature = n_feature
@@ -34,40 +40,106 @@ class Model(object):
             self.bi_ratio = np.array(np.random.random(), dtype=np.float32)  # 介于 0 ~ 1 的 float
             # self.bi_ratio = 0.5
         else:
-            self.node_weight = np.zeros(self.n_feature, self.n_tag, dtype=np.float32)
-            self.edge_weight = np.zeros(self.n_tag, self.n_tag, dtype=np.float32)
-            self.bi_ratio = np.array(1., dtype=np.float32)
+            self.node_weight = np.zeros((self.n_feature, self.n_tag), dtype=np.float32)
+            self.edge_weight = np.zeros((self.n_tag, self.n_tag), dtype=np.float32)
+            self.bi_ratio = np.array(0.0001, dtype=np.float32)
 
     @classmethod
-    def load(cls, model_dir, dtype=np.float32):
+    def load(cls, model_dir, task=None, dtype=np.float16):
 
-        model_path = os.path.join(model_dir, 'weights.npz')
-        if os.path.exists(model_path):
-            npz = np.load(model_path)
-            sizes = npz['sizes']
-            bi_ratio = np.array(npz['bi_ratio'], dtype=dtype)
+        if task is None:
+            model_path = os.path.join(model_dir, 'weights.npz')
+            if os.path.exists(model_path):
+                npz = np.load(model_path)
+                sizes = npz['sizes']
+                bi_ratio = np.array(npz['bi_ratio'], dtype=dtype)
 
-            node_weight = npz['node_weight'].astype(dtype)  # 强制转换 数据类型
-            edge_weight = npz['edge_weight'].astype(dtype)  # 强制转换 数据类型
+                node_weight = npz['node_weight'].astype(dtype)  # 强制转换 数据类型
+                edge_weight = npz['edge_weight'].astype(dtype)  # 强制转换 数据类型
 
-            model = cls.__new__(cls)
-            model.n_tag = int(sizes[0])
-            model.n_feature = int(sizes[1])
-            model.bi_ratio = bi_ratio
-            model.node_weight = node_weight
-            model.edge_weight = edge_weight
+                model = cls.__new__(cls)
+                model.n_tag = int(sizes[0])
+                model.n_feature = int(sizes[1])
+                model.bi_ratio = bi_ratio
+                model.node_weight = node_weight
+                model.edge_weight = edge_weight
 
-            assert model.node_weight.shape[0] == model.n_feature
-            assert model.node_weight.shape[1] == model.n_tag
-            assert model.edge_weight.shape[0] == model.n_tag
-            assert model.edge_weight.shape[1] == model.n_tag
+                assert model.node_weight.shape[0] == model.n_feature
+                assert model.node_weight.shape[1] == model.n_tag
+                assert model.edge_weight.shape[0] == model.n_tag
+                assert model.edge_weight.shape[1] == model.n_tag
 
-            return model
+                return model
 
-        raise FileNotFoundError('the model file `{}` does not exist.'.format(model_path))
+            raise FileNotFoundError('the model file `{}` does not exist.'.format(model_path))
+
+        elif task == 'cws':
+            model_path = os.path.join(model_dir, 'weights.npz')
+            if os.path.exists(model_path):
+                npz = np.load(model_path)
+                sizes = npz['sizes']
+                bi_ratio = np.array(npz['bi_ratio'], dtype=dtype)
+
+                node_weight = npz['node_weight'].astype(dtype)  # 强制转换 数据类型
+                edge_weight = npz['edge_weight'].astype(dtype)  # 强制转换 数据类型
+
+                node_weight_expand = np.expand_dims(node_weight, axis=1)
+                node_weight = np.concatenate((node_weight_expand, - node_weight_expand), axis=1)
+
+                # 整理参数集
+                opposite_diff_path = os.path.join(model_dir, 'opposite_diff.json')
+                if os.path.exists(opposite_diff_path):
+                    with open(opposite_diff_path, 'r', encoding='utf-8') as fr:
+                        opposite_diff_json = json.load(fr)
+                    for key, val in opposite_diff_json.items():
+                        node_weight[int(key)] = np.array([float(val[0]), float(val[1])], dtype=dtype)
+
+                model = cls.__new__(cls)
+                model.n_tag = int(sizes[0])
+                model.n_feature = int(sizes[1])
+                model.bi_ratio = bi_ratio
+                model.node_weight = node_weight
+                model.edge_weight = edge_weight
+
+                assert model.node_weight.shape[0] == model.n_feature
+                assert model.node_weight.shape[1] == model.n_tag
+                assert model.edge_weight.shape[0] == model.n_tag
+                assert model.edge_weight.shape[1] == model.n_tag
+
+                return model
+
+            raise FileNotFoundError('the model file `{}` does not exist.'.format(model_path))
+
 
     def save(self):
-        sizes = np.array([self.n_tag, self.n_feature])
-        np.savez(os.path.join(self.config.model_dir, 'weights.npz'),
-            sizes=sizes, bi_ratio=self.bi_ratio,
-            node_weight=self.node_weight, edge_weight=self.edge_weight)
+        if task is None:
+            sizes = np.array([self.n_tag, self.n_feature])
+            np.savez(os.path.join(self.config.model_dir, 'weights.npz'),
+                sizes=sizes, bi_ratio=self.bi_ratio,
+                node_weight=self.node_weight, edge_weight=self.edge_weight)
+
+        elif task == 'cws':
+            # 重新调整 node_weight 的压缩
+            weight_gap = 0.0001  # 该权重指 np.float16 可分辨最小精度，故可默认选取
+            opposite_diff_dict = dict()
+            for idx in range(self.node_weight.shape[0]):
+                tmp_node_weight = self.node_weight[idx]
+                if abs(tmp_node_weight[0] + tmp_node_weight[1]) > weight_gap:
+                    tmp_list = list()
+                    tmp_list.append('{:.4f}'.format(float(tmp_node_weight[0])))
+                    tmp_list.append('{:.4f}'.format(float(tmp_node_weight[1])))
+                    opposite_diff_dict.update({idx: tmp_list})
+
+            new_node_weight = self.node_weight[:, 0]
+            logging.info('opposite num: {}, percent: {:.3%}'.format(
+                len(opposite_diff_dict), len(opposite_diff_dict) / self.node_weight.shape[0]))
+
+            sizes = np.array([self.n_tag, self.n_feature])
+            np.savez(os.path.join(self.config.model_dir, 'weights.npz'),
+                sizes=sizes, bi_ratio=self.bi_ratio,
+                node_weight=new_node_weight, edge_weight=self.edge_weight)
+
+            # 写入新文件 opposite_diff.json
+            with open(os.path.join(self.config.model_dir, 'opposite_diff.json'),
+                      'w', encoding='utf-8') as fw:
+                json.dump(opposite_diff_dict, fw, ensure_ascii=False)
