@@ -63,21 +63,25 @@ except Exception:
     #     traceback.format_exc()))
 
 
+# load `cws_feature2idx_c`，加载分词的标签词汇转换 C 优化函数
+try:
+    file_list = os.listdir(os.path.join(dir_path, 'build'))
+    file_name = ''
+    for _file_name in file_list:
+        if 'libcwsFeatureToIndex' in _file_name and _file_name.endswith('.so'):
+            file_name = _file_name
+            break
 
-file_list = os.listdir(os.path.join(dir_path, 'build'))
-file_name = ''
-for _file_name in file_list:
-    if 'libcwsFeatureToIndex' in _file_name and _file_name.endswith('.so'):
-        file_name = _file_name
-        break
+    cws_feature_to_idx = ctypes.PyDLL(os.path.join(dir_path, 'build', file_name))
+    cws_feature2idx_c = cws_feature_to_idx.getFeatureIndex
+    cws_feature2idx_c.argtypes = [ctypes.py_object, ctypes.py_object]
+    cws_feature2idx_c.restype = ctypes.py_object
 
-cws_feature_to_idx = ctypes.PyDLL(os.path.join(dir_path, 'build', file_name))
-cws_feature2idx_c = cws_feature_to_idx.getFeatureIndex
-cws_feature2idx_c.argtypes = [ctypes.py_object, ctypes.py_object]
-cws_feature2idx_c.restype = ctypes.py_object
+    print('# Successfully load C func `cws_feature2idx_c`.')
 
-print('# Successfully load C func `cws_feature2idx_c`.')
-
+except:
+    cws_feature2idx_c = None
+    print('# Failed to load C func `cws_feature2idx_c`, use py func instead.')
 
 
 from .feature_extractor import CWSFeatureExtractor
