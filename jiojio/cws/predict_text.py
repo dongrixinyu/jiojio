@@ -114,12 +114,12 @@ class CWSPredictText(object):
                     node_feature_idx.append(0)
 
             else:
-                print(node_features)
+                # print(len(node_features), node_features)
                 node_feature_idx = self.cws_feature2idx_c(
                     node_features, self.feature_extractor.feature_to_idx)
-                print(node_feature_idx)
-                print(len(all_features))
-                pdb.set_trace()
+                # print(len(node_feature_idx), node_feature_idx)
+                # print(len(all_features), idx)
+                # pdb.set_trace()
 
             # all_features.append(node_feature_idx)
 

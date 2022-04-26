@@ -27,22 +27,22 @@ PyObject *getFeatureIndex(PyObject *nodeFeature, PyObject *featureToIndex)
         ret = PyDict_Contains(featureToIndex, curFeature);
         if (ret == 1)
         {
-            Py_ssize_t curLength = PyUnicode_GET_LENGTH(curFeature);
-            wchar_t *tmpString = malloc(sizeof(wchar_t) * curLength);
-            Py_ssize_t length = PyUnicode_AsWideChar(curFeature, tmpString, curLength);
-            printf("\t%d\t%ls\n", i, tmpString);
-            free(tmpString);
-            tmpString = NULL;
+            // Py_ssize_t curLength = PyUnicode_GET_LENGTH(curFeature);
+            // wchar_t *tmpString = malloc(sizeof(wchar_t) * curLength);
+            // Py_ssize_t length = PyUnicode_AsWideChar(curFeature, tmpString, curLength);
+            // printf("\t%d\t%ls\n", i, tmpString);
+            // free(tmpString);
+            // tmpString = NULL;
 
-            PyObject *index = PyDict_GetItem(featureToIndex, curFeature);
+            PyObject *index = PyDict_GetItemWithError(featureToIndex, curFeature);
             ret = PyList_Append(indexList, index);
-            Py_DECREF(index);
+            // Py_DECREF(index);
         }
         else
         {
             flag = 1;
         }
-        Py_DECREF(curFeature);
+        // Py_DECREF(curFeature);
     }
 
     if (flag == 1)
