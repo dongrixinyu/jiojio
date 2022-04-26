@@ -61,20 +61,21 @@ def setup_package():
     if sys.platform == 'linux':
         extensions = [
             Extension(
+                'jiojio.jiojio_cpp.build.libcwsFeatureToIndex',
+                ['jiojio/jiojio_cpp/cwsFeatureToIndex.c'],
+                language='c'),
+            Extension(
                 'jiojio.jiojio_cpp.build.libcwsFeatureExtractor',
                 ['jiojio/jiojio_cpp/cwsFeatureExtractor.c'],
-                language='c'
-            ),
+                language='c'),
             Extension(
                 'jiojio.jiojio_cpp.build.libtagWordsConverter',
                 ['jiojio/jiojio_cpp/tagWordsConverter.c'],
-                language='c'
-            ),
+                language='c'),
             Extension(
                 'jiojio.jiojio_cpp.build.libposFeatureExtractor',
                 ['jiojio/jiojio_cpp/posFeatureExtractor.c'],
-                language='c'
-            ),
+                language='c'),
         ]
     else:
         extensions = None
