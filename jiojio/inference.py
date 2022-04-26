@@ -19,9 +19,7 @@
 """
 
 import pdb
-import time
 import numpy as np
-# from numba import jit
 
 
 class Belief(object):

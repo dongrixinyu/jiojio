@@ -63,6 +63,23 @@ except Exception:
     #     traceback.format_exc()))
 
 
+
+file_list = os.listdir(os.path.join(dir_path, 'build'))
+file_name = ''
+for _file_name in file_list:
+    if 'libcwsFeatureToIndex' in _file_name and _file_name.endswith('.so'):
+        file_name = _file_name
+        break
+
+cws_feature_to_idx = ctypes.PyDLL(os.path.join(dir_path, 'build', file_name))
+cws_feature2idx_c = cws_feature_to_idx.getFeatureIndex
+cws_feature2idx_c.argtypes = [ctypes.py_object, ctypes.py_object]
+cws_feature2idx_c.restype = ctypes.py_object
+
+print('# Successfully load C func `cws_feature2idx_c`.')
+
+
+
 from .feature_extractor import CWSFeatureExtractor
 from .add_dict_to_model import CWSAddDict2Model
 from .scorer import F1_score

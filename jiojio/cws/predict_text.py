@@ -20,7 +20,7 @@ from jiojio.inference import get_log_Y_YY, viterbi
 from jiojio.model import Model
 from jiojio import Extractor
 
-from . import cws_get_node_features_c, cws_tag2word_c
+from . import cws_get_node_features_c, cws_tag2word_c, cws_feature2idx_c
 from .config import Config
 from .tag_words_converter import tag2word
 from .feature_extractor import CWSFeatureExtractor
@@ -80,6 +80,7 @@ class CWSPredictText(object):
         # C 方式调用
         self.get_node_features_c = cws_get_node_features_c
         self.tag2word_c = cws_tag2word_c
+        self.cws_feature2idx_c = cws_feature2idx_c
 
     def _cut(self, text):
         length = len(text)
@@ -102,16 +103,25 @@ class CWSPredictText(object):
             #     print(self.feature_extractor.get_node_features(idx, text))
             #     pdb.set_trace()
 
-            # 此处考虑，通用未匹配特征 “/”，即索引为 0 的特征
-            node_feature_idx = [
-                self.feature_extractor.feature_to_idx[node_feature]
-                for node_feature in node_features
-                if node_feature in self.feature_extractor.feature_to_idx]
+            if self.cws_feature2idx_c is None:
+                # 此处考虑，通用未匹配特征 “/”，即索引为 0 的特征
+                node_feature_idx = [
+                    self.feature_extractor.feature_to_idx[node_feature]
+                    for node_feature in node_features
+                    if node_feature in self.feature_extractor.feature_to_idx]
 
-            if len(node_feature_idx) != len(node_features):
-                node_feature_idx.append(0)
+                if len(node_feature_idx) != len(node_features):
+                    node_feature_idx.append(0)
 
-            all_features.append(node_feature_idx)
+            else:
+                print(node_features)
+                node_feature_idx = self.cws_feature2idx_c(
+                    node_features, self.feature_extractor.feature_to_idx)
+                print(node_feature_idx)
+                print(len(all_features))
+                pdb.set_trace()
+
+            # all_features.append(node_feature_idx)
 
         Y = get_log_Y_YY(all_features, self.model.node_weight, dtype=np.float16)
 
