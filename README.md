@@ -8,7 +8,7 @@
     <a alt="Downloads">
         <img src="https://img.shields.io/pypi/dm/jiojio?color=yellow" /></a>
     <a alt="Version">
-        <img src="https://img.shields.io/badge/version-1.1.3-green" /></a>
+        <img src="https://img.shields.io/badge/version-1.1.4-green" /></a>
     <a href="https://github.com/dongrixinyu/jiojio/pulse" alt="Activity">
         <img src="https://img.shields.io/github/commit-activity/m/dongrixinyu/jiojio?color=blue" /></a>
 </p>
@@ -50,6 +50,10 @@ $ pip install jiojio
 - [**分词-添加正则**](../../wiki/jiojio-使用说明文档#user-content-分词-添加正则)
 - [**分词-增加词典**](../../wiki/jiojio-使用说明文档#user-content-分词-增加词典)
 - [**分词-调整 Viterbi 算子**](../../wiki/jiojio-使用说明文档#user-content-分词-调整-viterbi-算子)
+
+- [**词性标注**](../../wiki/jiojio-使用说明文档#user-content-词性标注)
+- [**词性标注-添加正则**](../../wiki/jiojio-使用说明文档#user-content-词性标注-添加正则)
+- [**词性标注-调整 Viterbi 算子**](../../wiki/jiojio-使用说明文档#user-content-词性标注-调整-viterbi-算子)
 
 # 关于 jiojio 分词器的一些问答
 - [与jiojio有关的问答](../../wiki/关于jiojio分词器的一些问答)

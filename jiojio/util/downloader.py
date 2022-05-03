@@ -34,9 +34,7 @@ def unzip_file(zip_file_path):
 def download_model(url, base_dir):
     """ 从远端下载模型压缩包 """
     file_name = url.split('/')[-1]
-    print('Start downloading `{}` model.'.format(file_name))
-    # 原始无 tqdm 版
-
+    print('Start downloading `{}` model. Please wait ...'.format(file_name))
 
     zip_file_path = os.path.join(base_dir, file_name)
     try:
@@ -45,6 +43,7 @@ def download_model(url, base_dir):
         tqdm = None
 
     if tqdm is None:
+        # 原始无 tqdm 版
         res = requests.get(url)
         with open(zip_file_path, 'wb') as fw:
             fw.write(res.content)
