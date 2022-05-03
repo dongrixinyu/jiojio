@@ -759,7 +759,7 @@ class POSFeatureExtractor(object):
         data['char'] = sorted(list(self.char))
         data['part'] = sorted(list(self.part))
         data['single_pos_word'] = sorted(list(self.single_pos_word))
-        data['feature_to_idx'] = self.feature_to_idx
+        data['feature_to_idx'] = list(self.feature_to_idx.keys())
         data['tag_to_idx'] = self.tag_to_idx
 
         feature_path = os.path.join(model_dir, 'features.json')
@@ -790,7 +790,9 @@ class POSFeatureExtractor(object):
             extractor.char = set(data['char'])
             extractor.part = set(data['part'])
             extractor.single_pos_word = set(data['single_pos_word'])
-            extractor.feature_to_idx = data['feature_to_idx']
+            feature_list = data['feature_to_idx']
+            extractor.feature_to_idx = dict(
+                [(feature, idx) for idx, feature in enumerate(feature_list)])
             extractor.tag_to_idx = data['tag_to_idx']
 
             # extractor.idx_to_tag = extractor._reverse_dict(extractor.tag_to_idx)

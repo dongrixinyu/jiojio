@@ -85,6 +85,9 @@ class CWSPredictText(object):
     def _cut(self, text):
         length = len(text)
         all_features = list()
+
+        # 每个节点的得分
+        # Y = np.empty((length, 2), dtype=np.float16)
         for idx in range(length):
 
             if self.get_node_features_c is None:
@@ -95,7 +98,6 @@ class CWSPredictText(object):
                 node_features = self.get_node_features_c(
                     idx, text, length, self.feature_extractor.unigram,
                     self.feature_extractor.bigram)
-                # pdb.set_trace()
 
             # 测试:
             # if node_features != self.feature_extractor.get_node_features(idx, text):
@@ -114,14 +116,11 @@ class CWSPredictText(object):
                     node_feature_idx.append(0)
 
             else:
-                # print(len(node_features), node_features)
                 node_feature_idx = self.cws_feature2idx_c(
                     node_features, self.feature_extractor.feature_to_idx)
-                # print(len(node_feature_idx), node_feature_idx)
-                # print(len(all_features), idx)
-                # pdb.set_trace()
 
-            # all_features.append(node_feature_idx)
+            all_features.append(node_feature_idx)
+            # Y[idx] = np.sum(node_weight[node_feature_idx], axis=0)
 
         Y = get_log_Y_YY(all_features, self.model.node_weight, dtype=np.float16)
 
@@ -136,7 +135,6 @@ class CWSPredictText(object):
         else:
             tags_idx = Y.argmax(axis=1).astype(np.int8)
 
-        # print(text)
         # print(tags_idx)
         # pdb.set_trace()
         return tags_idx

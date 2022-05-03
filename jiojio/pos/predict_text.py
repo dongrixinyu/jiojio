@@ -78,16 +78,6 @@ class POSPredictText(object):
             normalize_num_letter=pos_config.normalize_num_letter,
             convert_exception=pos_config.convert_exception)
 
-        '''
-        tmp = dict([(val, k) for k, val in self.feature_extractor.feature_to_idx.items()])
-        for i in range(len(tmp)):
-            if i not in tmp:
-                print(i)
-                pdb.set_trace()
-        print(len(tmp))
-        print(self.model.node_weight[0])
-        pdb.set_trace()
-        '''
         # C 方式调用
         self.get_node_features_c = pos_get_node_features_c
 
@@ -98,14 +88,14 @@ class POSPredictText(object):
         all_node_features = list()
         for idx in range(length):
 
-            if self.get_node_features_c is None:
-                # 以 python 方式计算，效率较低
-                node_features = self.feature_extractor.get_node_features(idx, words)
-            else:
-                # 以 C 方式计算，效率高
-                node_features = self.get_node_features_c(
-                    idx, words, len(words), self.feature_extractor.unigram,
-                    self.feature_extractor.bigram)
+            # if self.get_node_features_c is None:
+            #     # 以 python 方式计算，效率较低
+            node_features = self.feature_extractor.get_node_features(idx, words)
+            # else:
+            #     # 以 C 方式计算，效率高
+            #     node_features = self.get_node_features_c(
+            #         idx, words, len(words), self.feature_extractor.unigram,
+            #         self.feature_extractor.bigram)
 
             # if node_features != self.feature_extractor.get_node_features(idx, words):
             #     print(node_features)
@@ -123,6 +113,7 @@ class POSPredictText(object):
             all_features.append(node_feature_idx)
 
         Y = get_log_Y_YY(all_features, self.model.node_weight, dtype=self.dtype)
+        # pdb.set_trace()
         '''
         for idx in range(length):
             print(words[idx])

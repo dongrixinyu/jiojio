@@ -122,8 +122,8 @@ def cut(text):
     """ 对文本进行分词和词性标注 """
     if jiojio_pos_flag:
         words, norm_words, word_pos_map = jiojio_cws_obj.cut_with_pos(text)
-
         tags = jiojio_pos_obj.cut(norm_words, word_pos_map=word_pos_map)
+
         return [words, tags]
 
     else:
