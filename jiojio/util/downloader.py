@@ -11,6 +11,9 @@ import os
 import pdb
 import sys
 
+import zipfile
+import requests
+
 
 def unzip_file(zip_file_path):
     base_dir_path = os.path.dirname(zip_file_path)
@@ -31,11 +34,29 @@ def unzip_file(zip_file_path):
 def download_model(url, base_dir):
     """ 从远端下载模型压缩包 """
     file_name = url.split('/')[-1]
-    res = requests.get(url)
+    print('Start downloading `{}` model.'.format(file_name))
+    # 原始无 tqdm 版
+
 
     zip_file_path = os.path.join(base_dir, file_name)
-    with open(zip_file_path, 'wb') as fw:
-        fw.write(res.content)
+    try:
+        import tqdm
+    except:
+        tqdm = None
+
+    if tqdm is None:
+        res = requests.get(url)
+        with open(zip_file_path, 'wb') as fw:
+            fw.write(res.content)
+
+    else:
+        response = requests.get(url, stream=True)
+        with tqdm.tqdm.wrapattr(
+            open(zip_file_path, 'wb'), 'write', miniters=1, desc=file_name,
+            total=int(response.headers.get('content-length', 0))) as fout:
+
+            for chunk in response.iter_content(chunk_size=4096):
+                fout.write(chunk)
 
     unzip_file(zip_file_path)
 

@@ -37,7 +37,7 @@ class POSPredictText(object):
             model_dir = os.path.join(default_model_dir, 'default_pos_model')
 
             if not os.path.exists(model_dir):  # 下载模型
-                default_url = ''
+                default_url = 'https://github.com/dongrixinyu/jiojio/releases/download/v1.1.4/default_pos_model.zip'
                 download_model(default_url, default_model_dir)
 
         else:
@@ -113,16 +113,7 @@ class POSPredictText(object):
             all_features.append(node_feature_idx)
 
         Y = get_log_Y_YY(all_features, self.model.node_weight, dtype=self.dtype)
-        # pdb.set_trace()
-        '''
-        for idx in range(length):
-            print(words[idx])
-            print(all_node_features[idx])
-            print(all_features[idx])
-            print(Y[idx])
-            print(self.idx_to_tag[Y[idx].argmax()])
-            pdb.set_trace()
-        # '''
+
         # 添加词典
         if self.user_dict is not None:
             self.user_dict(words, Y)
