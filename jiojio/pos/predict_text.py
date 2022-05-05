@@ -36,8 +36,10 @@ class POSPredictText(object):
         if model_dir is None:
             model_dir = os.path.join(default_model_dir, 'default_pos_model')
 
-            if not os.path.exists(model_dir):  # 下载模型
+            if not os.path.exists(os.path.join(model_dir, 'weights.npz')):  # 下载模型
                 default_url = 'https://github.com/dongrixinyu/jiojio/releases/download/v1.1.4/default_pos_model.zip'
+                # 备用链接，也可用
+                # default_url = 'http://182.92.160.94:17777/jio_api/default_pos_model.zip'
                 download_model(default_url, default_model_dir)
 
         else:

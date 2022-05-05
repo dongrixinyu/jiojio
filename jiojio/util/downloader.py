@@ -10,6 +10,7 @@
 import os
 import pdb
 import sys
+import multiprocessing as mp
 
 import zipfile
 import requests
@@ -22,8 +23,8 @@ def unzip_file(zip_file_path):
     _zip_base_name = _zip_file.replace('.zip', '')
 
     target_dir_path = os.path.join(base_dir_path, _zip_base_name)
-    if os.path.exists(target_dir_path):
-        os.mkdirs(target_dir_path)
+    if not os.path.exists(target_dir_path):
+        os.mkdir(target_dir_path)
 
     with zipfile.ZipFile(zip_file_path, 'r') as zf:
         # print(zf.namelist())
@@ -37,26 +38,34 @@ def download_model(url, base_dir):
     print('Start downloading `{}` model. Please wait ...'.format(file_name))
 
     zip_file_path = os.path.join(base_dir, file_name)
-    try:
-        import tqdm
-    except:
-        tqdm = None
 
-    if tqdm is None:
-        # 原始无 tqdm 版
-        res = requests.get(url)
-        with open(zip_file_path, 'wb') as fw:
-            fw.write(res.content)
+    def _download(_url, _zip_file_path):
+        try:
+            import tqdm
+        except:
+            tqdm = None
 
-    else:
-        response = requests.get(url, stream=True)
-        with tqdm.tqdm.wrapattr(
-            open(zip_file_path, 'wb'), 'write', miniters=1, desc=file_name,
-            total=int(response.headers.get('content-length', 0))) as fout:
+        if tqdm is None:
+            # 原始无 tqdm 版
+            res = requests.get(_url)
+            with open(_zip_file_path, 'wb') as fw:
+                fw.write(res.content)
 
-            for chunk in response.iter_content(chunk_size=4096):
-                fout.write(chunk)
+        else:
+            response = requests.get(_url, stream=True)
 
+            with tqdm.tqdm.wrapattr(
+                open(_zip_file_path, 'wb'), 'write', miniters=1, desc=file_name,
+                total=int(response.headers.get('content-length', 0))) as fout:
+
+                for chunk in response.iter_content(chunk_size=4096):
+                    fout.write(chunk)
+
+
+    download_p = mp.Process(target=_download, args=(url, zip_file_path))
+    download_p.start()
+    download_p.join()
+    # pdb.set_trace()
     unzip_file(zip_file_path)
 
     print('Successfully download `{}` model.'.format(file_name))

@@ -31,13 +31,11 @@ try:
         ctypes.c_int, ctypes.c_wchar_p, ctypes.c_int, ctypes.py_object, ctypes.py_object]
     cws_get_node_features_c.restype = ctypes.py_object
 
-    print('# Successfully load C func `cws_get_node_features_c`.')
+    # print('# Successfully load C func `cws_get_node_features_c`.')
 
 except Exception:
     cws_get_node_features_c = None
-    print('# Failed to load C func `cws_get_node_features_c`, use py func instead.')
-    # print('# Failed to load C func `cws_get_node_features_c` {}.'.format(
-    #     traceback.format_exc()))
+    # print('# Failed to load C func `cws_get_node_features_c`, use py func instead.')
 
 
 # load `tag_words_converter_c`，加载分词的标签词汇转换 C 优化函数
@@ -54,13 +52,11 @@ try:
     # tag2word_c.argtypes = [ctypes.c_wchar_p, ctypes.py_object]
     cws_tag2word_c.restype = ctypes.py_object
 
-    print('# Successfully load C func `cws_tag2word_c`.')
+    # print('# Successfully load C func `cws_tag2word_c`.')
 
 except Exception:
     cws_tag2word_c = None
-    print('# Failed to load C func `cws_tag2word_c`, use py func instead.')
-    # print('# Failed to load C func `cws_tag2word_c` {}.'.format(
-    #     traceback.format_exc()))
+    # print('# Failed to load C func `cws_tag2word_c`, use py func instead.')
 
 
 # load `cws_feature2idx_c`，加载分词的标签词汇转换 C 优化函数
@@ -77,12 +73,18 @@ try:
     cws_feature2idx_c.argtypes = [ctypes.py_object, ctypes.py_object]
     cws_feature2idx_c.restype = ctypes.py_object
 
-    print('# Successfully load C func `cws_feature2idx_c`.')
+    # print('# Successfully load C func `cws_feature2idx_c`.')
 
 except:
     cws_feature2idx_c = None
-    print('# Failed to load C func `cws_feature2idx_c`, use py func instead.')
+    # print('# Failed to load C func `cws_feature2idx_c`, use py func instead.')
 
+if cws_get_node_features_c is not None and cws_tag2word_c is not None and cws_feature2idx_c is not None:
+    print('# Successfully load C funcs for acceleration.')
+elif cws_get_node_features_c is None and cws_tag2word_c is None and cws_feature2idx_c is None:
+    print('# Failed to load C funcs, use py func instead.')
+else:
+    print('# Loaded several C funcs, not all.')
 
 from .feature_extractor import CWSFeatureExtractor
 from .add_dict_to_model import CWSAddDict2Model
