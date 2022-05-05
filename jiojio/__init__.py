@@ -40,27 +40,21 @@ global jiojio_cws_obj, jiojio_pos_obj, jiojio_pos_flag
 
 def help():
     print('    `jiojio` is an efficient Chinese Word Segmenter and Part of Speech tool.\n' \
-          'It uses Python to wrap C for accelarating processing speed in CPU machines.\n')
-
-    print('    Here is an example for a quick start:\n' \
-          '>>> import jiojio\n' \
-          '>>> jiojio.init()\n' \
-          '>>> jiojio.cut("这是一个测试用例。")\n')
+          'It uses Python to wrap C for accelerating processing speed in CPU machines.\n' \
+          'Here is an example for a quick start:\n' \
+          '    >>> import jiojio\n' \
+          '    >>> jiojio.init()\n' \
+          '    >>> jiojio.cut("这是一个测试用例。")\n')
 
     print('    If you use computers with x86 structrue and linux OS, then when you execute\n' \
-          '`import jiojio` to get the following words\n' \
-          '```\n' \
-          '# Successfully load C func `cws_get_node_features_c`.\n' \
-          '# Successfully load C func `cws_tag2word_c`.\n' \
-          '```\n' \
-          '    It means that you can get fast processing speed with C code. Otherwise you \n' \
-          'would get the following words\n' \
-          '```\n' \
-          '# Failed to load C func `cws_get_node_features_c`, use py func instead.\n' \
-          '# Failed to load C func `cws_tag2word_c`, use py func instead.\n' \
-          '```\n' \
-          '    This does NOT mean `jiojio` is not being imported correctly. It means you could\n' \
-          'only run this tool relatively slow in Python methods.\n\n')
+          '`import jiojio` and get the words `# Successfully load C funcs for acceleration`,\n' \
+          'it means that you can get fast processing speed with C code.\n' \
+          '    Otherwise you would get `# Failed to load C funcs, use py func instead`.\n' \
+          'This does NOT mean `jiojio` is not being imported correctly. It means you could\n' \
+          'only run `jiojio` relatively slow in Python code.\n')
+
+    print('    If you have any questions, Github(https://github.com/dongrixinyu/jiojio) is\n' \
+          'available to raise a issue.')
 
 
 def init(cws_model_dir=None, cws_user_dict=None, pos=False,

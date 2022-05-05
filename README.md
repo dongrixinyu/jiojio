@@ -46,14 +46,13 @@ $ pip install jiojio
 
 # ['我', '爱', '北京', '天安门', '！']
 ```
-### 其它参数与设置
-- [**分词-添加正则**](../../wiki/jiojio-使用说明文档#user-content-分词-添加正则)
-- [**分词-增加词典**](../../wiki/jiojio-使用说明文档#user-content-分词-增加词典)
-- [**分词-调整 Viterbi 算子**](../../wiki/jiojio-使用说明文档#user-content-分词-调整-viterbi-算子)
-
-- [**词性标注**](../../wiki/jiojio-使用说明文档#user-content-词性标注)
-- [**词性标注-添加正则**](../../wiki/jiojio-使用说明文档#user-content-词性标注-添加正则)
-- [**词性标注-调整 Viterbi 算子**](../../wiki/jiojio-使用说明文档#user-content-词性标注-调整-viterbi-算子)
+- 其它参数与设置
+    - [**分词-添加正则**](../../wiki/jiojio-使用说明文档#user-content-分词-添加正则)
+    - [**分词-增加词典**](../../wiki/jiojio-使用说明文档#user-content-分词-增加词典)
+    - [**分词-调整 Viterbi 算子**](../../wiki/jiojio-使用说明文档#user-content-分词-调整-viterbi-算子)
+    - [**词性标注**](../../wiki/jiojio-使用说明文档#user-content-词性标注)
+    - [**词性标注-添加正则**](../../wiki/jiojio-使用说明文档#user-content-词性标注-添加正则)
+    - [**词性标注-调整 Viterbi 算子**](../../wiki/jiojio-使用说明文档#user-content-词性标注-调整-viterbi-算子)
 
 # 关于 jiojio 分词器的一些问答
 - [与jiojio有关的问答](../../wiki/关于jiojio分词器的一些问答)
