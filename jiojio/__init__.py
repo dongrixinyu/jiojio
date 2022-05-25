@@ -8,7 +8,7 @@
 
 
 __doc__ = 'jiojio: for fast Chinese Word Segmentation(CWS) and Part of Speech(POS) based on CPU.'
-__version__ = '1.1.4'
+__version__ = '1.1.5'
 
 
 import os
@@ -118,7 +118,7 @@ def cut(text):
         words, norm_words, word_pos_map = jiojio_cws_obj.cut_with_pos(text)
         tags = jiojio_pos_obj.cut(norm_words, word_pos_map=word_pos_map)
 
-        return [words, tags]
+        return [(w, t) for w, t in zip(words, tags)]
 
     else:
         words = jiojio_cws_obj.cut(text)
