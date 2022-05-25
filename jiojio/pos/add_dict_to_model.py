@@ -29,12 +29,14 @@ class POSAddDict2Model(object):
                               os.path.abspath(__file__)), 'pos_types.yml'),
                           'r', encoding='utf-8') as f:
                     self.pos_types = yaml.load(f, Loader=yaml.SafeLoader)
+            self.tag_to_idx = dict(
+                [(t, i) for i, t in enumerate(sorted(list(self.pos_types['model_type'].keys())))])
 
     def _add_dict(self, user_dict_path):
 
         self.word_pos_obj = dict()
         for idx, line in enumerate(read_file_by_iter(user_dict_path)):
-            if line.count('\t') == 1:
+            if line.count('\t') == 2:
                 word, pos, weight = line.strip().split('\t')
                 weight = float(weight)
                 self.word_pos_obj.update({word: [pos, weight]})
@@ -46,7 +48,7 @@ class POSAddDict2Model(object):
             else:
                 logging.warn('`{}` is illegal.'.format(line))
 
-        logging.info('add {} words to user_dict.'.format(idx + 1))
+        logging.info('add {} words to pos_user_dict.'.format(idx + 1))
 
     def __call__(self, word_list, node_states):
         """为节点状态添加词汇权重，软性增强词汇被识别的能力
@@ -62,5 +64,6 @@ class POSAddDict2Model(object):
         text_length = len(word_list)
         for idx, word in enumerate(word_list):
             if word in self.word_pos_obj:
+
                 pos_type, weight = self.word_pos_obj[word]
-                node_states[idx][pos_type] += weight
+                node_states[idx][self.tag_to_idx[pos_type]] += weight

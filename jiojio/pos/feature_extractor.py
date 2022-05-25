@@ -359,10 +359,7 @@ class POSFeatureExtractor(object):
         with open(unk_words_path, 'w', encoding='utf-8') as fw:
             json.dump(list(unk_words), fw, ensure_ascii=False, indent=4, separators=(',', ':'))
 
-        # 对词长特征的构建
-        unigram_len_feature = list()
-        for i in range(0, 10):
-            unigram_len_feature.append(self.word_current_length + str(i))
+        # 对词长特征的构建 - 此种特征实际上对词性没有独特性区分性，会将大量的2字词错误化为 名词 或 动词
 
         # 3、统计具有歧义词性的词汇，即某个词汇具有两种或多种词性
         #   1、“信息通信”：“通信”为名词
@@ -419,10 +416,6 @@ class POSFeatureExtractor(object):
         logging.info('# {:.2%} features are saved.'.format(
             feature_count_sum / sum(list(feature_freq.values()))))
 
-        for len_feature in unigram_len_feature:
-            if len_feature not in feature_set:
-                feature_set.append(len_feature)
-
         self.feature_to_idx = {feature: idx for idx, feature in enumerate(feature_set, 0)}
         logging.info('# true feature_num: {}'.format(len(self.feature_to_idx)))
 
@@ -470,12 +463,9 @@ class POSFeatureExtractor(object):
         # next_2_rights = list()
 
         # 一、添加词长特征，例如，中文人名常为 2、3 个字，日本人名常为 4 个字，动词常为 1、2 字
-        # 俗语长度常为 4 个字等
+        # 俗语长度常为 4 个字等，此种特征被淘汰，不适用于词性标注，会将大量的二字词分为名词或动词
         cur_w_length = len(cur_w)
-        if cur_w_length <= 9:
-            feature_list.append(self.word_current_length + str(cur_w_length))
-        else:
-            feature_list.append(self.word_current_length + '0')
+
         '''
         if idx > 1:
             before_w2 = token_list[idx - 2]

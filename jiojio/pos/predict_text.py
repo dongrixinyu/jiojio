@@ -114,6 +114,7 @@ class POSPredictText(object):
             #                        node_features)
             all_features.append(node_feature_idx)
 
+        # pdb.set_trace()
         Y = get_log_Y_YY(all_features, self.model.node_weight, dtype=self.dtype)
 
         # 添加词典

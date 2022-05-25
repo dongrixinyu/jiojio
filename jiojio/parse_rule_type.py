@@ -139,10 +139,11 @@ class Extractor(object):
         text = ''.join(['￥', text, '￥'])  # 因 # 可能出现在 url 中
 
         results_list = list()
-        results_list.extend(self.extract_email(text))
-        results_list.extend(self.extract_id_card(text))
-        results_list.extend(self.extract_ip_address(text))
+
+        results_list.extend(self._extract_base(self.url_pattern, text, typing='url'))
+        results_list.extend(self._extract_base(self.email_pattern, text, typing='email'))
+        results_list.extend(self._extract_base(self.id_card_pattern, text, typing='id'))
+        results_list.extend(self._extract_base(self.ip_address_pattern, text, typing='ip'))
         results_list.extend(self.extract_phone_number(text))
-        results_list.extend(self.extract_url(text))
 
         return results_list

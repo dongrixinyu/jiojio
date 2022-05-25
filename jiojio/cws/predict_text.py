@@ -151,9 +151,20 @@ class CWSPredictText(object):
         start_flag = False
         end_flag = False
 
-        rule_res_list = sorted(rule_res_list, key=lambda item: item['o'][0])
-        rule_res_length = len(rule_res_list)
-        # pdb.set_trace()
+        if len(rule_res_list) == 1:
+            rule_res_length = 1
+        else:
+            _rule_res_list = sorted(rule_res_list, key=lambda item: item['o'][0])
+
+            # 将错误的信息进行过滤
+            rule_res_list = [_rule_res_list[0]]
+            for item in _rule_res_list[1:]:
+                if item['o'][0] < rule_res_list[-1]['o'][1]:
+                    continue
+                rule_res_list.append(item)
+
+            rule_res_length = len(rule_res_list)
+
         seg_list = list()
         for idx in range(rule_res_length):
             item = rule_res_list[idx]['o']

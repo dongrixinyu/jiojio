@@ -37,7 +37,7 @@ class CWSAddDict2Model(object):
                 logging.warn('`{}` is illegal.'.format(line))
 
             self.trie_tree_obj.add_node(word.lower(), weight)  # 要先预处理 TODO
-        logging.info('add {} words to user_dict.'.format(idx + 1))
+        logging.info('add {} words to cws_user_dict.'.format(idx + 1))
 
     def __call__(self, text, node_states):
         """为节点状态添加词汇权重，软性增强词汇被识别的能力
