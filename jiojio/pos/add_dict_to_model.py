@@ -61,7 +61,6 @@ class POSAddDict2Model(object):
             (numpy.Array): 根据模型增强后的矩阵，该类型无需返回值
 
         """
-        text_length = len(word_list)
         for idx, word in enumerate(word_list):
             if word in self.word_pos_obj:
 

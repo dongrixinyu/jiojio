@@ -19,7 +19,7 @@ from .tag_words_converter import word2tag, tag2word
 from jiojio.pre_processor import PreProcessor
 
 
-def get_slice_str(iterator_obj, start, length, all_len):
+def get_slice_str(iterator_obj, start, length):
     # 截取字符串，其中，iterable 为字、词列表
 
     # 此逻辑非必须，python 默认当索引越界时，按 空 返回
@@ -383,7 +383,7 @@ class CWSFeatureExtractor(object):
             # 字符为起始位特征
             feature_list.append(self.start_feature)
 
-        if idx < len(token_list) - 1:
+        if idx < length - 1:
             next_c = token_list[idx + 1]
             # 后一个字特征
             feature_list.append(self.char_next + next_c)
@@ -401,7 +401,7 @@ class CWSFeatureExtractor(object):
             # feature_list.append(self.char_before_2_1 + before_c2 + self.delim + before_c)
             feature_list.append(self.char_before_2_current + before_c2 + self.delim + cur_c)
 
-        if idx < len(token_list) - 2:
+        if idx < length - 2:
             next_c2 = token_list[idx + 2]
             # 后第二字特征
             feature_list.append(self.char_next_2 + next_c2)
@@ -416,7 +416,7 @@ class CWSFeatureExtractor(object):
             # 前三字和当前字组合
             feature_list.append(self.char_before_3_current + before_c3 + self.delim + cur_c)
 
-        if idx < len(token_list) - 3:
+        if idx < length - 3:
             next_c3 = token_list[idx + 3]
             # 后第三字特征
             feature_list.append(self.char_next_3 + next_c3)
@@ -440,24 +440,24 @@ class CWSFeatureExtractor(object):
             # 这主要由跨字的“字对”特征来实现并处理，比如：当前字和后第三字组合特征
             # 但这种方式带有一定的局限性，即对于特定的成语或更长的固定搭配不具有特定的特征
             if pre_list_in is None:
-                pre_in_tmp = get_slice_str(token_list, idx - l + 1, l, length)
+                pre_in_tmp = get_slice_str(token_list, idx - l + 1, l)
                 if pre_in_tmp in self.unigram:
                     feature_list.append(self.word_before + pre_in_tmp)
                     pre_list_in = pre_in_tmp  # 列表或字符串，关系计算速度
 
             if post_list_in is None:
-                post_in_tmp = get_slice_str(token_list, idx, l, length)
+                post_in_tmp = get_slice_str(token_list, idx, l)
                 if post_in_tmp in self.unigram:
                     feature_list.append(self.word_next + post_in_tmp)
                     post_list_in = post_in_tmp
 
             if pre_list_ex is None:
-                pre_ex_tmp = get_slice_str(token_list, idx - l, l, length)
+                pre_ex_tmp = get_slice_str(token_list, idx - l, l)
                 if pre_ex_tmp in self.unigram:
                     pre_list_ex = pre_ex_tmp
 
             if post_list_ex is None:
-                post_ex_tmp = get_slice_str(token_list, idx + 1, l, length)
+                post_ex_tmp = get_slice_str(token_list, idx + 1, l)
                 if post_ex_tmp in self.unigram:
                     post_list_ex = post_ex_tmp
             # else:

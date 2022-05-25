@@ -21,10 +21,6 @@ from jiojio.pre_processor import PreProcessor
 from . import pos_get_node_features_c
 
 
-def get_slice_str(iterator_obj, start, length, all_len):
-    return iterator_obj[start: start + length]
-
-
 class POSFeatureExtractor(object):
 
     def __init__(self, config):
@@ -570,7 +566,7 @@ class POSFeatureExtractor(object):
                     feature_list.append(self.char_current_5 + cur_w[-2])
                     feature_list.append(self.char_current_6 + cur_w[-1])
 
-        if idx < len(token_list) - 1:
+        if idx < length - 1:
             next_w = token_list[idx + 1]
             # 后一个词特征
             if next_w in self.unigram:
@@ -599,7 +595,7 @@ class POSFeatureExtractor(object):
             feature_list.append(self.end_feature)
 
         '''
-        if idx < len(token_list) - 2:
+        if idx < length - 2:
             next_w2 = token_list[idx + 2]
 
             if next_w2 in self.unigram:
