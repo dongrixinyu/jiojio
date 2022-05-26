@@ -13,6 +13,7 @@ __version__ = '1.1.5'
 
 import os
 import pdb
+import yaml
 
 from multiprocessing import Process, Queue, get_start_method
 
@@ -124,6 +125,16 @@ def cut(text):
         words = jiojio_cws_obj.cut(text)
 
         return words
+
+
+def pos_types():
+    """ 打印并返回 POS 的词性类型 """
+    pos_types_path = os.path.join(os.path.dirname(__file__), 'pos/pos_types.yml')
+
+    with open(pos_types_path, 'r', encoding='utf-8') as f:
+        pos_types = yaml.load(f, Loader=yaml.SafeLoader)
+
+    return pos_types
 
 
 def train(train_file, test_file, train_dir=None,
