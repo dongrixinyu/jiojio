@@ -38,7 +38,7 @@ do
 
     # 删除 索引构建文件，避免影响下一次
     if [ -d build ]; then
-        rm -rf build/*
+        rm -rf build
     fi
     if [ -d jiojio.egg-info ]; then
         rm -rf jiojio.egg-info
