@@ -25,12 +25,12 @@
 - 支持词性标注功能，与 [**JioNLP**](https://github.com/dongrixinyu/JioNLP) 联合实现**关键短语抽取**、**新闻地域识别** 等功能
 
 # 安装
-- pip 方式
+- pip 方式（稳定版本）
 ```
 $ pip install jiojio
 ```
 
-- Git 方式
+- Git 方式（开发版本）
 ```
 $ git clone https://github.com/dongrixinyu/jiojio
 $ cd jiojio
@@ -61,5 +61,5 @@ $ pip install .
 - [与jiojio有关的问答](../../wiki/关于jiojio分词器的一些问答)
 
 # TODO
-- 开发分词在线版 [**JioNLP在线版**](http://182.92.160.94:16666/#/) 可快速试用分词功能
+- 开发分词在线版 [**JioNLP在线版**](http://182.92.160.94:16666/#/cws_pos) 可快速试用分词功能
 - 对分词器效果做**长期优化**
