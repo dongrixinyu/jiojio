@@ -1,12 +1,12 @@
 # **jiojio**
-### - 简便中文分词器 a convenient Chinese word segmentation tool
+### - 基于CPU的高性能、持续迭代、简便中文分词器 a convenient Chinese word segmentation tool
 <p align="center">
     <a alt="License">
         <img src="https://img.shields.io/github/license/dongrixinyu/jiojio?color=crimson" /></a>
     <a alt="Size">
         <img src="https://img.shields.io/badge/size-30.1m-orange" /></a>
     <a alt="Downloads">
-        <img src="https://img.shields.io/pypi/dm/jiojio?color=yellow" /></a>
+        <img src="https://pepy.tech/badge/jiojio/month" /></a>
     <a alt="Version">
         <img src="https://img.shields.io/badge/version-1.1.6-green" /></a>
     <a href="https://github.com/dongrixinyu/jiojio/pulse" alt="Activity">
