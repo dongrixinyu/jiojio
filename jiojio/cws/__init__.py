@@ -80,11 +80,11 @@ except:
     # print('# Failed to load C func `cws_feature2idx_c`, use py func instead.')
 
 if cws_get_node_features_c is not None and cws_tag2word_c is not None and cws_feature2idx_c is not None:
-    print('# Successfully load C funcs for acceleration.')
+    print('# jiojio - Successfully load C funcs for acceleration.')
 elif cws_get_node_features_c is None and cws_tag2word_c is None and cws_feature2idx_c is None:
-    print('# Failed to load C funcs, use py func instead.')
+    print('# jiojio - Failed to load C funcs, use py func instead.')
 else:
-    print('# Loaded several C funcs, not all.')
+    print('# jiojio - Loaded several C funcs, not all.')
 
 from .feature_extractor import CWSFeatureExtractor
 from .add_dict_to_model import CWSAddDict2Model
