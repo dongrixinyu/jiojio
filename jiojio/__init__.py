@@ -111,6 +111,7 @@ def init(cws_model_dir=None, cws_user_dict=None, pos=False,
             with_viterbi=pos_with_viterbi, pos_rule_types=pos_rule)
     else:
         jiojio_pos_flag = False
+        jiojio_pos_obj = None
 
 
 def cut(text):
