@@ -26,12 +26,12 @@ try:
         ctypes.c_int, ctypes.c_wchar_p, ctypes.c_int, ctypes.py_object, ctypes.py_object]
     pos_get_node_features_c.restype = ctypes.py_object
 
-    # print('# Successfully load C func `pos_get_node_features_c`.')
+    # print('# jiojio - Successfully load C func `pos_get_node_features_c`.')
     pos_get_node_features_c = None
 except Exception:
     pos_get_node_features_c = None
-    # print('# Failed to load C func `pos_get_node_features_c`, use py func instead.')
-    # print('# Failed to load C func `pos_get_node_features_c` {}.'.format(
+    # print('# jiojio - Failed to load C func `pos_get_node_features_c`, use py func instead.')
+    # print('# jiojio - Failed to load C func `pos_get_node_features_c` {}.'.format(
     #     traceback.format_exc()))
 
 

@@ -1,5 +1,6 @@
 # **jiojio**
-### - 基于CPU的高性能、持续迭代、简便中文分词器 a convenient Chinese word segmentation tool
+### - 基于CPU的高性能、持续迭代、简便中文分词器
+### a convenient Chinese word segmentation tool
 <p align="center">
     <a alt="License">
         <img src="https://img.shields.io/github/license/dongrixinyu/jiojio?color=crimson" /></a>

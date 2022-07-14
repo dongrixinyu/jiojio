@@ -17,7 +17,7 @@ class TrieTree(object):
     def __init__(self):
         self.dict_trie = dict()
         self.depth = 0
-        self.exception_list = ['', '\t', ' ', '\r']
+        self.exception_list = ['', '\t', ' ', '\r', '\u3000']
 
     def add_node(self, word, typing):
         """
@@ -39,11 +39,11 @@ class TrieTree(object):
                     tree = tree[char]
             if depth > self.depth:
                 self.depth = depth
-            if 't' in tree and tree['t'] != typing:
+            if '_t' in tree and tree['_t'] != typing:
                 print('`{}` belongs to both `{}` and `{}`.'.format(
-                    word, tree['t'], typing))
+                    word, tree['_t'], typing))
             else:
-                tree['t'] = typing
+                tree['_t'] = typing
 
     def build_trie_tree(self, dict_list, typing):
         """ 创建 trie 树 """
@@ -62,8 +62,8 @@ class TrieTree(object):
             if char in tree:
                 tree = tree[char]
                 step += 1
-                if 't' in tree:
-                    res = (step, tree['t'])
+                if '_t' in tree:
+                    res = (step, tree['_t'])
             else:
                 break
 
