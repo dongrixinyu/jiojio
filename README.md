@@ -8,7 +8,7 @@
     <a alt="Downloads">
         <img src="https://pepy.tech/badge/jiojio/month" /></a>
     <a alt="Version">
-        <img src="https://img.shields.io/badge/version-1.1.6-green" /></a>
+        <img src="https://img.shields.io/badge/version-1.1.7-green" /></a>
     <a href="https://github.com/dongrixinyu/jiojio/pulse" alt="Activity">
         <img src="https://img.shields.io/github/commit-activity/m/dongrixinyu/jiojio?color=blue" /></a>
 </p>
@@ -18,7 +18,7 @@
 
 # 功能
 - 基于 C 优化的 Python 接口分词器，单进程运行性能达 **5.2 万字/秒**，[**多个分词工具性能对比**](https://github.com/dongrixinyu/jiojio/wiki/多种常见开源分词工具的性能对比)
-- 网页版 [**jiojio_online**](http://182.92.160.94:16666/#/cws_pos)，可快速试用分词、词性标注功能
+- 网页版 [**jiojio_online**](http://www.jionlp.com/)，可快速试用分词、词性标注功能
 - 基于 CRF 算法，精细优化的 **字符特征工程**，[**模型特征说明**](https://github.com/dongrixinyu/jiojio/wiki/jiojio-分词CRF特征总结)
 - 对模型文件的尽力压缩，**500万特征参数，模型文件大小30M**，方便 pip 安装
 - 将词典加入模型，共同预测分词序列，流程一致性强，[**词典配置说明**](https://github.com/dongrixinyu/jiojio/wiki/向分词模型添加自定义词典)
