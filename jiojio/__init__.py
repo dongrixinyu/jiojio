@@ -5,10 +5,11 @@
 # Email: dongrixinyu.89@163.com
 # Github: https://github.com/dongrixinyu/jiojio
 # Description: fast Chinese Word Segmentation(CWS) and Part of Speech(POS) based on CPU.'
+# Website: http://www.jionlp.com/
 
 
 __doc__ = 'jiojio: for fast Chinese Word Segmentation(CWS) and Part of Speech(POS) based on CPU.'
-__version__ = '1.1.7'
+__version__ = '1.1.8'
 
 
 import os

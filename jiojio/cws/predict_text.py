@@ -121,6 +121,7 @@ class CWSPredictText(object):
 
             all_features.append(node_feature_idx)
             # Y[idx] = np.sum(node_weight[node_feature_idx], axis=0)
+            # pdb.set_trace()
 
         Y = get_log_Y_YY(all_features, self.model.node_weight, dtype=np.float16)
 

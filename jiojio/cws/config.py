@@ -24,15 +24,17 @@ class Config(object):
                                       'models/default_cws_model')
 
         # training params
+        self.build_train_temp_files = False  # True 表示重新制作训练临时文件，False 表示直接加载旧的
         self.initial_learning_rate = 0.015  # 梯度初始值
-        self.dropping_rate = 0.12  # 维持学习速率，越大则下降越快(0~1) 推荐(0.7~0.999)
-        self.random_init = True  # False for 0-init of model weights, True for random init of model weights
-        self.train_epoch = 7  # 训练迭代次数
-        self.mini_batch = 4000  # mini-batch in stochastic training
+        self.dropping_rate = 0.38  # 维持学习速率，越大则下降越快(0~1) 推荐(0.7~0.999)
+        self.random_init = False  # False for 0-init of model weights, True for random init of model weights
+        self.train_epoch = 4  # 7  # 训练迭代次数
+        self.mini_batch = 80000  # mini-batch in stochastic training
         self.nThread = 20  # number of processes in testing and training
         self.regularization = True  # 建议保持
-        self.sample_ratio = 0.02  # 抽取总数据集中做训练中途验证的数据集比例
-        self.interval = 50  # 按多少间隔 batch 打印日志
+        self.sample_ratio = 0.01  # 抽取总数据集中做训练中途验证的数据集比例
+        self.interval = 20  # 按多少间隔 batch 打印日志
+        self.process_num = 40  # 选取多少进程进行并行处理
 
         self.feature_train_file = os.path.join(self.train_dir, 'feature_train.txt')
         self.gold_train_file = os.path.join(self.train_dir, 'gold_train.txt')
@@ -47,8 +49,8 @@ class Config(object):
 
         self.feature_trim = 20  # 普通特征的删减数值 (20/3)
         self.gap_1_feature_trim = 35  # 间隔为1的删减阈值(30/4)
-        self.gap_2_feature_trim = 65  # 带有 2 个字的跨度的特征删除量 (60/7)
-        self.gap_3_feature_trim = 80  # 带有 3 个字的跨度的特征删除量 (80/10)
+        self.gap_2_feature_trim = 66  # 带有 2 个字的跨度的特征删除量 (60/7)
+        self.gap_3_feature_trim = 82  # 带有 3 个字的跨度的特征删除量 (80/10)
         self.unigram_feature_trim = 40  # 单词特征的数量 (80/4)
         self.bigram_feature_trim = 5  # 单词特征的数量 (6/2)
         # self.word_feature = True  # 需要返回 词汇 特征，若丢弃词汇特征，则计算耗时减少 30~40%

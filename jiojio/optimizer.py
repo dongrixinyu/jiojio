@@ -78,7 +78,7 @@ class SGD(Optimizer):
                 XX.append(self.dataset[i])  # 小 batch 样本
 
             error, feature_set, bi_ratio_grad = get_grad_SGD_minibatch(
-                node_grad, edge_grad, self._model, XX)
+                node_grad, edge_grad, self._model, XX, process_num=self.config.process_num)
             error_list.append(error)
 
             # update decay rates

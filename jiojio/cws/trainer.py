@@ -28,7 +28,7 @@ def train(config):
 
     feature_extractor = CWSFeatureExtractor(config)
 
-    if True:  # 否则直接加载内置的已预处理的数据集文件
+    if config.build_train_temp_files:
         # 构建 特征数据集
         with TimeIt('# build datasets'):
             feature_extractor.build(config.train_file)
@@ -41,6 +41,7 @@ def train(config):
                 config.test_file, config.feature_test_file, config.gold_test_file)
 
     else:
+        # 否则直接加载内置的已预处理的数据集文件
         feature_extractor = feature_extractor.load(config, config.model_dir)
 
     logging.info("\nstart training ...")
@@ -61,10 +62,10 @@ def train(config):
             if i == config.train_epoch - 1:  # 最后一个 epoch 用全量
                 sample_ratio = 1
             else:
-                sample_ratio = config.sample_ratio  # 仅用全数据量的 5% 做训练中验证
+                sample_ratio = config.sample_ratio  # 仅用全数据量的少量数据做训练中验证
 
             train_valid_set = DataSet.load(
-                config.feature_train_file, config.gold_train_file, sample_ratio=sample_ratio)
+                config.feature_train_file, config.gold_train_file, sample_ratio=config.sample_ratio)
             test_valid_set = DataSet.load(
                 config.feature_test_file, config.gold_test_file, sample_ratio=sample_ratio)
 
@@ -80,43 +81,47 @@ def train(config):
             average_weight = np.sum(trainer.model.node_weight) / len(trainer.model.node_weight)
             average_abs_weight = np.sum(np.abs(trainer.model.node_weight)) / len(trainer.model.node_weight)
         # pdb.set_trace()
-        logging.info("- epoch {}: \n"
-                     "\t- diff={:.4f}  error={:.4f}\n"
-                     "\t- max-weight={:.4f}  min-weight={:.4f}\n"
-                     "\t  average-weight={:.4f}  average-abs-weight={:.4f}".format(
-                         i, diff, err, max_weight, min_weight,
-                         average_weight, average_abs_weight))
+        logging.info(
+            "- epoch {}: \n"
+            "\t- diff={:.4f}  error={:.4f}\n"
+            "\t- max-weight={:.4f}  min-weight={:.4f}\n"
+            "\t  average-weight={:.4f}  average-abs-weight={:.4f}".format(
+                i, diff, err, max_weight, min_weight,
+                average_weight, average_abs_weight))
 
         logging.info('saving the epoch model.')
         feature_extractor.save()
         trainer.model.save()
         logging.info('-' * 50 + '\n')
 
-    # 重新整理参数，将哪些不生效的参数剔除，例如，node_score 中，B 和 I 的值几乎相同，且远低于特征的平均值
+    # 重新整理参数，将那些不生效的参数剔除，例如，node_score 中，B 和 I 的值几乎相同，且远低于特征的平均值
+    '''  # 可删除的参数过少，可以忽略，仅占 0.018%
     new_node_weight, new_feature_to_idx = params_cut(
         trainer.model.node_weight, feature_extractor.feature_to_idx)
     trainer.model.node_weight = new_node_weight
     feature_extractor.feature_to_idx = new_feature_to_idx
     trainer.model.n_feature = new_node_weight.shape[0]
-
-    feature_extractor.save()
-    trainer.model.save()
+    '''
+    # feature_extractor.save()
+    # trainer.model.save()
     config.to_json()
 
     logging.info("finished.")
 
 
 def params_cut(node_weight, feature_to_idx):
+    # 删除哪些权重区分度极低的参数
     idx_to_feature = dict([(value, key) for key, value in feature_to_idx.items()])
 
     weight_gap = 1e-4  # 由 np.float16 的最小分辨精度决定
-    weight_max_mean = node_weight.max(axis=1).mean()
+    # weight_max_mean = node_weight.max(axis=1).mean()
 
     new_feature_list = list()
     new_node_weight_list = list()
     params_being_cut = list()
+    pdb.set_trace()
     for idx in range(node_weight.shape[0]):
-        if node_weight[idx].max() - node_weight[idx].min() < weight_gap:
+        if node_weight[idx].max() - node_weight[idx].min() <= weight_gap:
             # 权重分布均匀，无较大的区分度
             params_being_cut.append(idx_to_feature[idx])
             continue
@@ -145,7 +150,7 @@ class Trainer(object):
         self.n_feature = dataset.n_feature
         self.n_tag = dataset.n_tag
 
-        self.model = Model(config, self.n_feature, self.n_tag)
+        self.model = Model(config, self.n_feature, self.n_tag, task='cws')
 
         self.optim = self._get_optimizer(dataset, self.model)
 

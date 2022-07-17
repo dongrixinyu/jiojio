@@ -86,13 +86,15 @@ class Model(object):
                 node_weight_expand = np.expand_dims(node_weight, axis=1)
                 node_weight = np.concatenate((node_weight_expand, - node_weight_expand), axis=1)
 
-                # 整理参数集
-                opposite_diff_path = os.path.join(model_dir, 'opposite_diff.json')
+                # 整理参数集，节约存储空间
+                opposite_diff_path = os.path.join(model_dir, 'opposite_diff.txt')
                 if os.path.exists(opposite_diff_path):
                     with open(opposite_diff_path, 'r', encoding='utf-8') as fr:
-                        opposite_diff_json = json.load(fr)
-                    for key, val in opposite_diff_json.items():
-                        node_weight[int(key)] = np.array([float(val[0]), float(val[1])], dtype=dtype)
+
+                        for line in fr.readlines():
+                            key, value = line.strip().split('\t')
+                            node_weight[int(key)][1] = float(value)
+                            # pdb.set_trace()
 
                 model = cls.__new__(cls)
                 model.n_tag = int(sizes[0])
@@ -110,36 +112,40 @@ class Model(object):
 
             raise FileNotFoundError('the model file `{}` does not exist.'.format(model_path))
 
-
     def save(self):
-        if task is None:
+        if self.task is None:
             sizes = np.array([self.n_tag, self.n_feature])
             np.savez(os.path.join(self.config.model_dir, 'weights.npz'),
                 sizes=sizes, bi_ratio=self.bi_ratio,
                 node_weight=self.node_weight, edge_weight=self.edge_weight)
 
-        elif task == 'cws':
+        elif self.task == 'cws':
             # 重新调整 node_weight 的压缩
             weight_gap = 0.0001  # 该权重指 np.float16 可分辨最小精度，故可默认选取
             opposite_diff_dict = dict()
             for idx in range(self.node_weight.shape[0]):
                 tmp_node_weight = self.node_weight[idx]
                 if abs(tmp_node_weight[0] + tmp_node_weight[1]) > weight_gap:
-                    tmp_list = list()
-                    tmp_list.append('{:.4f}'.format(float(tmp_node_weight[0])))
-                    tmp_list.append('{:.4f}'.format(float(tmp_node_weight[1])))
-                    opposite_diff_dict.update({idx: tmp_list})
+                    # format 格式化将造成某些权重小于万分位的出错，但几乎不影响模型性能
+                    tmp_str = '{:.4f}'.format(float(tmp_node_weight[1]))
+                    opposite_diff_dict.update({idx: tmp_str})
 
-            new_node_weight = self.node_weight[:, 0]
+            new_node_weight = np.array(self.node_weight[:, 0], dtype=np.float16)  # 默认的压缩精度
+            new_edge_weight = np.array(self.edge_weight, dtype=np.float16)
             logging.info('opposite num: {}, percent: {:.3%}'.format(
                 len(opposite_diff_dict), len(opposite_diff_dict) / self.node_weight.shape[0]))
 
             sizes = np.array([self.n_tag, self.n_feature])
             np.savez(os.path.join(self.config.model_dir, 'weights.npz'),
                 sizes=sizes, bi_ratio=self.bi_ratio,
-                node_weight=new_node_weight, edge_weight=self.edge_weight)
+                node_weight=new_node_weight, edge_weight=new_edge_weight)
 
-            # 写入新文件 opposite_diff.json
-            with open(os.path.join(self.config.model_dir, 'opposite_diff.json'),
+            # np.savez(os.path.join(self.config.model_dir, 'orig_weights.npz'),
+            #     sizes=sizes, bi_ratio=self.bi_ratio,
+            #     node_weight=self.node_weight, edge_weight=self.edge_weight)
+
+            # 写入新文件 opposite_diff.txt
+            with open(os.path.join(self.config.model_dir, 'opposite_diff.txt'),
                       'w', encoding='utf-8') as fw:
-                json.dump(opposite_diff_dict, fw, ensure_ascii=False)
+                for key, value in opposite_diff_dict.items():
+                    fw.write(str(key) + '\t' + value + '\n')

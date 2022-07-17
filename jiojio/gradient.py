@@ -7,9 +7,11 @@
 # Description: fast Chinese Word Segmentation(CWS) and Part of Speech(POS) based on CPU.'
 
 import pdb
+import copy
 import time
 import numpy as np
 from typing import List
+import multiprocessing as mp
 
 from jiojio.dataset import Sample
 from jiojio.model import Model
@@ -17,31 +19,61 @@ from jiojio.inference import get_Y_YY, get_beliefs, bi_ratio_loss, \
     get_masked_beliefs, Belief, MaskedBelief
 
 
+def combine_two_dict(dict_1, dict_2):
+    # 将两个统计 dict 合二为一
+
+    for key in dict_2:
+        if key in dict_1:
+            dict_1[key] += dict_2[key]
+
+        else:
+            dict_1.update({key: dict_2[key]})
+
+    return dict_1
+
+
 def get_grad_SGD_minibatch(node_grad: np.ndarray, edge_grad: np.ndarray,
-                           model: Model, X: List[Sample]):
+                           model: Model, X: List[Sample], process_num=4):
     feature_id_dict = dict()
     errors = 0
     total_num = 0
     total_with_edge_num = 0
     total_with_delta_edge_num = 0
-    for x in X:
-        # start_time = time.time()
-        error, feature_id_set, node_num, with_edge_num, with_delta_edge_num = get_grad_CRF(
-            node_grad, edge_grad, model, x)
 
-        total_num += node_num
-        total_with_edge_num += with_edge_num
-        total_with_delta_edge_num += with_delta_edge_num
+    # 多进程处理
+    pool = mp.Pool(processes=process_num)
+    sample_idx = 0
+    jump_step = (len(X) // process_num) + 1
+    result_list = list()
+    for p_n in range(process_num):
 
-        # print('time: {:.2f}, len: {}, ratio: {:.2f}'.format(
-        #     time.time() - start_time, len(x.features.split('\n')), len(x.features.split('\n')) / (time.time() - start_time)))
+        sub_X = X[p_n * jump_step: (p_n + 1) * jump_step]
+        sub_node_grad = copy.deepcopy(node_grad)
+        sub_edge_grad = copy.deepcopy(edge_grad)
+
+        p_res = pool.apply_async(
+            func=get_grad_SGD_minibatch_subprocess,
+            args=(sub_node_grad, sub_edge_grad, model, sub_X))
+        # print('start subprocess ...')
+        result_list.append(p_res)
+
+    # 融合各子进程得到的数据
+    for result in result_list:
+        error, sub_feature_id_dict, sub_total_num, sub_total_with_edge_num, \
+            sub_total_with_delta_edge_num, sub_node_grad, sub_edge_grad = result.get()
+
         errors += error
+        feature_id_dict = combine_two_dict(feature_id_dict, sub_feature_id_dict)
+        total_num += sub_total_num
+        total_with_edge_num += sub_total_with_edge_num
+        total_with_delta_edge_num += sub_total_with_delta_edge_num
 
-        for i in feature_id_set:
-            if i in feature_id_dict:
-                feature_id_dict[i] += 1
-            else:
-                feature_id_dict.update({i: 1})
+        node_grad += sub_node_grad
+        edge_grad += sub_edge_grad
+        # print(edge_grad)
+        # pdb.set_trace()
+    pool.close()
+    pool.join()
 
     for feature_id, num in feature_id_dict.items():
         node_grad[feature_id] /= num
@@ -60,8 +92,41 @@ def get_grad_SGD_minibatch(node_grad: np.ndarray, edge_grad: np.ndarray,
         bi_ratio_grad = 0
     else:
         bi_ratio_grad = (total_with_edge_num - total_with_delta_edge_num) / total_num
-
+    # pdb.set_trace()
     return errors / len(X), feature_id_dict, bi_ratio_grad
+
+
+def get_grad_SGD_minibatch_subprocess(
+        node_grad: np.ndarray, edge_grad: np.ndarray,
+        model: Model, X: List[Sample]):
+
+    feature_id_dict = dict()
+    errors = 0
+    total_num = 0
+    total_with_edge_num = 0
+    total_with_delta_edge_num = 0
+    for x in X:
+        # start_time = time.time()
+        # pdb.set_trace()
+        error, feature_id_set, node_num, with_edge_num, with_delta_edge_num = get_grad_CRF(
+            node_grad, edge_grad, model, x)
+
+        total_num += node_num
+        total_with_edge_num += with_edge_num
+        total_with_delta_edge_num += with_delta_edge_num
+
+        # print('time: {:.2f}, len: {}, ratio: {:.2f}'.format(
+        #     time.time() - start_time, len(x.features.split('\n')), len(x.features.split('\n')) / (time.time() - start_time)))
+        errors += error
+
+        for i in feature_id_set:
+            if i in feature_id_dict:
+                feature_id_dict[i] += 1
+            else:
+                feature_id_dict.update({i: 1})
+
+    return errors, feature_id_dict, total_num, \
+        total_with_edge_num, total_with_delta_edge_num, node_grad, edge_grad
 
 
 def get_grad_CRF(node_grad: np.ndarray, edge_grad: np.ndarray,

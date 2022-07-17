@@ -5,6 +5,7 @@
 # Email: dongrixinyu.89@163.com
 # Github: https://github.com/dongrixinyu/jiojio
 # Description: fast Chinese Word Segmentation(CWS) and Part of Speech(POS) based on CPU.'
+# Website: http://www.jionlp.com/
 
 import os
 import pdb
@@ -281,7 +282,7 @@ class CWSFeatureExtractor(object):
         feature_freq = Counter()  # 计算各个特征的出现次数，减少罕见特征计数
         for sample_idx, words in enumerate(read_file_by_iter(train_file)):
 
-            if sample_idx % 1e5 == 0:
+            if sample_idx % 1e6 == 0:
                 logging.info(sample_idx)
 
             # 对文本进行归一化和整理
@@ -559,10 +560,14 @@ class CWSFeatureExtractor(object):
         with open(feature_idx_file, "w", encoding="utf8") as f_writer, \
                 open(gold_idx_file, "w", encoding="utf8") as g_writer:
 
-            f_writer.write("{}\n\n".format(len(self.feature_to_idx)))
-            g_writer.write("{}\n\n".format(len(self.tag_to_idx)))
+            f_writer.write('{}\n\n'.format(len(self.feature_to_idx)))
+            g_writer.write('{}\n\n'.format(len(self.tag_to_idx)))
 
-            for words in read_file_by_iter(text_file):
+            for sample_idx, words in enumerate(read_file_by_iter(text_file)):
+
+                if sample_idx % 1e6 == 0:
+                    logging.info(sample_idx)
+
                 # 对文本进行归一化和整理
                 if self.config.norm_text:
                     words = [self.pre_processor(word) for word in words]
@@ -582,6 +587,7 @@ class CWSFeatureExtractor(object):
                     # pdb.set_trace()
                     f_writer.write(",".join(map(str, feature_idx)))
                     f_writer.write("\n")
+
                 f_writer.write("\n")
                 g_writer.write(",".join(map(str, tags_idx)))
                 g_writer.write('\n')
@@ -594,6 +600,8 @@ class CWSFeatureExtractor(object):
         data['unigram'] = sorted(list(self.unigram))
         data['bigram'] = sorted(list(self.bigram))
         # 此方式用以压缩模型文件大小
+        # 调整特征的索引顺序
+        self.feature_to_idx = dict(sorted(self.feature_to_idx.items(), key=lambda i: i[1]))
         data['feature_to_idx'] = list(self.feature_to_idx.keys())
         data['tag_to_idx'] = self.tag_to_idx
 
