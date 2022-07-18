@@ -608,7 +608,7 @@ class CWSFeatureExtractor(object):
         feature_path = os.path.join(model_dir, 'features.json')
 
         with open(feature_path, 'w', encoding='utf8') as f_w:
-            json.dump(data, f_w, ensure_ascii=False, indent=4, separators=(',', ':'))
+            json.dump(data, f_w, ensure_ascii=False)  # indent=4, separators=(',', ':'))
 
         zip_file(feature_path)
 
