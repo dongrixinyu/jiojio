@@ -67,3 +67,6 @@ $ pip install .
 # TODO
 
 - 对分词器效果做**长期优化**
+
+# 欢迎加入自然语言处理NLP交流群，扫以下码即可入群
+![image](https://github.com/dongrixinyu/JioNLP/blob/master/image/qrcode_for_gh.jpg)

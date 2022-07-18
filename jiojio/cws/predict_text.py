@@ -5,6 +5,7 @@
 # Email: dongrixinyu.89@163.com
 # Github: https://github.com/dongrixinyu/jiojio
 # Description: fast Chinese Word Segmentation(CWS) and Part of Speech(POS) based on CPU.'
+# Website: http://www.jionlp.com/
 
 
 import os
@@ -140,9 +141,13 @@ class CWSPredictText(object):
         # pdb.set_trace()
         return tags_idx
 
-    def _cut_with_rule(self, text):
-        """采用规则抽取出某些词汇，如ip地址，email，身份证号，url，电话号码等等"""
-        rule_res_list = self.rule_extractor.extract_info(text)
+    def _cut_with_rule(self, text, with_type=True):
+        """采用规则抽取出某些词汇，如ip地址，email，身份证号，url，电话号码等等
+
+        start_flag: 指示正则抽取部分是从 text 的第一个字符就开始的
+        end_flag: 指示正则抽取部分是从 text 的最后一个字符结束的
+        """
+        rule_res_list = self.rule_extractor.extract_info(text, with_type=with_type)
 
         # pdb.set_trace()
         if len(rule_res_list) == 0:
@@ -153,11 +158,25 @@ class CWSPredictText(object):
         end_flag = False
 
         if len(rule_res_list) == 1:
-            rule_res_length = 1
+            # 单独处理仅一个正则匹配的情况，用以节省处理时间
+            seg_list = list()
+            item = rule_res_list[0]['o']
+            if item[0] != 0:
+                seg_list.append(text[: item[0]])
+            else:
+                start_flag = True
+
+            if item[1] != len(text):
+                seg_list.append(text[item[1]:])
+            else:
+                end_flag = True
+            # pdb.set_trace()
+            return seg_list, rule_res_list, start_flag, end_flag
+
         else:
             _rule_res_list = sorted(rule_res_list, key=lambda item: item['o'][0])
 
-            # 将错误的信息进行过滤
+            # 将错误的信息进行过滤，连续两个正则抽取部分有重叠
             rule_res_list = [_rule_res_list[0]]
             for item in _rule_res_list[1:]:
                 if item['o'][0] < rule_res_list[-1]['o'][1]:
@@ -175,13 +194,10 @@ class CWSPredictText(object):
                 else:
                     start_flag = True
 
-                if rule_res_length == 1:
-                    seg_list.append(text[item[1]:])
-                else:
-                    next_item = rule_res_list[idx + 1]['o']
-                    seg_list.append(text[item[1]: next_item[0]])
+                next_item = rule_res_list[idx + 1]['o']
+                seg_list.append(text[item[1]: next_item[0]])
 
-            elif idx == len(rule_res_list) - 1:
+            elif idx == rule_res_length - 1:
                 if item[1] != len(text):
                     seg_list.append(text[item[1]:])
                 else:
@@ -199,7 +215,8 @@ class CWSPredictText(object):
             return list()
 
         if self.rule_extractor:
-            seg_list, rule_res_list, start_flag, end_flag = self._cut_with_rule(text)
+            seg_list, rule_res_list, start_flag, end_flag = self._cut_with_rule(
+                text, with_type=False)
 
             seg_res_list = list()
             for segment in seg_list:
@@ -217,12 +234,14 @@ class CWSPredictText(object):
 
                 seg_res_list.append(words_list)
 
+            # 将正则和模型处理的部分进行合并
             words_list = list()
 
             if start_flag:
                 for idx in range(len(seg_res_list)):
                     words_list.append(rule_res_list[idx]['s'])
                     words_list.extend(seg_res_list[idx])
+
                 if end_flag:
                     words_list.append(rule_res_list[-1])
 
@@ -231,6 +250,7 @@ class CWSPredictText(object):
                 for idx in range(len(rule_res_list)):
                     words_list.extend(seg_res_list[idx])
                     words_list.append(rule_res_list[idx]['s'])
+
                 if not end_flag:
                     words_list.extend(seg_res_list[-1])
 
@@ -258,7 +278,9 @@ class CWSPredictText(object):
             return list()
 
         if self.rule_extractor:
-            seg_list, rule_res_list, start_flag, end_flag = self._cut_with_rule(text)
+            seg_list, rule_res_list, start_flag, end_flag = self._cut_with_rule(
+                text, with_type=True)
+
             seg_res_list = list()
             norm_seg_res_list = list()
             for segment in seg_list:

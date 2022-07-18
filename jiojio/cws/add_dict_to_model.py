@@ -5,6 +5,8 @@
 # Email: dongrixinyu.89@163.com
 # Github: https://github.com/dongrixinyu/jiojio
 # Description: fast Chinese Word Segmentation(CWS) and Part of Speech(POS) based on CPU.'
+# Website: http://www.jionlp.com/
+
 
 import os
 import pdb
@@ -37,11 +39,14 @@ class CWSAddDict2Model(object):
                 logging.warn('`{}` is illegal.'.format(line))
 
             self.trie_tree_obj.add_node(word.lower(), weight)  # 要先预处理 TODO
+
         logging.info('add {} words to `cws_user_dict`.'.format(idx + 1))
-        if self.trie_tree_obj.depth > 10:
-            logging.warn('the trie tree max depth is {}, high max_depth would slow down'\
-                         ' processing speed. cutting long word is advised.'.format(
-                             self.trie_tree_obj.depth))
+
+        if self.trie_tree_obj.depth > 5:
+            logging.warn(
+                'the trie tree max depth is {}, high max_depth would slow down'\
+                ' processing speed. cutting long word is advised.'.format(
+                    self.trie_tree_obj.depth))
 
     def __call__(self, text, node_states):
         """为节点状态添加词汇权重，软性增强词汇被识别的能力

@@ -47,7 +47,7 @@ class Extractor(object):
             r'(?<=[^\d])(([\(（])?0\d{2,3}[\)） —-]{1,2}\d{7,8}|\d{3,4}[ -]\d{3,4}[ -]\d{4})(?=[^\d])')
 
     @staticmethod
-    def _extract_base(pattern, text, typing):
+    def _extract_base(pattern, text, typing, with_type=True):
         """ 正则抽取器的基础函数
 
         Args:
@@ -62,12 +62,17 @@ class Extractor(object):
         # `s` is short for text string,
         # `o` is short for offset
         # `t` is short for type
-        return [{'s': item.group(1),
-                 'o': (item.span()[0] - 1, item.span()[1] - 1),
-                 't': typing}
-                for item in pattern.finditer(text)]
+        if with_type:
+            return [{'s': item.group(1),
+                     'o': (item.span()[0] - 1, item.span()[1] - 1),
+                     't': typing}
+                    for item in pattern.finditer(text)]
+        else:
+            return [{'s': item.group(1),
+                     'o': (item.span()[0] - 1, item.span()[1] - 1)}
+                    for item in pattern.finditer(text)]
 
-    def extract_email(self, text):
+    def extract_email(self, text, with_type=True):
         """ 提取文本中的 E-mail
 
         Args:
@@ -78,9 +83,9 @@ class Extractor(object):
 
         """
         return self._extract_base(
-            self.email_pattern, text, typing='email')
+            self.email_pattern, text, typing='email', with_type=with_type)
 
-    def extract_id_card(self, text):
+    def extract_id_card(self, text, with_type=True):
         """ 提取文本中的 ID 身份证号
 
         Args:
@@ -91,9 +96,9 @@ class Extractor(object):
 
         """
         return self._extract_base(
-            self.id_card_pattern, text, typing='id')
+            self.id_card_pattern, text, typing='id', with_type=with_type)
 
-    def extract_ip_address(self, text):
+    def extract_ip_address(self, text, with_type=True):
         """ 提取文本中的 IP 地址
 
         Args:
@@ -104,9 +109,9 @@ class Extractor(object):
 
         """
         return self._extract_base(
-            self.ip_address_pattern, text, typing='ip')
+            self.ip_address_pattern, text, typing='ip', with_type=with_type)
 
-    def extract_phone_number(self, text):
+    def extract_phone_number(self, text, with_type=True):
         """从文本中抽取出电话号码
 
         Args:
@@ -117,13 +122,13 @@ class Extractor(object):
 
         """
         cell_results = self._extract_base(
-            self.cell_phone_pattern, text, typing='tel')
+            self.cell_phone_pattern, text, typing='tel', with_type=with_type)
         landline_results = self._extract_base(
-            self.landline_phone_pattern, text, typing='tel')
+            self.landline_phone_pattern, text, typing='tel', with_type=with_type)
 
         return cell_results + landline_results
 
-    def extract_url(self, text):
+    def extract_url(self, text, with_type=True):
         """提取文本中的url链接
 
         Args:
@@ -133,17 +138,18 @@ class Extractor(object):
             list: url列表
 
         """
-        return self._extract_base(self.url_pattern, text, typing='url')
+        return self._extract_base(
+            self.url_pattern, text, typing='url', with_type=with_type)
 
-    def extract_info(self, text):
+    def extract_info(self, text, with_type=True):
         text = ''.join(['￥', text, '￥'])  # 因 # 可能出现在 url 中
 
         results_list = list()
 
-        results_list.extend(self._extract_base(self.url_pattern, text, typing='url'))
-        results_list.extend(self._extract_base(self.email_pattern, text, typing='email'))
-        results_list.extend(self._extract_base(self.id_card_pattern, text, typing='id'))
-        results_list.extend(self._extract_base(self.ip_address_pattern, text, typing='ip'))
-        results_list.extend(self.extract_phone_number(text))
+        results_list.extend(self._extract_base(self.url_pattern, text, typing='url', with_type=with_type))
+        results_list.extend(self._extract_base(self.email_pattern, text, typing='email', with_type=with_type))
+        results_list.extend(self._extract_base(self.id_card_pattern, text, typing='id', with_type=with_type))
+        results_list.extend(self._extract_base(self.ip_address_pattern, text, typing='ip', with_type=with_type))
+        results_list.extend(self.extract_phone_number(text, with_type=with_type))
 
         return results_list

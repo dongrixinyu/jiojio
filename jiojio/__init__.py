@@ -56,7 +56,7 @@ def help():
           'only run `jiojio` relatively slow in Python code.\n')
 
     print('    If you have any questions, Github(https://github.com/dongrixinyu/jiojio) is\n' \
-          'available to raise a issue.')
+          'available to raise an issue. http://www.jionlp.com/ is used to try it online.')
 
 
 def init(cws_model_dir=None, cws_user_dict=None, pos=False,
