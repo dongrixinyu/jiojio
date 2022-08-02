@@ -35,5 +35,6 @@ except Exception:
     #     traceback.format_exc()))
 
 
+from .read_default_dict import ReadPOSDictionary
 from .feature_extractor import POSFeatureExtractor
 from .predict_text import POSPredictText

@@ -61,30 +61,29 @@ def help():
 
 def init(cws_model_dir=None, cws_user_dict=None, pos=False,
          pos_model_dir=None, pos_user_dict=None,
-         cws_with_viterbi=False, pos_with_viterbi=False,
+         cws_with_viterbi=False,
          cws_rule=False, pos_rule=False):
     """ 初始化模型，包括分别初始化分词模型与词性标注模型。
+
+    注意：
+        1、词性标注模型不支持 viterbi 解码，原因该解码效用极为有限，且影响处理速度。
 
     Args:
         cws_model_dir(str): 分词模型名称，若为 None，则加载默认模型 default_cws_model；
             若自训练模型，则建议填写为模型目录的绝对路径，若仅仅为目录名（相对路径），如
             “self_train_cws_model” ，则加载时默认该模型目录存储在 “jiojio/models” 目录下。
         cws_user_dict(str): 指定加载分词的用户自定义词典文件的绝对路径，若不指定则不加载，
-            默认不加载。
+            默认不加载。该词典采用软性权重方式为词汇标记词性。
         pos(bool): 是否加载词性标注，默认为 False。
         pos_model_dir(str): 词性标注模型名称，若为 None，则加载默认模型 default_pos_model；
             若自训练模型，则建议填写为模型目录的绝对路径，若仅仅为目录名（相对路径），如
             “self_train_pos_model” ，则加载时默认该模型目录存储在 “jiojio/models” 目录下。
             在 pos 为 True 时生效。
         pos_user_dict(str): 指定加载词性标注用户自定义词典文件的绝对路径，若不指定则不加载，
-            默认不加载。在 pos 为 True 时生效。
+            默认不加载。在 pos 为 True 时生效。该词典采用软性权重方式为词汇标记词性。
         cws_with_viterbi(bool): 是否在推断时采用 viterbi 解码。默认为 False。该参数原因在于
             分词模型由于 node_weight 参数强力的表达能力，以及转移参数过少导致的不可泛化，
             bi_ratio 参数值往往极小，此时可以考虑不经过 viterbi 转码，以节省推断时间。
-        pos_with_viterbi(bool): 是否在推断时采用 viterbi 解码。默认为 False。仅在 pos 为
-            True 时有效。该参数原因在于词性标注模型由于 node_weight 参数强力的表达能力，以及
-            转移参数过少导致的不可泛化，bi_ratio 参数值往往极小，此时可以考虑不经过 viterbi
-            转码，以节省推断时间。
         cws_rule(bool): 是否返回由规则切分词汇，默认为 False。规则词性类型包括：email、
             身份证号(id)、ip地址(ip)、日文(jp)、俄文(ru)、韩文(ko)、url。这些类型绝大多数
             并非由 CWS 模型返回，而是在模型返回结果基础上，再次套用规则计算得到。
@@ -109,7 +108,7 @@ def init(cws_model_dir=None, cws_user_dict=None, pos=False,
         jiojio_pos_flag = True
         jiojio_pos_obj = POSPredictText(
             model_dir=pos_model_dir, user_dict=pos_user_dict,
-            with_viterbi=pos_with_viterbi, pos_rule_types=pos_rule)
+            pos_rule_types=pos_rule)
     else:
         jiojio_pos_flag = False
         jiojio_pos_obj = None

@@ -275,14 +275,14 @@ class CWSPredictText(object):
     def cut_with_pos(self, text):
         """ 当后续要接 POS 任务时，需要返回两个 words_list """
         if not text:
-            return list()
+            return []
 
         if self.rule_extractor:
             seg_list, rule_res_list, start_flag, end_flag = self._cut_with_rule(
                 text, with_type=True)
 
-            seg_res_list = list()
-            norm_seg_res_list = list()
+            seg_res_list = []
+            norm_seg_res_list = []
             for segment in seg_list:
 
                 norm_segment = self.pre_processor(segment)
@@ -302,8 +302,8 @@ class CWSPredictText(object):
                 seg_res_list.append(words_list)
                 norm_seg_res_list.append(norm_words_list)
 
-            words_list = list()
-            norm_words_list = list()
+            words_list = []
+            norm_words_list = []
 
             if start_flag:
                 for idx in range(len(seg_res_list)):
@@ -317,7 +317,6 @@ class CWSPredictText(object):
                     norm_words_list.append(rule_res_list[-1])
 
             else:
-                # pdb.set_trace()
                 for idx in range(len(rule_res_list)):
                     words_list.extend(seg_res_list[idx])
                     words_list.append(rule_res_list[idx]['s'])
@@ -352,6 +351,5 @@ class CWSPredictText(object):
                     text, tags.ctypes.data_as(ctypes.c_void_p), len(tags))
                 norm_words_list = self.tag2word_c(
                     norm_text, tags.ctypes.data_as(ctypes.c_void_p), len(tags))
-                # pdb.set_trace()
 
             return words_list, norm_words_list, None

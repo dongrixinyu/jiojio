@@ -7,6 +7,7 @@
 # Description: fast Chinese Word Segmentation(CWS) and Part of Speech(POS) based on CPU.'
 # Website: http://www.jionlp.com/
 
+
 import os
 import pdb
 import sys

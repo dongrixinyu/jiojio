@@ -28,13 +28,21 @@ class Config(object):
         # POS 类型文件
         self.pos_types_file = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), 'pos_types.yml')
+        # 默认词典文件，用于做词汇-词性的直接映射
+        self.pos_word_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            'dictionary')
+        self.pos_dict_prob = 0.99  # 词典中主词性大于 0.99 的不进入模型训练和预测范围内
+        self.pos_dict_freq = 0  # 词典中主词性大于该频次的 进行计算，若频次不足则不考虑
 
         # training params
-        self.initial_learning_rate = 0.004  # 梯度初始值
+        self.build_train_temp_files = True  # 重新构建训练语料，否则加载旧语料
+        self.process_num = 40
+        self.initial_learning_rate = 0.0063  # 梯度初始值
         self.dropping_rate = 0.6  # 维持学习速率，越大则下降越快(0~1) 推荐(0.7~0.999)
         self.random_init = True  # False for 0-init of model weights, True for random init of model weights
-        self.train_epoch = 6  # 训练迭代次数
-        self.mini_batch = 3000  # mini-batch in stochastic training
+        self.train_epoch = 5  # 训练迭代次数
+        self.mini_batch = 80000  # mini-batch in stochastic training
         self.nThread = 10  # number of processes in testing and training
         self.regularization = True  # 建议保持
         self.sample_ratio = 0.03  # 抽取总数据集中做训练中途验证的数据集比例
@@ -51,26 +59,34 @@ class Config(object):
         self.normalize_num_letter = False  # 将所有数字正规化为 7，字母正规化为 Z
         self.convert_exception = True  # 将所有异常字符全部转为固定常见字符 ん
 
-        self.char_feature_trim = 20  # 普通字符的频次删减数值 (20/5)
-        self.part_length_trim = 3  # part 词缀长度的最大值，超过此值删除，一般固定不变
-        self.part_feature_trim = 30  # 词缀特征出现次数，该特征数应当小于 unigram_feature_trim 以便把低频的特征抽取出
-        self.part_feature_non_chinese_trim = 50  # 词缀特征出现次数，低于该值的频次被删除，此为应对英文等字符情况
-        self.feature_trim = 14  # 普通特征的删减数值 (20/3)
-        self.unigram_feature_trim = 40  # 单词特征的数量 (40/4)
+        self.char_feature_trim = 60  # 普通字符的频次删减数值 (50/5)
+        self.part_length_trim = 4  # part 词缀长度的最大值，超过此值删除，一般固定不变
+
+        # 词缀特征出现次数，该特征数应当小于 unigram_feature_trim 以便把低频的特征抽取出
+        # 但是发现有相当多的冗余特征，实际上 part 特征应当有足够的泛性，
+        # 如“陕汽通家”，这个词汇，被找出了 “陕汽通” 和 “气通家” 两词，是不正确的特征，
+        # 该特征过于特性，无泛性，如 “新远网”、“流光网” 的 “网” 字作为 part 特征
+        # 此处需要用到新词发现，找出 part 特征
+        self.part_feature_chinese_trim = 300
+        self.part_feature_num_trim = 400
+        self.part_feature_non_chinese_trim = 1000  # 词缀特征出现次数，低于该值的频次被删除，此为应对英文等字符情况
+        self.feature_trim = 60  # 普通特征的删减数值 (50/3)
+        self.unigram_feature_trim = 60  # 单词特征的数量 (50/4)
         self.word_max = 4  # 越大，则计算耗时越长，因此不建议超过 6，过短如 3 则会造成模型效果下降
 
-        if True:
+        if False:
             self.interval = 5  # 按多少间隔打印日志
             self.initial_learning_rate = 0.5  # 梯度初始值
             # self.bi_ratio_times = int(1 / self.initial_learning_rate)
             self.dropping_rate = 0.3  # 维持学习速率，越大则下降越快(0~1) 推荐(0.7~0.999)
             self.train_epoch = 4  # 训练迭代次数
 
-            self.char_feature_trim = 5
-            self.part_length_trim = 3  # part 词缀长度的最大值，超过此值删除，一般固定不变
-            self.part_feature_trim = 3  # 词缀特征出现次数，该特征数应当小于 unigram_feature_trim 以便把低频的特征抽取出
-            self.part_feature_non_chinese_trim = 5  # 词缀特征出现次数，低于该值的频次被删除，此为应对英文等字符情况
-            self.feature_trim = 3
+            self.char_feature_trim = 15
+            self.part_length_trim = 4  # part 词缀长度的最大值，超过此值删除，一般固定不变
+            self.part_feature_trim = 30
+            self.part_feature_num_trim = 70
+            self.part_feature_non_chinese_trim = 50  # 词缀特征出现次数，低于该值的频次被删除，此为应对英文等字符情况
+            self.feature_trim = 10
             self.unigram_feature_trim = 5
             self.sample_ratio = 0.3  # 抽取总数据集中做训练中途验证的数据集比例
 
@@ -78,7 +94,7 @@ class Config(object):
         assert self.initial_learning_rate > 0
         assert self.train_epoch > 0
         assert self.mini_batch > 0
-        assert self.part_feature_trim < self.part_feature_non_chinese_trim
+        # assert self.part_feature_trim < self.part_feature_non_chinese_trim
 
     def to_json(self):
         # 将关键推理参数，导出为 json 数据，存入模型目录下

@@ -26,7 +26,7 @@ def train(config):
 
     feature_extractor = POSFeatureExtractor(config)
 
-    if True:
+    if config.build_train_temp_files:
         # 构建 特征数据集
         with TimeIt('# build datasets'):
             feature_extractor.build(config.train_file)
@@ -80,12 +80,13 @@ def train(config):
             average_abs_weight = np.sum(np.abs(trainer.model.node_weight)) / len(trainer.model.node_weight)
 
         # pdb.set_trace()
-        logging.info('- epoch {}: \n'
-                     '\t- diff={:.4f}  error={:.4f}\n'
-                     '\t- max-weight={:.4f}  min-weight={:.4f}\n'
-                     '\t  average-weight={:.4f}  average-abs-weight={:.4f}'.format(
-                         i, diff, err, max_weight, min_weight,
-                         average_weight, average_abs_weight))
+        logging.info(
+            '- epoch {}: \n'
+            '\t- diff={:.4f}  error={:.4f}\n'
+            '\t- max-weight={:.4f}  min-weight={:.4f}\n'
+            '\t  average-weight={:.4f}  average-abs-weight={:.4f}'.format(
+                i, diff, err, max_weight, min_weight,
+                average_weight, average_abs_weight))
         logging.info('-' * 50 + '\n')
 
     # 重新整理参数，将哪些不生效的参数剔除，例如，node_score 中，B 和 I 的值几乎相同，且远低于特征的平均值
@@ -251,8 +252,9 @@ class Trainer(object):
             if flag:
                 sample_wrong += 1  # 样本错误
 
-        logging.info('\t- test-sample-num={}\n'
-                     '\t- token_acc={:.2%}  sample_acc={:.2%}\n'.format(
-                         len(dataset),
-                         (token_total - token_wrong) / token_total,
-                         (len(dataset) - sample_wrong) / len(dataset)))
+        logging.info(
+            '\t- test-sample-num={}\n'
+            '\t- token_acc={:.2%}  sample_acc={:.2%}\n'.format(
+                len(dataset),
+                (token_total - token_wrong) / token_total,
+                (len(dataset) - sample_wrong) / len(dataset)))
