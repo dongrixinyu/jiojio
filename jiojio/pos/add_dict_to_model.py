@@ -51,6 +51,7 @@ class POSAddDict2Model(object):
         if user_dict_path is None:
             self.soft_word_pos_obj = None
             self.hard_word_pos_obj = None
+
         else:
             assert type(user_dict_path) is str
             self._add_dict(user_dict_path)

@@ -9,7 +9,7 @@
 
 
 __doc__ = 'jiojio: for fast Chinese Word Segmentation(CWS) and Part of Speech(POS) based on CPU.'
-__version__ = '1.1.8'
+__version__ = '1.1.9'
 
 
 import os
@@ -19,7 +19,7 @@ import yaml
 from multiprocessing import Process, Queue, get_start_method
 
 from .util import TimeIt, zip_file, unzip_file, read_file_by_iter, \
-    write_file_by_line, TrieTree, set_logger, download_model
+    write_file_by_line, TrieTree, set_logger
 
 logging = set_logger(level='INFO', log_dir_name='.jiojio/jiojio_logs')
 

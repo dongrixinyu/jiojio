@@ -1,17 +1,18 @@
 .vscode/
 .idea/
-*.json
+# *.json
 *.pyd
 *.html
 **/__pycache__/
 *.egg-info
+*.tar.gz
 
 build
 tmp/
 data/
 features.json
+*.txt_bak
 *stats
 jiojio/models/test_cws_model/
 jiojio/models/test_pos_model/
-jiojio/models/default_cws_model/
-jiojio/models/default_pos_model/
+# jiojio/models/default_cws_model/

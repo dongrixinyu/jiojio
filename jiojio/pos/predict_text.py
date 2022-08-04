@@ -18,7 +18,6 @@ import numpy as np
 from jiojio.pre_processor import PreProcessor
 from jiojio.inference import get_log_Y_YY, viterbi
 from jiojio.model import Model
-from jiojio import download_model
 
 from .config import Config
 from .feature_extractor import POSFeatureExtractor
@@ -71,7 +70,7 @@ class POSPredictText(object):
                 self.word_pos_default_dict[word] = pos
             else:
                 self.word_pos_default_dict.update({word: pos})
-        pdb.set_trace()
+        # pdb.set_trace()
         self.pos_rule_types = pos_rule_types
 
         self.feature_extractor = POSFeatureExtractor.load(
@@ -139,9 +138,11 @@ class POSPredictText(object):
                 if self.user_dict is not None:
                     self.user_dict(words, Y)
 
-                tag = self.idx_to_tag(Y.argmax(axis=1))
+                tag = self.idx_to_tag[Y.argmax(axis=0)]
                 tags_list.append(tag)
-                pdb.set_trace()
+
+        # print(words[, tag)
+        # pdb.set_trace()
 
         return tags_list
 
@@ -157,5 +158,5 @@ class POSPredictText(object):
                 if word_list[idx] in word_pos_map:
                     tags_list[idx] = word_pos_map[word_list[idx]]
 
-            # pdb.set_trace()
+            pdb.set_trace()
             return tags_list

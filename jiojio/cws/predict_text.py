@@ -146,10 +146,10 @@ class CWSPredictText(object):
 
         start_flag: 指示正则抽取部分是从 text 的第一个字符就开始的
         end_flag: 指示正则抽取部分是从 text 的最后一个字符结束的
+
         """
         rule_res_list = self.rule_extractor.extract_info(text, with_type=with_type)
 
-        # pdb.set_trace()
         if len(rule_res_list) == 0:
             # 空匹配
             return [text], [], False, False
@@ -312,6 +312,7 @@ class CWSPredictText(object):
 
                     norm_words_list.append(rule_res_list[idx]['s'])
                     norm_words_list.extend(norm_seg_res_list[idx])
+
                 if end_flag:
                     words_list.append(rule_res_list[-1])
                     norm_words_list.append(rule_res_list[-1])
@@ -323,6 +324,7 @@ class CWSPredictText(object):
 
                     norm_words_list.extend(norm_seg_res_list[idx])
                     norm_words_list.append(rule_res_list[idx]['s'])
+
                 if not end_flag:
                     words_list.extend(seg_res_list[-1])
                     norm_words_list.extend(norm_seg_res_list[-1])

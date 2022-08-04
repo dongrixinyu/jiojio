@@ -477,7 +477,7 @@ class POSFeatureExtractor(object):
                 print(sample_idx, '\n')
 
         logging.info('# orig feature num: {}'.format(len(feature_freq)))
-        # pdb.set_trace()
+
         feature_set = list()
         feature_count_sum = 0
         for feature, freq in feature_freq.most_common():
@@ -1022,9 +1022,6 @@ class POSFeatureExtractor(object):
                         feature_list.append(
                             self.bi_part_current_right_part_next_right + current_rights + self.mark + next_rights)
 
-        # if flag:
-        #     print(cur_w, feature_list)
-        #     pdb.set_trace()
         return feature_list
 
     def _create_label(self):
