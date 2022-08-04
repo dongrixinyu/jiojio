@@ -508,7 +508,6 @@ class POSFeatureExtractor(object):
         cur_w = token_list[idx]
         feature_list = []
 
-        flag = False
         length = len(token_list)
 
         before_word = None
@@ -663,7 +662,6 @@ class POSFeatureExtractor(object):
         else:
             # 字符为终止位特征
             feature_list.append(self.end_feature)
-            # flag = True
 
         # bigram 特征
         if current_word is not None:
