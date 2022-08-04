@@ -5,6 +5,8 @@
 # Email: dongrixinyu.89@163.com
 # Github: https://github.com/dongrixinyu/jiojio
 # Description: fast Chinese Word Segmentation(CWS) and Part of Speech(POS) based on CPU.'
+# Website: http://www.jionlp.com
+
 
 import os
 import pdb
@@ -70,7 +72,20 @@ class Config(object):
         self.part_feature_chinese_trim = 300
         self.part_feature_num_trim = 400
         self.part_feature_non_chinese_trim = 1000  # 词缀特征出现次数，低于该值的频次被删除，此为应对英文等字符情况
-        self.feature_trim = 60  # 普通特征的删减数值 (50/3)
+        self.feature_trim = 60  # 普通特征的删减数值 (60/3)  依然可以继续提高，用以减少特征数量
+
+        #训练样本数量为 9600000 条。37.69% 的词汇样本进行了模型训练
+        # 当 feature_trim = 60 时，特征数
+        # 2022-08-02 17:48:21 INFO build: # orig feature num: 24741032
+        # 2022-08-02 17:48:35 INFO build: # 86.80% features are saved.
+        # 2022-08-02 17:48:35 INFO build: # true feature_num: 591176
+
+        # 当 feature_trim = 40 时，特征数
+        # 2022-08-01 18:23:51 INFO build: # orig feature num: 25626208
+        # 2022-08-01 18:24:06 INFO build: # 88.19% features are saved.
+        # 2022-08-01 18:24:06 INFO build: # true feature_num: 835654
+        # 因此特征数的 trim 值可以继续提高，用以压缩模型参数的大小。
+
         self.unigram_feature_trim = 60  # 单词特征的数量 (50/4)
         self.word_max = 4  # 越大，则计算耗时越长，因此不建议超过 6，过短如 3 则会造成模型效果下降
 
