@@ -10,11 +10,11 @@ import ctypes
 
 class POSFeatureExtractor(object):
 
-    def __init__(self, single_pos_word, part, unigram):
+    def __init__(self, char, part, unigram):
 
         self.unigram = unigram
         # self.bigram = set()
-        self.single_pos_word = single_pos_word
+        self.char = char
         self.part = part
         self.feature_to_idx = dict()
 
@@ -128,43 +128,24 @@ class POSFeatureExtractor(object):
     def get_node_features(self, idx, token_list):
         # 给定一个 token_list，找出其中 token_list[idx] 匹配到的所有特征
         cur_w = token_list[idx]
-        feature_list = list()
+        feature_list = []
 
-        # 某些特殊的词汇，仅仅具有唯一一种词性，此时仅仅添加 “w我” 即可。不需要其它特征。
-        # 此时，我们需要将此类词汇统计出来。词频大于10，且具有唯一的词性的词汇
-        # self.single_pos
-        # 此外，某些字也代表着唯一词性，例如 “崔” 几乎仅仅作为中文姓氏出现，再无别义，也可以采取此方式处理。
-        if cur_w in self.single_pos_word:
-            feature_list.append(self.word_current + cur_w)
-            return feature_list
-
-        # before_2_words = None
-        # before_2_lefts = list()
-        # before_2_rights = list()
+        # flag = False
+        length = len(token_list)
 
         before_word = None
-        before_lefts = list()
-        before_rights = list()
+        before_lefts = None
+        before_rights = None
 
         current_word = None
-        current_lefts = list()
-        current_rights = list()
+        current_lefts = None
+        current_rights = None
 
         next_word = None
-        next_lefts = list()
-        next_rights = list()
+        next_lefts = None
+        next_rights = None
 
-        # next_2_words = None
-        # next_2_lefts = list()
-        # next_2_rights = list()
-
-        # 一、添加词长特征，例如，中文人名常为 2、3 个字，日本人名常为 4 个字，动词常为 1、2 字
-        # 俗语长度常为 4 个字等
         cur_w_length = len(cur_w)
-        if cur_w_length <= 9:
-            feature_list.append(self.word_current_length + str(cur_w_length))
-        else:
-            feature_list.append(self.word_current_length + '0')
 
         if idx > 0:
             before_w = token_list[idx - 1]
@@ -174,27 +155,32 @@ class POSFeatureExtractor(object):
                 before_word = before_w
             else:
                 # 前第二词 parts 特征
-                has_part = False
-                for i in range(1, len(before_w)):
+                before_w_length = min(len(before_w), 5)
+                has_left_part = False
+                for i in range(before_w_length-1, 0, -1):
                     left_tmp = before_w[:i]
                     if left_tmp in self.part:
                         feature_list.append(self.part_before_left + left_tmp)
-                        before_lefts.append(left_tmp)
-                        has_part = True
+                        before_lefts = left_tmp
+                        has_left_part = True
+                        break
 
+                has_right_part = False
+                for i in range(before_w_length-1, 0, -1):
                     right_tmp = before_w[i:]
                     if right_tmp in self.part:
                         feature_list.append(self.part_before_right + right_tmp)
-                        before_rights.append(right_tmp)
-                        has_part = True
+                        before_rights = right_tmp
+                        has_right_part = True
+                        break
 
-                if not has_part:
+                if (not has_left_part) and (not has_right_part):
                     feature_list.append(self.word_before_unknown)
 
         else:
             # 词汇为起始位特征
             feature_list.append(self.start_feature)
-        return feature_list
+
         # 由于词汇量相当大，因此必须考虑是否在 unigram 中
         if cur_w in self.unigram:
             # 当前词特征
@@ -202,53 +188,72 @@ class POSFeatureExtractor(object):
             current_word = cur_w
         else:
             # 当前词 parts 特征
-            has_part = False
-            for i in range(1, len(cur_w)):
+            has_left_part = False
+            cur_w_length = min(len(cur_w), 5)
+            for i in range(cur_w_length-1, 0, -1):
                 left_tmp = cur_w[:i]
                 if left_tmp in self.part:
                     feature_list.append(self.part_current_left + left_tmp)
-                    current_lefts.append(left_tmp)
-                    has_part = True
+                    current_lefts = left_tmp
+                    has_left_part = True
+                    break
 
+            has_right_part = False
+            for i in range(cur_w_length-1, 0, -1):
                 right_tmp = cur_w[i:]
                 if right_tmp in self.part:
                     feature_list.append(self.part_current_right + right_tmp)
-                    current_rights.append(right_tmp)
-                    has_part = True
+                    current_rights = right_tmp
+                    has_right_part = True
+                    break
 
-            if not has_part:
+            if (not has_left_part) and (not has_right_part):
                 # 当前词 unk 特征
                 feature_list.append(self.word_current_unknown)
                 # 为该词添加字特征
 
-                if cur_w_length < 4:
-                    # 添加正向字符特征
-                    for i in range(cur_w_length):
-                        if i == 0:
-                            feature_list.append(self.char_current_1 + cur_w[0])
-                        elif i == 1:
-                            feature_list.append(self.char_current_2 + cur_w[1])
-                        elif i == 2:
-                            feature_list.append(self.char_current_3 + cur_w[2])
-                    for i in range(4 - cur_w_length):
-                        feature_list.append(self.char_current_unk)
+                if cur_w_length == 1:
+                    feature_list.append(self.char_current_unk)
+                    if cur_w[0] in self.char:
+                        feature_list.append(self.char_current_1 + cur_w)
+                        # feature_list.append(self.char_current_6 + cur_w)
 
-                    # 添加反向字符特征
-                    if cur_w_length == 1:
-                        feature_list.append(self.char_current_unk)
-                        feature_list.append(self.char_current_6 + cur_w[-1])
-                    else:
-                        feature_list.append(self.char_current_5 + cur_w[-2])
-                        feature_list.append(self.char_current_6 + cur_w[-1])
-                else:
-                    feature_list.append(self.char_current_1 + cur_w[0])
-                    feature_list.append(self.char_current_2 + cur_w[1])
-                    feature_list.append(self.char_current_3 + cur_w[2])
-                    feature_list.append(self.char_current_4 + cur_w[3])
-                    feature_list.append(self.char_current_5 + cur_w[-2])
-                    feature_list.append(self.char_current_6 + cur_w[-1])
+                elif cur_w_length == 2:
+                    feature_list.append(self.char_current_unk)
+                    if cur_w[0] in self.char:
+                        feature_list.append(self.char_current_1 + cur_w[0])
+                    if cur_w[1] in self.char:
+                        feature_list.append(self.char_current_2 + cur_w[1])
 
-        if idx < len(token_list) - 1:
+                elif cur_w_length == 3:
+                    feature_list.append(self.char_current_unk)
+                    if cur_w[0] in self.char:
+                        feature_list.append(self.char_current_1 + cur_w[0])
+                    if cur_w[1] in self.char:
+                        feature_list.append(self.char_current_2 + cur_w[1])
+                    if cur_w[2] in self.char:
+                        feature_list.append(self.char_current_3 + cur_w[2])
+
+                elif cur_w_length >= 4:
+                    if cur_w[0] in self.char:
+                        feature_list.append(self.char_current_1 + cur_w[0])
+                    if cur_w[1] in self.char:
+                        feature_list.append(self.char_current_2 + cur_w[1])
+                    if cur_w[2] in self.char:
+                        feature_list.append(self.char_current_3 + cur_w[2])
+                    if cur_w[3] in self.char:
+                        feature_list.append(self.char_current_4 + cur_w[3])
+
+                    if cur_w_length == 5:
+                        if cur_w[-1] in self.char:
+                            feature_list.append(self.char_current_6 + cur_w[-1])
+                    elif cur_w_length > 5:
+                        if cur_w[-1] in self.char:
+                            feature_list.append(self.char_current_6 + cur_w[-1])
+                        if cur_w[-2] in self.char:
+                            feature_list.append(self.char_current_5 + cur_w[-2])
+
+        if idx < length - 1:
             next_w = token_list[idx + 1]
             # 后一个词特征
             if next_w in self.unigram:
@@ -256,48 +261,30 @@ class POSFeatureExtractor(object):
                 next_word = next_w
             else:
                 # 后第一词 parts 特征
-                has_part = False
-                for i in range(1, len(next_w)):
+                has_left_part = False
+                next_w_length = min(len(next_w), 5)
+                for i in range(next_w_length-1, 0, -1):
                     left_tmp = next_w[:i]
                     if left_tmp in self.part:
                         feature_list.append(self.part_next_left + left_tmp)
-                        next_lefts.append(left_tmp)
-                        has_part = True
+                        next_lefts = left_tmp
+                        has_left_part = True
+                        break
 
+                has_right_part = False
+                for i in range(next_w_length-1, 0, -1):
                     right_tmp = next_w[i:]
                     if right_tmp in self.part:
                         feature_list.append(self.part_next_right + right_tmp)
-                        next_rights.append(right_tmp)
-                        has_part = True
+                        next_rights = right_tmp
+                        has_right_part = True
+                        break
 
-                if not has_part:
+                if (not has_left_part) and (not has_right_part):
                     feature_list.append(self.word_next_unknown)
         else:
             # 字符为终止位特征
             feature_list.append(self.end_feature)
-
-        '''
-        if idx < len(token_list) - 2:
-            next_w2 = token_list[idx + 2]
-
-            if next_w2 in self.unigram:
-                # 后第二词特征
-                feature_list.append(self.word_next_2 + next_w2)
-            else:
-                # 前二词 unk 特征
-                has_part = False
-                for i in range(1, len(next_w2)):
-                    if next_w2[:i] in self.part:
-                        feature_list.append(self.part_next_2_left + next_w2[:i])
-                        has_part = True
-
-                    if next_w2[i:] in self.part:
-                        feature_list.append(self.part_next_2_right + next_w2[i:])
-                        has_part = True
-
-                if not has_part:
-                    feature_list.append(self.word_next_2_unknown)
-        '''
 
         # bigram 特征
         if current_word is not None:
@@ -305,77 +292,77 @@ class POSFeatureExtractor(object):
                 feature_list.append(
                     self.bi_word_before_word_current + before_word + self.mark + current_word)
             else:
-                for before_left in before_lefts:
+                if before_lefts is not None:
                     feature_list.append(
-                        self.bi_part_before_left_word_current + before_left + self.mark + current_word)
+                        self.bi_part_before_left_word_current + before_lefts + self.mark + current_word)
 
-                for before_right in before_rights:
+                if before_rights is not None:
                     feature_list.append(
-                        self.bi_part_before_right_word_current + before_right + self.mark + current_word)
+                        self.bi_part_before_right_word_current + before_rights + self.mark + current_word)
 
             if next_word is not None:
                 feature_list.append(
                     self.bi_word_current_word_next + current_word + self.mark + next_word)
             else:
-                for next_left in next_lefts:
+                if next_lefts is not None:
                     feature_list.append(
-                        self.bi_word_current_part_next_left + current_word + self.mark + next_left)
+                        self.bi_word_current_part_next_left + current_word + self.mark + next_lefts)
 
-                for next_right in next_rights:
+                if next_rights is not None:
                     feature_list.append(
-                        self.bi_word_current_part_next_right + current_word + self.mark + next_right)
+                        self.bi_word_current_part_next_right + current_word + self.mark + next_rights)
 
         else:
             # 有 current parts left and right 特征
             if before_word is not None:
-                for current_left in current_lefts:
+                if current_lefts is not None:
                     feature_list.append(
-                        self.bi_word_before_part_current_left + before_word + self.mark + current_left)
+                        self.bi_word_before_part_current_left + before_word + self.mark + current_lefts)
 
-                for current_right in current_rights:
+                if current_rights is not None:
                     feature_list.append(
-                        self.bi_word_before_part_current_right + before_word + self.mark + current_right)
+                        self.bi_word_before_part_current_right + before_word + self.mark + current_rights)
             else:
-                for before_left in before_lefts:
-                    for current_left in current_lefts:
+                if before_lefts is not None:
+                    if current_lefts is not None:
                         feature_list.append(
-                            self.bi_part_before_left_part_current_left + before_left + self.mark + current_left)
-                    for current_right in current_rights:
+                            self.bi_part_before_left_part_current_left + before_lefts + self.mark + current_lefts)
+                    if current_rights is not None:
                         feature_list.append(
-                            self.bi_part_before_left_part_current_right + before_left + self.mark + current_right)
+                            self.bi_part_before_left_part_current_right + before_lefts + self.mark + current_rights)
 
-                for before_right in before_rights:
-                    for current_left in current_lefts:
+                if before_rights is not None:
+                    if current_lefts is not None:
                         feature_list.append(
-                            self.bi_part_before_right_part_current_left + before_right + self.mark + current_left)
-                    for current_right in current_rights:
+                            self.bi_part_before_right_part_current_left + before_rights + self.mark + current_lefts)
+                    if current_rights is not None:
                         feature_list.append(
-                            self.bi_part_before_right_part_current_right + before_right + self.mark + current_right)
+                            self.bi_part_before_right_part_current_right + before_rights + self.mark + current_rights)
 
             if next_word is not None:
-                for current_left in current_lefts:
+                if current_lefts is not None:
                     feature_list.append(
-                        self.bi_part_current_left_word_next + current_left + self.mark + next_word)
+                        self.bi_part_current_left_word_next + current_lefts + self.mark + next_word)
 
-                for current_right in current_rights:
+                if current_rights is not None:
                     feature_list.append(
-                        self.bi_part_current_right_word_next + current_right + self.mark + next_word)
+                        self.bi_part_current_right_word_next + current_rights + self.mark + next_word)
             else:
-                for next_left in next_lefts:
-                    for current_left in current_lefts:
+                if next_lefts is not None:
+                    if current_lefts is not None:
                         feature_list.append(
-                            self.bi_part_current_left_part_next_left + current_left + self.mark + next_left)
-                    for current_right in current_rights:
+                            self.bi_part_current_left_part_next_left + current_lefts + self.mark + next_lefts)
+                    if current_rights is not None:
                         feature_list.append(
-                            self.bi_part_current_right_part_next_left + current_right + self.mark + next_left)
+                            self.bi_part_current_right_part_next_left + current_rights + self.mark + next_lefts)
 
-                for next_right in next_rights:
-                    for current_left in current_lefts:
+                if next_rights is not None:
+                    if current_lefts is not None:
                         feature_list.append(
-                            self.bi_part_current_left_part_next_right + current_left + self.mark + next_right)
-                    for current_right in current_rights:
+                            self.bi_part_current_left_part_next_right + current_lefts + self.mark + next_rights)
+                    if current_rights is not None:
                         feature_list.append(
-                            self.bi_part_current_right_part_next_right + current_right + self.mark + next_right)
+                            self.bi_part_current_right_part_next_right + current_rights + self.mark + next_rights)
 
         return feature_list
 
@@ -386,15 +373,14 @@ feature_extractor = ctypes.PyDLL(
 get_pos_node_feature_c = feature_extractor.getPosNodeFeature
 get_pos_node_feature_c.argtypes = [
     ctypes.c_int, ctypes.py_object, ctypes.py_object,
-    ctypes.py_object, ctypes.py_object, ctypes.py_object]
+    ctypes.py_object, ctypes.py_object]
 get_pos_node_feature_c.restype = ctypes.py_object
 
 
 word_list = ['今天', '圣诞节', '中华人民共和国', '的', '天气', '真的', '挺好', '。']
-single_pos_word = set(['天气', '今天'])
 unigram = set(["天气", "今天", "中国", "美国", "总统", "总统府"])
-bigram = set(["美国.总统", "天气.晴朗", "美国.总统府"])
-part = set(["节", "共和国"])
+char = set("abcdefghijklmnopqrstuvwxyz0123456789.:-_")
+part = set(["节", "共和国", "型"])
 print(word_list)
 # with open('/home/ubuntu/datasets/unigram.json', 'r', encoding='utf-8') as fr:
 #     unigram = set(json.load(fr))
@@ -402,38 +388,56 @@ print(word_list)
 #     bigram = set(json.load(fr))
 
 index = 3
-# res = get_pos_node_feature_c(
-#     2, word_list, single_pos_word, unigram, bigram)
 
-# sys.exit()
-times = 100
+times = 100000
 
 
 # with jio.TimeIt('c ', no_print=True) as ti:
 #     for i in range(times):
 #         index = i % len(word_list)
 #     pure_cost_time = ti.break_point()
-'''
-fe_obj = POSFeatureExtractor(single_pos_word, part, unigram)
+
+fe_obj = POSFeatureExtractor(char, part, unigram)
+res_c = get_pos_node_feature_c(
+    1, word_list, part, unigram, char)
+# print('start: ', sys.gettotalrefcount())
+pdb.set_trace()
+
 for i in range(times):
     index = i % len(word_list)
-    res1 = fe_obj.get_node_features(index, word_list)
-    print(sys.gettotalrefcount())
-    print(res1)
-    pdb.set_trace()
-'''
+    # index = 1
+    # print(i)
+    res_py = fe_obj.get_node_features(index, word_list)
+    # print('res_py: ', res_py)
+    # print('ref_py: ', [sys.getrefcount(i) for i in res_py])
+    # print('ref_py: ', sys.gettotalrefcount())
+    res_c = get_pos_node_feature_c(
+        index, word_list, part, unigram, char)
+    if res_c != res_py:
+        print('res_C:  ', res_c)
+        print('res_py: ', res_py)
+        pdb.set_trace()
+    # print('res_c:  ', res_c)
+    # print('ref_c:  ', [sys.getrefcount(i) for i in res_c])
+    # print('ref_c:  ', sys.gettotalrefcount())
 
 pdb.set_trace()
+
+
+sys.exit()
+# pdb.set_trace()
 index = 1
-print('before:', sys.gettotalrefcount())
+# print('before:', sys.gettotalrefcount())
 # with jio.TimeIt('c ', no_print=True) as ti:
 
 for i in range(times):
     # index = i % len(word_list)
 
-    get_pos_node_feature_c(
-        index, word_list, single_pos_word, part, unigram, bigram)
-print('after: ', sys.gettotalrefcount())
+    res = get_pos_node_feature_c(
+        index, word_list, single_pos_word, part, unigram, char)
+    print(res)
+    pdb.set_trace()
+# print('after: ', sys.gettotalrefcount())
 # print(res)
 pdb.set_trace()
 #     c_cost_time = ti.break_point()

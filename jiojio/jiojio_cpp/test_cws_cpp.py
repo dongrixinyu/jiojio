@@ -2,12 +2,12 @@
 
 import os
 import sys
-import numpy as np
-import numpy.ctypeslib as npct
+# import numpy as np
+# import numpy.ctypeslib as npct
 import ctypes
 import pdb
 import json
-import jionlp as jio
+# import jionlp as jio
 # from jiojio.tag_words_converter import tag2word
 
 
@@ -180,8 +180,8 @@ class FeatureExtractor(object):
 
 dir_path = '/home/ubuntu/github/jiojio/jiojio/jiojio_cpp'
 feature_extractor = ctypes.PyDLL(
-    os.path.join(dir_path, 'build', 'libfeatureExtractor.so'))
-get_node_feature_c = feature_extractor.getNodeFeature
+    os.path.join(dir_path, 'build', 'libcwsFeatureExtractor.so'))
+get_node_feature_c = feature_extractor.getCwsNodeFeature
 get_node_feature_c.argtypes = [
     ctypes.c_int, ctypes.c_wchar_p, ctypes.c_int, ctypes.py_object, ctypes.py_object]
 get_node_feature_c.restype = ctypes.py_object
@@ -207,9 +207,16 @@ res = get_node_feature_c(19, text, len(text), unigram, bigram)
 print(text)
 print(res)
 print(type(res[0]))
+pdb.set_trace()
+for i in range(100000):
+    idx = i % len(text)
+    # print('ref_c:  ', sys.gettotalrefcount())
+    res = get_node_feature_c(idx, text, len(text), unigram, bigram)
+    print('ref_c:  ', sys.gettotalrefcount())
+pdb.set_trace()
 sys.exit()
 
-times = 100000
+times = 1000
 idx = 10
 with jio.TimeIt('c ', no_print=True) as ti:
     for i in range(times):
@@ -218,7 +225,10 @@ with jio.TimeIt('c ', no_print=True) as ti:
 
 with jio.TimeIt('c ', no_print=True) as ti:
     for i in range(times):
+        print('ref_c:  ', sys.gettotalrefcount())
         res = get_node_feature_c(idx, text, len(text), unigram, bigram)
+        print('ref_c:  ', sys.gettotalrefcount())
+        pdb.set_trace()
     c_cost_time = ti.break_point()
 # res = tag2word(text, states, len(states))
 # pdb.set_trace()

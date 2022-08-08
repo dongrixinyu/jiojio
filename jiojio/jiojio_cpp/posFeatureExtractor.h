@@ -6,15 +6,33 @@
 // #include <string>
 // #include <stdbool.h>
 // #include <locale.h>
+#define max(a, b) \
+    ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a > _b ? _a : _b; })
+#define min(a, b) \
+    ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a < _b ? _a : _b; })
 
-// wchar_t *getSliceStr(wchar_t *text, int start, int length,
-//                      int all_len, wchar_t *emptyStr);
+int getUnknownFeatrue(
+    const wchar_t *flagToken, int flagTokenLength, PyObject *featureList);
 
-void addWordLengthFeature(Py_ssize_t curWordLength, PyObject *featureList);
+int getUnigramFeatrueWideChar(
+    const wchar_t *flagToken, int flagTokenLength, wchar_t *word,
+    Py_ssize_t wordLength, PyObject *featureList);
+
+int getUnigramFeatruePythonString(
+    const wchar_t *flagToken, int flagTokenLength, PyObject *word,
+    PyObject *featureList);
+
+int getBigramFeature(
+    const wchar_t *flagToken, int flagTokenLength, const wchar_t *mark,
+    PyObject *firstWord, PyObject *secondWord,
+    PyObject *featureList);
 
 PyObject *getPosNodeFeature(
     int idx, PyObject *wordList,
-    PyObject *singlePosWord, PyObject *part,
-    PyObject *unigram, PyObject *bigram);
+    PyObject *part, PyObject *unigram, PyObject *chars);
 
 #endif

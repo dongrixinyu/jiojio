@@ -21,18 +21,22 @@ try:
             break
 
     feature_extractor = ctypes.PyDLL(os.path.join(dir_path, 'build', file_name))
-    get_node_features_c = feature_extractor.getNodeFeature
-    get_node_features_c.argtypes = [
-        ctypes.c_int, ctypes.c_wchar_p, ctypes.c_int, ctypes.py_object, ctypes.py_object]
-    pos_get_node_features_c.restype = ctypes.py_object
+    get_pos_node_feature_c = feature_extractor.getPosNodeFeature
+    get_pos_node_feature_c.argtypes = [
+        ctypes.c_int, ctypes.py_object, ctypes.py_object,
+        ctypes.py_object, ctypes.py_object]
+    get_pos_node_feature_c.restype = ctypes.py_object
 
     # print('# jiojio - Successfully load C func `pos_get_node_features_c`.')
-    pos_get_node_features_c = None
+    # pos_pos_get_node_features_c = None
 except Exception:
-    pos_get_node_features_c = None
-    # print('# jiojio - Failed to load C func `pos_get_node_features_c`, use py func instead.')
-    # print('# jiojio - Failed to load C func `pos_get_node_features_c` {}.'.format(
-    #     traceback.format_exc()))
+    get_pos_node_feature_c = None
+
+if get_pos_node_feature_c is not None:
+    # print('# jiojio - Successfully load C funcs for POS acceleration.')
+    pass
+else:
+    pass
 
 
 from .read_default_dict import ReadPOSDictionary
