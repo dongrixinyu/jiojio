@@ -40,7 +40,7 @@ int getBigramFeature(
     return ret;
 }
 
-int getUnigramFeatrueWideChar(
+int getUnigramFeatureWideChar(
     const wchar_t *flagToken, int flagTokenLength, wchar_t *word,
     Py_ssize_t wordLength, PyObject *featureList)
 {
@@ -60,7 +60,7 @@ int getUnigramFeatrueWideChar(
     return ret;
 }
 
-int getUnigramFeatruePythonString(
+int getUnigramFeaturePythonString(
     const wchar_t *flagToken, int flagTokenLength, PyObject *word, Py_ssize_t wordLength,
     PyObject *featureList)
 {
@@ -85,7 +85,7 @@ int getUnigramFeatruePythonString(
     return ret;
 }
 
-int getUnknownFeatrue(
+int getUnknownFeature(
     const wchar_t *flagToken, int flagTokenLength, PyObject *featureList)
 {
     int ret = -1;
@@ -158,7 +158,7 @@ API PyObject *getPosNodeFeature(
         {
             beforeWordGlobal = beforeWord;
             before_word = PyUnicode_GET_LENGTH(beforeWordGlobal);
-            ret = getUnigramFeatruePythonString(L"v", 1, beforeWord, before_word, featureList);
+            ret = getUnigramFeaturePythonString(L"v", 1, beforeWord, before_word, featureList);
             beforeWord = NULL;
         }
         else
@@ -184,7 +184,7 @@ API PyObject *getPosNodeFeature(
                 if (ret == 1)
                 {
                     // 添加特征
-                    ret = getUnigramFeatrueWideChar(
+                    ret = getUnigramFeatureWideChar(
                         partBeforeLeftToken, 2, beforeWordPartLeft, i, featureList);
 
                     // 将临时变量赋给全局变量，为bigram 特征做准备
@@ -220,7 +220,7 @@ API PyObject *getPosNodeFeature(
                 if (ret == 1)
                 {
                     // 添加特征
-                    ret = getUnigramFeatrueWideChar(
+                    ret = getUnigramFeatureWideChar(
                         partBeforeRightToken, 2, beforeWordPartRight, i, featureList);
 
                     beforeWordPartRightGlobal = beforeWordPartRightTmp;
@@ -245,21 +245,21 @@ API PyObject *getPosNodeFeature(
 
             if (before_left == 0 && before_right == 0)
             {
-                ret = getUnknownFeatrue(L"vk", 2, featureList);
+                ret = getUnknownFeature(L"vk", 2, featureList);
             }
         }
     }
     else
     {
         // 添加起始符特征
-        ret = getUnknownFeatrue(L"[START]", 7, featureList);
+        ret = getUnknownFeature(L"[START]", 7, featureList);
     }
 
     // 考察当前一词
     ret = PySet_Contains(unigram, currentWord);
     if (ret == 1)
     {
-        ret = getUnigramFeatruePythonString(L"w", 1, currentWord, currentWordLength, featureList);
+        ret = getUnigramFeaturePythonString(L"w", 1, currentWord, currentWordLength, featureList);
 
         currentWordGlobal = currentWord;
         current_word = currentWordLength;
@@ -286,7 +286,7 @@ API PyObject *getPosNodeFeature(
             if (ret == 1)
             {
                 // 添加特征
-                ret = getUnigramFeatrueWideChar(
+                ret = getUnigramFeatureWideChar(
                     partCurrentLeftToken, 2, currentWordPartLeft, i, featureList);
 
                 // 将临时变量赋给全局变量，为 bigram 特征做准备
@@ -322,7 +322,7 @@ API PyObject *getPosNodeFeature(
             if (ret == 1)
             {
                 // 添加特征
-                ret = getUnigramFeatrueWideChar(
+                ret = getUnigramFeatureWideChar(
                     partCurrentRightToken, 2, currentWordPartRight, i, featureList);
 
                 currentWordPartRightGlobal = currentWordPartRightTmp;
@@ -348,7 +348,7 @@ API PyObject *getPosNodeFeature(
 
         if (current_left == 0 && current_right == 0)
         {
-            ret = getUnknownFeatrue(L"wk", 2, featureList);
+            ret = getUnknownFeature(L"wk", 2, featureList);
 
             const wchar_t *charCurrent1 = L"c1";
             const wchar_t *charCurrent2 = L"c2";
@@ -362,7 +362,7 @@ API PyObject *getPosNodeFeature(
 
                 ret = PySet_Contains(chars, currentWord);
                 if (ret == 1) {
-                    ret = getUnigramFeatruePythonString(charCurrent1, 2, currentWord, 1, featureList);
+                    ret = getUnigramFeaturePythonString(charCurrent1, 2, currentWord, 1, featureList);
                 }
             }
 
@@ -373,7 +373,7 @@ API PyObject *getPosNodeFeature(
                 PyObject *charIndex1 = PyUnicode_Substring(currentWord, 0, 1);
                 ret = PySet_Contains(chars, charIndex1);
                 if (ret == 1) {
-                    ret = getUnigramFeatruePythonString(charCurrent1, 2, charIndex1, 1, featureList);
+                    ret = getUnigramFeaturePythonString(charCurrent1, 2, charIndex1, 1, featureList);
                 }
                 Py_DECREF(charIndex1);
 
@@ -381,7 +381,7 @@ API PyObject *getPosNodeFeature(
                 ret = PySet_Contains(chars, charIndex2);
                 if (ret == 1)
                 {
-                    ret = getUnigramFeatruePythonString(charCurrent2, 2, charIndex2, 1, featureList);
+                    ret = getUnigramFeaturePythonString(charCurrent2, 2, charIndex2, 1, featureList);
                 }
                 Py_DECREF(charIndex2);
             }
@@ -395,7 +395,7 @@ API PyObject *getPosNodeFeature(
                 ret = PySet_Contains(chars, charIndex1);
                 if (ret == 1)
                 {
-                    ret = getUnigramFeatruePythonString(charCurrent1, 2, charIndex1, 1, featureList);
+                    ret = getUnigramFeaturePythonString(charCurrent1, 2, charIndex1, 1, featureList);
                 }
                 Py_DECREF(charIndex1);
 
@@ -403,7 +403,7 @@ API PyObject *getPosNodeFeature(
                 ret = PySet_Contains(chars, charIndex2);
                 if (ret == 1)
                 {
-                    ret = getUnigramFeatruePythonString(charCurrent2, 2, charIndex2, 1, featureList);
+                    ret = getUnigramFeaturePythonString(charCurrent2, 2, charIndex2, 1, featureList);
                 }
                 Py_DECREF(charIndex2);
 
@@ -411,7 +411,7 @@ API PyObject *getPosNodeFeature(
                 ret = PySet_Contains(chars, charIndex3);
                 if (ret == 1)
                 {
-                    ret = getUnigramFeatruePythonString(charCurrent3, 2, charIndex3, 1, featureList);
+                    ret = getUnigramFeaturePythonString(charCurrent3, 2, charIndex3, 1, featureList);
                 }
                 Py_DECREF(charIndex3);
             }
@@ -424,7 +424,7 @@ API PyObject *getPosNodeFeature(
                 ret = PySet_Contains(chars, charIndex1);
                 if (ret == 1)
                 {
-                    ret = getUnigramFeatruePythonString(charCurrent1, 2, charIndex1, 1, featureList);
+                    ret = getUnigramFeaturePythonString(charCurrent1, 2, charIndex1, 1, featureList);
                 }
                 Py_DECREF(charIndex1);
 
@@ -432,7 +432,7 @@ API PyObject *getPosNodeFeature(
                 ret = PySet_Contains(chars, charIndex2);
                 if (ret == 1)
                 {
-                    ret = getUnigramFeatruePythonString(charCurrent2, 2, charIndex2, 1, featureList);
+                    ret = getUnigramFeaturePythonString(charCurrent2, 2, charIndex2, 1, featureList);
                 }
                 Py_DECREF(charIndex2);
 
@@ -440,7 +440,7 @@ API PyObject *getPosNodeFeature(
                 ret = PySet_Contains(chars, charIndex3);
                 if (ret == 1)
                 {
-                    ret = getUnigramFeatruePythonString(charCurrent3, 2, charIndex3, 1, featureList);
+                    ret = getUnigramFeaturePythonString(charCurrent3, 2, charIndex3, 1, featureList);
                 }
                 Py_DECREF(charIndex3);
 
@@ -448,7 +448,7 @@ API PyObject *getPosNodeFeature(
                 ret = PySet_Contains(chars, charIndex4);
                 if (ret == 1)
                 {
-                    ret = getUnigramFeatruePythonString(charCurrent4, 2, charIndex4, 1, featureList);
+                    ret = getUnigramFeaturePythonString(charCurrent4, 2, charIndex4, 1, featureList);
                 }
                 Py_DECREF(charIndex4);
 
@@ -461,7 +461,7 @@ API PyObject *getPosNodeFeature(
                     ret = PySet_Contains(chars, charIndex6);
                     if (ret == 1)
                     {
-                        ret = getUnigramFeatruePythonString(charCurrent6, 2, charIndex6, 1, featureList);
+                        ret = getUnigramFeaturePythonString(charCurrent6, 2, charIndex6, 1, featureList);
                     }
                     Py_DECREF(charIndex6);
                 }
@@ -472,7 +472,7 @@ API PyObject *getPosNodeFeature(
                     ret = PySet_Contains(chars, charIndex6);
                     if (ret == 1)
                     {
-                        ret = getUnigramFeatruePythonString(charCurrent6, 2, charIndex6, 1, featureList);
+                        ret = getUnigramFeaturePythonString(charCurrent6, 2, charIndex6, 1, featureList);
                     }
                     Py_DECREF(charIndex6);
 
@@ -481,7 +481,7 @@ API PyObject *getPosNodeFeature(
                     ret = PySet_Contains(chars, charIndex5);
                     if (ret == 1)
                     {
-                        ret = getUnigramFeatruePythonString(charCurrent5, 2, charIndex5, 1, featureList);
+                        ret = getUnigramFeaturePythonString(charCurrent5, 2, charIndex5, 1, featureList);
                     }
                     Py_DECREF(charIndex5);
                 }
@@ -501,7 +501,7 @@ API PyObject *getPosNodeFeature(
         {
             nextWordGlobal = nextWord;
             next_word = PyUnicode_GET_LENGTH(nextWordGlobal);
-            ret = getUnigramFeatruePythonString(L"x", 1, nextWord, next_word, featureList);
+            ret = getUnigramFeaturePythonString(L"x", 1, nextWord, next_word, featureList);
 
             nextWord = NULL;
         }
@@ -528,7 +528,7 @@ API PyObject *getPosNodeFeature(
                 if (ret == 1)
                 {
                     // 添加特征
-                    ret = getUnigramFeatrueWideChar(
+                    ret = getUnigramFeatureWideChar(
                         partNextLeftToken, 2, nextWordPartLeft, i, featureList);
 
                     // 将临时变量赋给全局变量，为bigram 特征做准备
@@ -564,7 +564,7 @@ API PyObject *getPosNodeFeature(
                 if (ret == 1)
                 {
                     // 添加特征
-                    ret = getUnigramFeatrueWideChar(
+                    ret = getUnigramFeatureWideChar(
                         partNextRightToken, 2, nextWordPartRight, i, featureList);
 
                     nextWordPartRightGlobal = nextWordPartRightTmp;
@@ -589,14 +589,14 @@ API PyObject *getPosNodeFeature(
 
             if (next_left == 0 && next_right == 0)
             {
-                ret = getUnknownFeatrue(L"xk", 2, featureList);
+                ret = getUnknownFeature(L"xk", 2, featureList);
             }
         }
     }
     else
     {
         // 添加结束符特征
-        ret = getUnknownFeatrue(L"[END]", 5, featureList);
+        ret = getUnknownFeature(L"[END]", 5, featureList);
     }
 
     const wchar_t *mark = L"*";

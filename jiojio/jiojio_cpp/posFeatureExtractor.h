@@ -15,14 +15,14 @@
        __typeof__ (b) _b = (b); \
      _a < _b ? _a : _b; })
 
-int getUnknownFeatrue(
+int getUnknownFeature(
     const wchar_t *flagToken, int flagTokenLength, PyObject *featureList);
 
-int getUnigramFeatrueWideChar(
+int getUnigramFeatureWideChar(
     const wchar_t *flagToken, int flagTokenLength, wchar_t *word,
     Py_ssize_t wordLength, PyObject *featureList);
 
-int getUnigramFeatruePythonString(
+int getUnigramFeaturePythonString(
     const wchar_t *flagToken, int flagTokenLength, PyObject *word,
     Py_ssize_t wordLength, PyObject *featureList);
 
