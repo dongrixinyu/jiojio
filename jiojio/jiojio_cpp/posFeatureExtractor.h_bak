@@ -24,16 +24,15 @@ int getUnigramFeatrueWideChar(
 
 int getUnigramFeatruePythonString(
     const wchar_t *flagToken, int flagTokenLength, PyObject *word,
-    Py_ssize_t wordLength, PyObject *featureList);
+    PyObject *featureList);
 
 int getBigramFeature(
     const wchar_t *flagToken, int flagTokenLength, const wchar_t *mark,
     PyObject *firstWord, PyObject *secondWord,
-    int firstWordLength, int secondWordLength,
     PyObject *featureList);
 
 PyObject *getPosNodeFeature(
-    int idx, PyObject *wordList, // int wordListLength,
+    int idx, PyObject *wordList, int wordListLength,
     PyObject *part, PyObject *unigram, PyObject *chars);
 
 #endif

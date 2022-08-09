@@ -8,14 +8,13 @@
 
 int getBigramFeature(
     const wchar_t *flagToken, int flagTokenLength, const wchar_t *mark,
-    PyObject *firstWord, PyObject *secondWord,
-    int firstWordLength, int secondWordLength,
-    PyObject *featureList)
+    PyObject *firstWord, PyObject *secondWord, PyObject *featureList)
 {
-    Py_ssize_t firstWordLengthPy = (Py_ssize_t)firstWordLength;
-    Py_ssize_t secondWordLengthPy = (Py_ssize_t)secondWordLength;
-    wchar_t *firstWordWideChar = PyUnicode_AsWideCharString(firstWord, &firstWordLengthPy);
-    wchar_t *secondWordWideChar = PyUnicode_AsWideCharString(secondWord, &secondWordLengthPy);
+    Py_ssize_t firstWordLength = PyUnicode_GET_LENGTH(firstWord);
+    Py_ssize_t secondWordLength = PyUnicode_GET_LENGTH(secondWord);
+
+    wchar_t *firstWordWideChar = PyUnicode_AsWideCharString(firstWord, &firstWordLength);
+    wchar_t *secondWordWideChar = PyUnicode_AsWideCharString(secondWord, &secondWordLength);
 
     wchar_t *biWordFeature = malloc(
         (firstWordLength + secondWordLength + flagTokenLength + 1) * sizeof(wchar_t));
@@ -61,11 +60,13 @@ int getUnigramFeatrueWideChar(
 }
 
 int getUnigramFeatruePythonString(
-    const wchar_t *flagToken, int flagTokenLength, PyObject *word, Py_ssize_t wordLength,
+    const wchar_t *flagToken, int flagTokenLength, PyObject *word,
     PyObject *featureList)
 {
     int ret = -1;
     PyObject *tmpPythonStr;
+
+    Py_ssize_t wordLength = PyUnicode_GET_LENGTH(word);
 
     wchar_t *wordWideChar = PyUnicode_AsWideCharString(word, &wordLength);
 
@@ -101,7 +102,6 @@ int getUnknownFeatrue(
 
 /**
  * @brief Get the Node Feature Python object
- * 函数压缩方法为尽量减少对 py 内置函数的调用，而采用 C 和 参数方式进行传递
  *
  * @param idx: 处理的词汇索引
  * @param wordList: 词汇列表
@@ -112,13 +112,13 @@ int getUnknownFeatrue(
  * @return PyObject*
  */
 API PyObject *getPosNodeFeature(
-    int idx, PyObject *wordList, // int wordListLength,
+    int idx, PyObject *wordList, int wordListLength,
     PyObject *part, PyObject *unigram, PyObject *chars)
 {
     int ret = -1;
     PyObject *tmpPyStr;
 
-    Py_ssize_t wordListLength = PyList_Size(wordList);
+    // Py_ssize_t wordListLength = PyList_Size(wordList);
     PyObject *featureList = PyList_New(0);
     PyObject *currentWord = PyList_GetItem(wordList, idx);
 
@@ -127,7 +127,7 @@ API PyObject *getPosNodeFeature(
 
     int maxPartLength = 5;
 
-    int before_word = 0; // 此类均为指示 flag，所指示内容为其词长，为寻找 bigram 拼凑特征
+    int before_word = 0;  // 此类均为指示 flag，为寻找 bigram 拼凑特征
     int before_left = 0;
     int before_right = 0;
     PyObject *beforeWordGlobal = NULL;
@@ -156,9 +156,10 @@ API PyObject *getPosNodeFeature(
 
         if (ret == 1)
         {
+            ret = getUnigramFeatruePythonString(L"v", 1, beforeWord, featureList);
+
             beforeWordGlobal = beforeWord;
-            before_word = PyUnicode_GET_LENGTH(beforeWordGlobal);
-            ret = getUnigramFeatruePythonString(L"v", 1, beforeWord, before_word, featureList);
+            before_word = 1;
             beforeWord = NULL;
         }
         else
@@ -189,7 +190,7 @@ API PyObject *getPosNodeFeature(
 
                     // 将临时变量赋给全局变量，为bigram 特征做准备
                     beforeWordPartLeftGlobal = beforeWordPartLeftTmp;
-                    before_left = i;
+                    before_left = 1;
 
                     // Py_DECREF(beforeWordPartLeftTmp);
                     beforeWordPartLeftTmp = NULL;
@@ -224,7 +225,7 @@ API PyObject *getPosNodeFeature(
                         partBeforeRightToken, 2, beforeWordPartRight, i, featureList);
 
                     beforeWordPartRightGlobal = beforeWordPartRightTmp;
-                    before_right = i;
+                    before_right = 1;
 
                     // Py_DECREF(beforeWordPartRightTmp);
                     beforeWordPartRightTmp = NULL;
@@ -259,10 +260,10 @@ API PyObject *getPosNodeFeature(
     ret = PySet_Contains(unigram, currentWord);
     if (ret == 1)
     {
-        ret = getUnigramFeatruePythonString(L"w", 1, currentWord, currentWordLength, featureList);
+        ret = getUnigramFeatruePythonString(L"w", 1, currentWord, featureList);
 
         currentWordGlobal = currentWord;
-        current_word = currentWordLength;
+        current_word = 1;
         currentWord = NULL;
     }
     else
@@ -281,6 +282,7 @@ API PyObject *getPosNodeFeature(
             wcsncpy(currentWordPartLeft, currentWordTmp, i);
 
             PyObject *currentWordPartLeftTmp = PyUnicode_FromWideChar(currentWordPartLeft, i);
+            // printf("cur left %ls\n", currentWordPartLeft);
             ret = PySet_Contains(part, currentWordPartLeftTmp);
 
             if (ret == 1)
@@ -291,7 +293,8 @@ API PyObject *getPosNodeFeature(
 
                 // 将临时变量赋给全局变量，为 bigram 特征做准备
                 currentWordPartLeftGlobal = currentWordPartLeftTmp;
-                current_left = i;
+                current_left = 1;
+                // hasLeftPart = 1; // flag 调整
 
                 // Py_DECREF(currentWordPartLeftTmp);
                 currentWordPartLeftTmp = NULL;
@@ -326,7 +329,7 @@ API PyObject *getPosNodeFeature(
                     partCurrentRightToken, 2, currentWordPartRight, i, featureList);
 
                 currentWordPartRightGlobal = currentWordPartRightTmp;
-                current_right = i;
+                current_right = 1;
 
                 // Py_DECREF(currentWordPartRightTmp);
                 currentWordPartRightTmp = NULL;
@@ -350,19 +353,20 @@ API PyObject *getPosNodeFeature(
         {
             ret = getUnknownFeatrue(L"wk", 2, featureList);
 
+            const wchar_t *charCurrentUnknown = L"ck";
             const wchar_t *charCurrent1 = L"c1";
             const wchar_t *charCurrent2 = L"c2";
             const wchar_t *charCurrent3 = L"c3";
             const wchar_t *charCurrent4 = L"c4";
 
-            tmpPyStr = PyUnicode_FromWideChar(L"ck", 2);
+            tmpPyStr = PyUnicode_FromWideChar(charCurrentUnknown, 2);
             if (currentWordLength == 1) {
                 ret = PyList_Append(featureList, tmpPyStr);
                 Py_DECREF(tmpPyStr);
 
                 ret = PySet_Contains(chars, currentWord);
                 if (ret == 1) {
-                    ret = getUnigramFeatruePythonString(charCurrent1, 2, currentWord, 1, featureList);
+                    ret = getUnigramFeatruePythonString(charCurrent1, 2, currentWord, featureList);
                 }
             }
 
@@ -373,7 +377,7 @@ API PyObject *getPosNodeFeature(
                 PyObject *charIndex1 = PyUnicode_Substring(currentWord, 0, 1);
                 ret = PySet_Contains(chars, charIndex1);
                 if (ret == 1) {
-                    ret = getUnigramFeatruePythonString(charCurrent1, 2, charIndex1, 1, featureList);
+                    ret = getUnigramFeatruePythonString(charCurrent1, 2, charIndex1, featureList);
                 }
                 Py_DECREF(charIndex1);
 
@@ -381,7 +385,7 @@ API PyObject *getPosNodeFeature(
                 ret = PySet_Contains(chars, charIndex2);
                 if (ret == 1)
                 {
-                    ret = getUnigramFeatruePythonString(charCurrent2, 2, charIndex2, 1, featureList);
+                    ret = getUnigramFeatruePythonString(charCurrent2, 2, charIndex2, featureList);
                 }
                 Py_DECREF(charIndex2);
             }
@@ -395,7 +399,7 @@ API PyObject *getPosNodeFeature(
                 ret = PySet_Contains(chars, charIndex1);
                 if (ret == 1)
                 {
-                    ret = getUnigramFeatruePythonString(charCurrent1, 2, charIndex1, 1, featureList);
+                    ret = getUnigramFeatruePythonString(charCurrent1, 2, charIndex1, featureList);
                 }
                 Py_DECREF(charIndex1);
 
@@ -403,7 +407,7 @@ API PyObject *getPosNodeFeature(
                 ret = PySet_Contains(chars, charIndex2);
                 if (ret == 1)
                 {
-                    ret = getUnigramFeatruePythonString(charCurrent2, 2, charIndex2, 1, featureList);
+                    ret = getUnigramFeatruePythonString(charCurrent2, 2, charIndex2, featureList);
                 }
                 Py_DECREF(charIndex2);
 
@@ -411,7 +415,7 @@ API PyObject *getPosNodeFeature(
                 ret = PySet_Contains(chars, charIndex3);
                 if (ret == 1)
                 {
-                    ret = getUnigramFeatruePythonString(charCurrent3, 2, charIndex3, 1, featureList);
+                    ret = getUnigramFeatruePythonString(charCurrent3, 2, charIndex3, featureList);
                 }
                 Py_DECREF(charIndex3);
             }
@@ -424,7 +428,7 @@ API PyObject *getPosNodeFeature(
                 ret = PySet_Contains(chars, charIndex1);
                 if (ret == 1)
                 {
-                    ret = getUnigramFeatruePythonString(charCurrent1, 2, charIndex1, 1, featureList);
+                    ret = getUnigramFeatruePythonString(charCurrent1, 2, charIndex1, featureList);
                 }
                 Py_DECREF(charIndex1);
 
@@ -432,7 +436,7 @@ API PyObject *getPosNodeFeature(
                 ret = PySet_Contains(chars, charIndex2);
                 if (ret == 1)
                 {
-                    ret = getUnigramFeatruePythonString(charCurrent2, 2, charIndex2, 1, featureList);
+                    ret = getUnigramFeatruePythonString(charCurrent2, 2, charIndex2, featureList);
                 }
                 Py_DECREF(charIndex2);
 
@@ -440,7 +444,7 @@ API PyObject *getPosNodeFeature(
                 ret = PySet_Contains(chars, charIndex3);
                 if (ret == 1)
                 {
-                    ret = getUnigramFeatruePythonString(charCurrent3, 2, charIndex3, 1, featureList);
+                    ret = getUnigramFeatruePythonString(charCurrent3, 2, charIndex3, featureList);
                 }
                 Py_DECREF(charIndex3);
 
@@ -448,7 +452,7 @@ API PyObject *getPosNodeFeature(
                 ret = PySet_Contains(chars, charIndex4);
                 if (ret == 1)
                 {
-                    ret = getUnigramFeatruePythonString(charCurrent4, 2, charIndex4, 1, featureList);
+                    ret = getUnigramFeatruePythonString(charCurrent4, 2, charIndex4, featureList);
                 }
                 Py_DECREF(charIndex4);
 
@@ -461,7 +465,7 @@ API PyObject *getPosNodeFeature(
                     ret = PySet_Contains(chars, charIndex6);
                     if (ret == 1)
                     {
-                        ret = getUnigramFeatruePythonString(charCurrent6, 2, charIndex6, 1, featureList);
+                        ret = getUnigramFeatruePythonString(charCurrent6, 2, charIndex6, featureList);
                     }
                     Py_DECREF(charIndex6);
                 }
@@ -472,7 +476,7 @@ API PyObject *getPosNodeFeature(
                     ret = PySet_Contains(chars, charIndex6);
                     if (ret == 1)
                     {
-                        ret = getUnigramFeatruePythonString(charCurrent6, 2, charIndex6, 1, featureList);
+                        ret = getUnigramFeatruePythonString(charCurrent6, 2, charIndex6, featureList);
                     }
                     Py_DECREF(charIndex6);
 
@@ -481,7 +485,7 @@ API PyObject *getPosNodeFeature(
                     ret = PySet_Contains(chars, charIndex5);
                     if (ret == 1)
                     {
-                        ret = getUnigramFeatruePythonString(charCurrent5, 2, charIndex5, 1, featureList);
+                        ret = getUnigramFeatruePythonString(charCurrent5, 2, charIndex5, featureList);
                     }
                     Py_DECREF(charIndex5);
                 }
@@ -499,10 +503,10 @@ API PyObject *getPosNodeFeature(
 
         if (ret == 1)
         {
-            nextWordGlobal = nextWord;
-            next_word = PyUnicode_GET_LENGTH(nextWordGlobal);
-            ret = getUnigramFeatruePythonString(L"x", 1, nextWord, next_word, featureList);
+            ret = getUnigramFeatruePythonString(L"x", 1, nextWord, featureList);
 
+            nextWordGlobal = nextWord;
+            next_word = 1;
             nextWord = NULL;
         }
         else
@@ -533,7 +537,7 @@ API PyObject *getPosNodeFeature(
 
                     // 将临时变量赋给全局变量，为bigram 特征做准备
                     nextWordPartLeftGlobal = nextWordPartLeftTmp;
-                    next_left = i;
+                    next_left = 1;
 
                     // Py_DECREF(nextWordPartLeftTmp);
                     nextWordPartLeftTmp = NULL;
@@ -557,7 +561,7 @@ API PyObject *getPosNodeFeature(
                 wchar_t *nextWordPartRight = malloc(i * sizeof(wchar_t));
 
                 wcsncpy(nextWordPartRight, nextWordTmp + nextWordLength - i, i);
-                // printf("\tdr i = %d  %ls\n", i, nextWordTmp + nextWordLength - i);
+
                 PyObject *nextWordPartRightTmp = PyUnicode_FromWideChar(nextWordPartRight, i);
                 ret = PySet_Contains(part, nextWordPartRightTmp);
                 // printf("ret right: %d\t%ls\n", ret, nextWordPartRight);
@@ -568,7 +572,7 @@ API PyObject *getPosNodeFeature(
                         partNextRightToken, 2, nextWordPartRight, i, featureList);
 
                     nextWordPartRightGlobal = nextWordPartRightTmp;
-                    next_right = i;
+                    next_right = 1;
 
                     // Py_DECREF(nextWordPartRightTmp);
                     nextWordPartRightTmp = NULL;
@@ -605,181 +609,153 @@ API PyObject *getPosNodeFeature(
     //        current_word, current_left, current_right,
     //        next_word, next_left, next_right);
     // get bigram feature
-    if (current_word > 0) {
-        if (before_word > 0) {
-            ret = getBigramFeature(
-                L"vw", 2, mark, beforeWordGlobal, currentWordGlobal,
-                before_word, current_word, featureList);
+    if (current_word == 1) {
+        if (before_word == 1) {
+            ret = getBigramFeature(L"vw", 2, mark, beforeWordGlobal, currentWordGlobal, featureList);
         }
         else {
-            if (before_left > 0) {
-                ret = getBigramFeature(
-                    L"blw", 3, mark, beforeWordPartLeftGlobal, currentWordGlobal,
-                    before_left, current_word, featureList);
+            if (before_left == 1) {
+                ret = getBigramFeature(L"blw", 3, mark, beforeWordPartLeftGlobal, currentWordGlobal, featureList);
             }
 
-            if (before_right > 0)
+            if (before_right == 1)
             {
-                ret = getBigramFeature(
-                    L"brw", 3, mark, beforeWordPartRightGlobal, currentWordGlobal,
-                    before_right, current_word, featureList);
+                ret = getBigramFeature(L"brw", 3, mark, beforeWordPartRightGlobal, currentWordGlobal, featureList);
             }
         }
 
-        if (next_word > 0)
+        if (next_word == 1)
         {
-            ret = getBigramFeature(
-                L"wx", 2, mark, currentWordGlobal, nextWordGlobal,
-                current_word, next_word, featureList);
+            ret = getBigramFeature(L"wx", 2, mark, currentWordGlobal, nextWordGlobal, featureList);
         }
         else
         {
-            if (next_left > 0)
+            if (next_left == 1)
             {
-                ret = getBigramFeature(
-                    L"wdl", 3, mark, currentWordGlobal, nextWordPartLeftGlobal,
-                    current_word, next_word, featureList);
+                ret = getBigramFeature(L"wdl", 3, mark, currentWordGlobal, nextWordPartLeftGlobal, featureList);
             }
 
-            if (next_right > 0)
+            if (next_right == 1)
             {
-                ret = getBigramFeature(
-                    L"wdr", 3, mark, currentWordGlobal, nextWordPartRightGlobal,
-                    current_word, next_right, featureList);
+                ret = getBigramFeature(L"wdr", 3, mark, currentWordGlobal, nextWordPartRightGlobal, featureList);
             }
         }
     }
     else
     {
-        if (before_word > 0)
+        if (before_word == 1)
         {
-            if (current_left > 0) {
-                ret = getBigramFeature(
-                    L"vcl", 3, mark, beforeWordGlobal, currentWordPartLeftGlobal,
-                    before_word, current_left, featureList);
+            if (current_left == 1) {
+                ret = getBigramFeature(L"vcl", 3, mark, beforeWordGlobal, currentWordPartLeftGlobal, featureList);
             }
 
-            if (current_right > 0) {
-                ret = getBigramFeature(
-                    L"vcr", 3, mark, beforeWordGlobal, currentWordPartRightGlobal,
-                    before_word, current_right, featureList);
+            if (current_right == 1) {
+                ret = getBigramFeature(L"vcr", 3, mark, beforeWordGlobal, currentWordPartRightGlobal, featureList);
             }
         }
         else {
-            if (before_left > 0) {
-                if (current_left > 0) {
-                    ret = getBigramFeature(
-                        L"blcl", 4, mark, beforeWordPartLeftGlobal, currentWordPartLeftGlobal,
-                        before_left, current_left, featureList);
+            if (before_left == 1) {
+                if (current_left == 1) {
+                    ret = getBigramFeature(L"blcl", 4, mark, beforeWordPartLeftGlobal,
+                                           currentWordPartLeftGlobal, featureList);
                 }
 
-                if (current_right > 0) {
-                    ret = getBigramFeature(
-                        L"blcr", 4, mark, beforeWordPartLeftGlobal, currentWordPartRightGlobal,
-                        before_left, current_right, featureList);
+                if (current_right == 1) {
+                    ret = getBigramFeature(L"blcr", 4, mark, beforeWordPartLeftGlobal,
+                                           currentWordPartRightGlobal, featureList);
                 }
             }
 
-            if (before_right > 0)
+            if (before_right == 1)
             {
-                if (current_left > 0)
+                if (current_left == 1)
                 {
-                    ret = getBigramFeature(
-                        L"brcl", 4, mark, beforeWordPartRightGlobal, currentWordPartLeftGlobal,
-                        before_right, current_left, featureList);
+                    ret = getBigramFeature(L"brcl", 4, mark, beforeWordPartRightGlobal,
+                                           currentWordPartLeftGlobal, featureList);
                 }
 
-                if (current_right > 0)
+                if (current_right == 1)
                 {
-                    ret = getBigramFeature(
-                        L"brcr", 4, mark, beforeWordPartRightGlobal, currentWordPartRightGlobal,
-                        before_right, current_right, featureList);
+                    ret = getBigramFeature(L"brcr", 4, mark, beforeWordPartRightGlobal,
+                                           currentWordPartRightGlobal, featureList);
                 }
             }
         }
 
-        if (next_word > 0) {
-            if (current_left > 0) {
-                ret = getBigramFeature(
-                    L"clx", 3, mark, currentWordPartLeftGlobal, nextWordGlobal,
-                    current_left, next_word, featureList);
+        if (next_word == 1) {
+            if (current_left == 1) {
+                ret = getBigramFeature(L"clx", 3, mark, currentWordPartLeftGlobal, nextWordGlobal, featureList);
             }
 
-            if (current_right > 0)
+            if (current_right == 1)
             {
-                ret = getBigramFeature(
-                    L"crx", 3, mark, currentWordPartRightGlobal, nextWordGlobal,
-                    current_right, next_word, featureList);
+                ret = getBigramFeature(L"crx", 3, mark, currentWordPartRightGlobal, nextWordGlobal, featureList);
             }
         }
         else {
-            if (next_left > 0) {
-                if (current_left > 0) {
+            if (next_left == 1) {
+                if (current_left == 1) {
                     ret = getBigramFeature(
-                        L"cldl", 4, mark, currentWordPartLeftGlobal, nextWordPartLeftGlobal,
-                        current_left, next_left, featureList);
+                        L"cldl", 4, mark, currentWordPartLeftGlobal, nextWordPartLeftGlobal, featureList);
                 }
 
-                if (current_right > 0)
+                if (current_right == 1)
                 {
                     ret = getBigramFeature(
-                        L"crdl", 4, mark, currentWordPartRightGlobal, nextWordPartLeftGlobal,
-                        current_right, next_left, featureList);
+                        L"crdl", 4, mark, currentWordPartRightGlobal, nextWordPartLeftGlobal, featureList);
                 }
             }
 
-            if (next_right > 0) {
-                if (current_left > 0) {
+            if (next_right == 1) {
+                if (current_left == 1) {
                     ret = getBigramFeature(
-                        L"cldr", 4, mark, currentWordPartLeftGlobal, nextWordPartRightGlobal,
-                        current_left, next_right, featureList);
+                        L"cldr", 4, mark, currentWordPartLeftGlobal, nextWordPartRightGlobal, featureList);
                 }
 
-                if (current_right > 0)
+                if (current_right == 1)
                 {
                     ret = getBigramFeature(
-                        L"crdr", 4, mark, currentWordPartRightGlobal, nextWordPartRightGlobal,
-                        current_right, next_right, featureList);
+                        L"crdr", 4, mark, currentWordPartRightGlobal, nextWordPartRightGlobal, featureList);
                 }
             }
         }
     }
 
-    if (current_word > 0) {
+    if (current_word == 1) {
         currentWordGlobal = NULL;
     }
-    if (current_left > 0) {
+    if (current_left == 1) {
         Py_DECREF(currentWordPartLeftGlobal);
         currentWordPartLeftGlobal = NULL;
     }
-    if (current_right > 0) {
+    if (current_right == 1) {
         Py_DECREF(currentWordPartRightGlobal);
         currentWordPartRightGlobal = NULL;
     }
-    if (before_word > 0)
+    if (before_word == 1)
     {
         beforeWordGlobal = NULL;
     }
-    if (before_left > 0)
+    if (before_left == 1)
     {
         Py_DECREF(beforeWordPartLeftGlobal);
         beforeWordPartLeftGlobal = NULL;
     }
-    if (before_right > 0)
+    if (before_right == 1)
     {
         Py_DECREF(beforeWordPartRightGlobal);
         beforeWordPartRightGlobal = NULL;
     }
-    if (next_word > 0)
+    if (next_word == 1)
     {
         nextWordGlobal = NULL;
     }
-    if (next_left > 0)
+    if (next_left == 1)
     {
         Py_DECREF(nextWordPartLeftGlobal);
         nextWordPartLeftGlobal = NULL;
     }
-    if (next_right > 0)
+    if (next_right == 1)
     {
         Py_DECREF(nextWordPartRightGlobal);
         nextWordPartRightGlobal = NULL;
@@ -790,6 +766,7 @@ API PyObject *getPosNodeFeature(
 
 int main() {
     Py_Initialize();
+    // const wchar_t wordList[8] = {L"今天", L"圣诞节", L"中华人民共和国", L"的", L"天气", L"真的", L"挺好", L"。"};
     PyObject *word_list = PyList_New(0);
 
     PyObject *tmpPyStr;
@@ -854,8 +831,11 @@ int main() {
     for (int i = 0; i < 1000; i++)
     {
         index = i % 8;
-        res = getPosNodeFeature(index, word_list, part, unigram, chars);
+        res = getPosNodeFeature(index, word_list, 8, part, unigram, chars);
     }
-
+    for (int i = 0; i < 8; i++)
+    {
+        res = getPosNodeFeature(i, word_list, 8, part, unigram, chars);
+    }
     Py_Finalize();
 }

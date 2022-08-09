@@ -20,7 +20,7 @@ from jiojio import logging, TimeIt, zip_file, \
     read_file_by_iter, write_file_by_line
 
 from jiojio.pre_processor import PreProcessor
-from . import pos_get_node_features_c
+from . import get_pos_node_feature_c
 from .read_default_dict import ReadPOSDictionary
 
 
@@ -43,7 +43,7 @@ class POSFeatureExtractor(object):
         self.config = config
         self._create_features()
 
-        if pos_get_node_features_c is None:
+        if get_pos_node_feature_c is None:
             self.get_node_features_c = None
         else:
             self.get_node_features_c = True
@@ -504,7 +504,6 @@ class POSFeatureExtractor(object):
 
     def get_node_features(self, idx, token_list):
         # 给定一个 token_list，找出其中 token_list[idx] 匹配到的所有特征
-        # pdb.set_trace()
         cur_w = token_list[idx]
         feature_list = []
 
@@ -532,10 +531,12 @@ class POSFeatureExtractor(object):
                 before_word = before_w
             else:
                 # 前第二词 parts 特征
-                before_w_length = min(len(before_w), 5)
+                before_w_pure_length = len(before_w)
+                before_w_length = min(before_w_pure_length, 5)
                 has_left_part = False
                 for i in range(before_w_length-1, 0, -1):
                     left_tmp = before_w[:i]
+
                     if left_tmp in self.part:
                         feature_list.append(self.part_before_left + left_tmp)
                         before_lefts = left_tmp
@@ -543,7 +544,7 @@ class POSFeatureExtractor(object):
                         break
 
                 has_right_part = False
-                for i in range(before_w_length-1, 0, -1):
+                for i in range(before_w_pure_length - before_w_length + 1, before_w_pure_length):
                     right_tmp = before_w[i:]
                     if right_tmp in self.part:
                         feature_list.append(self.part_before_right + right_tmp)
@@ -566,8 +567,8 @@ class POSFeatureExtractor(object):
         else:
             # 当前词 parts 特征
             has_left_part = False
-            cur_w_length = min(len(cur_w), 5)
-            for i in range(cur_w_length-1, 0, -1):
+            cur_w_trim_length = min(cur_w_length, 5)
+            for i in range(cur_w_trim_length - 1, 0, -1):
                 left_tmp = cur_w[:i]
                 if left_tmp in self.part:
                     feature_list.append(self.part_current_left + left_tmp)
@@ -576,8 +577,9 @@ class POSFeatureExtractor(object):
                     break
 
             has_right_part = False
-            for i in range(cur_w_length-1, 0, -1):
+            for i in range(cur_w_length - cur_w_trim_length + 1, cur_w_length):
                 right_tmp = cur_w[i:]
+
                 if right_tmp in self.part:
                     feature_list.append(self.part_current_right + right_tmp)
                     current_rights = right_tmp
@@ -593,7 +595,6 @@ class POSFeatureExtractor(object):
                     feature_list.append(self.char_current_unk)
                     if cur_w in self.char:
                         feature_list.append(self.char_current_1 + cur_w)
-                        # feature_list.append(self.char_current_6 + cur_w)
 
                 elif cur_w_length == 2:
                     feature_list.append(self.char_current_unk)
@@ -639,8 +640,9 @@ class POSFeatureExtractor(object):
             else:
                 # 后第一词 parts 特征
                 has_left_part = False
-                next_w_length = min(len(next_w), 5)
-                for i in range(next_w_length-1, 0, -1):
+                next_w_pure_length = len(next_w)
+                next_w_length = min(next_w_pure_length, 5)
+                for i in range(next_w_length - 1, 0, -1):
                     left_tmp = next_w[:i]
                     if left_tmp in self.part:
                         feature_list.append(self.part_next_left + left_tmp)
@@ -649,9 +651,10 @@ class POSFeatureExtractor(object):
                         break
 
                 has_right_part = False
-                for i in range(next_w_length-1, 0, -1):
+                for i in range(next_w_pure_length - next_w_length + 1, next_w_pure_length):
                     right_tmp = next_w[i:]
                     if right_tmp in self.part:
+
                         feature_list.append(self.part_next_right + right_tmp)
                         next_rights = right_tmp
                         has_right_part = True

@@ -27,13 +27,15 @@ try:
         ctypes.py_object, ctypes.py_object]
     get_pos_node_feature_c.restype = ctypes.py_object
 
-    # print('# jiojio - Successfully load C func `pos_get_node_features_c`.')
-    # pos_pos_get_node_features_c = None
+    # 统计 C 处理特征的速度
+    # 94.54%，96.53%，95.21%，94.63%，96.80%，96.93%，94.68%
+    # C code 的处理速度大约为 py code 处理速度的 95.61%
+    # 仍存在一定的改进空间，
 except Exception:
     get_pos_node_feature_c = None
 
 if get_pos_node_feature_c is not None:
-    # print('# jiojio - Successfully load C funcs for POS acceleration.')
+    print('# jiojio - Successfully load C funcs for POS acceleration.')
     pass
 else:
     pass
