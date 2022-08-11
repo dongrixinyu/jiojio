@@ -40,7 +40,7 @@ class Config(object):
         # training params
         self.build_train_temp_files = True  # 重新构建训练语料，否则加载旧语料
         self.process_num = 40
-        self.initial_learning_rate = 0.0063  # 梯度初始值
+        self.initial_learning_rate = 0.0065  # 梯度初始值
         self.dropping_rate = 0.6  # 维持学习速率，越大则下降越快(0~1) 推荐(0.7~0.999)
         self.random_init = True  # False for 0-init of model weights, True for random init of model weights
         self.train_epoch = 5  # 训练迭代次数
@@ -61,7 +61,7 @@ class Config(object):
         self.normalize_num_letter = False  # 将所有数字正规化为 7，字母正规化为 Z
         self.convert_exception = True  # 将所有异常字符全部转为固定常见字符 ん
 
-        self.char_feature_trim = 60  # 普通字符的频次删减数值 (50/5)
+        self.char_feature_trim = 68  # 普通字符的频次删减数值 (50/5)
         self.part_length_trim = 4  # part 词缀长度的最大值，超过此值删除，一般固定不变
 
         # 词缀特征出现次数，该特征数应当小于 unigram_feature_trim 以便把低频的特征抽取出
@@ -72,7 +72,7 @@ class Config(object):
         self.part_feature_chinese_trim = 300
         self.part_feature_num_trim = 400
         self.part_feature_non_chinese_trim = 1000  # 词缀特征出现次数，低于该值的频次被删除，此为应对英文等字符情况
-        self.feature_trim = 60  # 普通特征的删减数值 (60/3)  依然可以继续提高，用以减少特征数量
+        self.feature_trim = 68  # 普通特征的删减数值 (60/3)  依然可以继续提高，用以减少特征数量
 
         #训练样本数量为 9600000 条。37.69% 的词汇样本进行了模型训练
         # 当 feature_trim = 60 时，特征数
@@ -86,7 +86,7 @@ class Config(object):
         # 2022-08-01 18:24:06 INFO build: # true feature_num: 835654
         # 因此特征数的 trim 值可以继续提高，用以压缩模型参数的大小。
 
-        self.unigram_feature_trim = 60  # 单词特征的数量 (50/4)
+        self.unigram_feature_trim = 68  # 单词特征的数量 (50/4)
         self.word_max = 4  # 越大，则计算耗时越长，因此不建议超过 6，过短如 3 则会造成模型效果下降
 
         if False:
