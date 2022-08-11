@@ -9,9 +9,13 @@
 import os
 import sys
 import time
+import ctypes
 
 
-# load `pos_get_node_features_c`，加载分词的特征抽取 C 优化函数
+dir_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                        'jiojio_cpp')
+
+# load `get_pos_node_feature_c`，加载分词的特征抽取 C 优化函数
 try:
     file_list = os.listdir(os.path.join(dir_path, 'build'))
     file_name = ''
@@ -27,18 +31,12 @@ try:
         ctypes.py_object, ctypes.py_object]
     get_pos_node_feature_c.restype = ctypes.py_object
 
-    # 统计 C 处理特征的速度
+    # 统计若干次 C 处理特征的速度
     # 94.54%，96.53%，95.21%，94.63%，96.80%，96.93%，94.68%
     # C code 的处理速度大约为 py code 处理速度的 95.61%
     # 仍存在一定的改进空间，
 except Exception:
     get_pos_node_feature_c = None
-
-if get_pos_node_feature_c is not None:
-    print('# jiojio - Successfully load C funcs for POS acceleration.')
-    pass
-else:
-    pass
 
 
 from .read_default_dict import ReadPOSDictionary

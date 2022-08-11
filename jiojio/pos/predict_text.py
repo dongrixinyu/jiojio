@@ -23,6 +23,7 @@ from .config import Config
 from .feature_extractor import POSFeatureExtractor
 from .add_dict_to_model import POSAddDict2Model
 from .read_default_dict import ReadPOSDictionary
+from . import get_pos_node_feature_c
 
 
 class POSPredictText(object):
@@ -89,6 +90,9 @@ class POSPredictText(object):
             normalize_num_letter=pos_config.normalize_num_letter,
             convert_exception=pos_config.convert_exception)
 
+        # C 方式调用
+        self.get_pos_node_feature_c = get_pos_node_feature_c
+
     def _cut(self, words):
         """模型预测部分改为两条线并行
 
@@ -104,6 +108,10 @@ class POSPredictText(object):
         提升处理速度。对于一个基于 CPU 的词性标注工具，处理速度是极为重要的。
 
         """
+        _part = self.feature_extractor.part
+        _unigram = self.feature_extractor.unigram
+        _char = self.feature_extractor.char
+
         length = len(words)
         tags_list = []
 
@@ -113,17 +121,18 @@ class POSPredictText(object):
                 tags_list.append(self.word_pos_default_dict[words[idx]])
 
             else:
-                # if self.get_node_features_c is None:
-                #     # 以 python 方式计算，效率较低
-                node_features = self.feature_extractor.get_node_features(idx, words)
-                # else:
-                #     # 以 C 方式计算，效率高
-                #     node_features = self.get_node_features_c(
-                #         idx, words, len(words), self.feature_extractor.unigram)
+                if self.get_pos_node_feature_c is None:
+                    # 以 python 方式计算，效率较低
+                    node_features = self.feature_extractor.get_node_features(idx, words)
+                else:
+                    # 以 C 方式计算，效率高
+                    node_features = self.get_pos_node_feature_c(
+                        idx, words, _part, _unigram, _char)
 
-                # if node_features != self.feature_extractor.get_node_features(idx, words):
-                #     print(node_features)
-                #     print(self.feature_extractor.get_node_features(idx, words))
+                    # if node_features != self.feature_extractor.get_node_features(idx, words):
+                    #     print('C: ', node_features)
+                    #     print('py:', self.feature_extractor.get_node_features(idx, words))
+                    #     pdb.set_trace()
 
                 node_feature_idx = [
                     self.feature_extractor.feature_to_idx[node_feature]
@@ -136,13 +145,10 @@ class POSPredictText(object):
 
                 # 添加词典
                 if self.user_dict is not None:
-                    self.user_dict(words, Y)
+                    self.user_dict(words[idx], Y)
 
                 tag = self.idx_to_tag[Y.argmax(axis=0)]
                 tags_list.append(tag)
-
-        # print(words[, tag)
-        # pdb.set_trace()
 
         return tags_list
 
@@ -158,5 +164,4 @@ class POSPredictText(object):
                 if word_list[idx] in word_pos_map:
                     tags_list[idx] = word_pos_map[word_list[idx]]
 
-            pdb.set_trace()
             return tags_list

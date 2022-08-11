@@ -638,7 +638,7 @@ API PyObject *getPosNodeFeature(
             {
                 ret = getBigramFeature(
                     L"wdl", 3, mark, currentWordGlobal, nextWordPartLeftGlobal,
-                    current_word, next_word, featureList);
+                    current_word, next_left, featureList);
             }
 
             if (next_right > 0)

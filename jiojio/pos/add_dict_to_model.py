@@ -79,7 +79,7 @@ class POSAddDict2Model(object):
                 word, pos = line.strip().split('\t')
                 self.hard_word_pos_obj.update({word: pos})
             else:
-                logging.warn('this line `{}` is illegal.'.format(line))
+                logging.warning('this line `{}` is illegal.'.format(line))
 
         if len(self.soft_word_pos_obj) == 0:
             self.soft_word_pos_obj = None
@@ -97,7 +97,7 @@ class POSAddDict2Model(object):
             (numpy.Array): 根据模型增强后的矩阵，该类型无需返回值
 
         """
-        if word in self.word_pos_obj:
+        if word in self.soft_word_pos_obj:
 
-            pos_type, weight = self.word_pos_obj[word]
+            pos_type, weight = self.soft_word_pos_obj[word]
             node_state[self.tag_to_idx[pos_type]] += weight

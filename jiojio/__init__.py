@@ -16,6 +16,9 @@ import os
 import pdb
 import yaml
 
+
+print('# jiojio - `http://www.jionlp.com/jionlp_online/cws_pos` is available for online use.')
+
 from multiprocessing import Process, Queue, get_start_method
 
 from .util import TimeIt, zip_file, unzip_file, read_file_by_iter, \
@@ -26,8 +29,22 @@ logging = set_logger(level='INFO', log_dir_name='.jiojio/jiojio_logs')
 from .model import Model
 from .parse_rule_type import Extractor
 
-from .cws import CWSPredictText  # , F1_score, word2tag
-from .pos import POSPredictText
+from .cws import CWSPredictText, cws_get_node_features_c, cws_tag2word_c, cws_feature2idx_c
+from .pos import POSPredictText, get_pos_node_feature_c
+
+if cws_get_node_features_c is not None \
+        and cws_tag2word_c is not None \
+        and cws_feature2idx_c is not None \
+        and get_pos_node_feature_c is not None:
+    print('# jiojio - Successfully load C funcs for CWS and POS acceleration.')
+elif cws_get_node_features_c is None \
+        and cws_tag2word_c is None \
+        and cws_feature2idx_c is None \
+        and get_pos_node_feature_c is None:
+    pass
+else:
+    print('# jiojio - Successfully loaded several C funcs for acceleration, not all.')
+
 from jiojio.cws.config import cws_config
 from jiojio.pos.config import pos_config
 

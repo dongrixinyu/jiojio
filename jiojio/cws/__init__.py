@@ -73,21 +73,11 @@ try:
     cws_feature2idx_c.argtypes = [ctypes.py_object, ctypes.py_object]
     cws_feature2idx_c.restype = ctypes.py_object
 
-    # print('# Successfully load C func `cws_feature2idx_c`.')
-
 except:
     cws_feature2idx_c = None
-    # print('# Failed to load C func `cws_feature2idx_c`, use py func instead.')
 
-if cws_get_node_features_c is not None and cws_tag2word_c is not None and cws_feature2idx_c is not None:
-    print('# jiojio - Successfully load C funcs for acceleration.')
-elif cws_get_node_features_c is None and cws_tag2word_c is None and cws_feature2idx_c is None:
-    pass
-else:
-    print('# jiojio - Successfully loaded several C funcs, not all.')
 
 from .feature_extractor import CWSFeatureExtractor
 from .add_dict_to_model import CWSAddDict2Model
 from .scorer import F1_score
 from .predict_text import CWSPredictText
-# from .tag_words_converter import word2tag, tag2word
