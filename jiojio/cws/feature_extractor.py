@@ -16,7 +16,7 @@ from collections import Counter
 
 # from jiojio.util import unzip_file
 from . import cws_get_node_features_c
-from jiojio import logging, TimeIt, zip_file, unzip_file, read_file_by_iter
+from jiojio import logging, TimeIt, read_file_by_iter
 from .tag_words_converter import word2tag, tag2word
 from jiojio.pre_processor import PreProcessor
 
@@ -611,7 +611,7 @@ class CWSFeatureExtractor(object):
         with open(feature_path, 'w', encoding='utf8') as f_w:
             json.dump(data, f_w, ensure_ascii=False)  # indent=4, separators=(',', ':'))
 
-        zip_file(feature_path)
+        # zip_file(feature_path)
 
     @classmethod
     def load(cls, config=None, model_dir=None):
@@ -623,9 +623,9 @@ class CWSFeatureExtractor(object):
         feature_path = os.path.join(model_dir, 'features.json')
         zip_feature_path = os.path.join(model_dir, 'features.zip')
 
-        if (not os.path.exists(feature_path)) and os.path.exists(zip_feature_path):
-            logging.info('\n\tunzip `{}`\n\tto `{}`.'.format(zip_feature_path, feature_path))
-            unzip_file(zip_feature_path)
+        # if (not os.path.exists(feature_path)) and os.path.exists(zip_feature_path):
+        #     logging.info('\n\tunzip `{}`\n\tto `{}`.'.format(zip_feature_path, feature_path))
+        #     unzip_file(zip_feature_path)
 
         if os.path.exists(feature_path):
             with open(feature_path, 'r', encoding='utf8') as reader:

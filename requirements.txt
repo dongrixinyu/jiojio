@@ -1,5 +1,3 @@
 pyyaml
 requests
-tqdm
-zipfile36
 numpy>=1.16.0

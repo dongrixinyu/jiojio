@@ -74,7 +74,13 @@ class Config(object):
         self.part_feature_non_chinese_trim = 1000  # 词缀特征出现次数，低于该值的频次被删除，此为应对英文等字符情况
         self.feature_trim = 68  # 普通特征的删减数值 (60/3)  依然可以继续提高，用以减少特征数量
 
+        # 可以考虑增至 78，用来控制参数数量
         #训练样本数量为 9600000 条。37.69% 的词汇样本进行了模型训练
+        # 当 feature_trim = 68 时，特征数
+        # 2022-08-02 17:48:21 INFO build: # orig feature num: 24741032
+        # 2022-08-02 17:48:35 INFO build: # 86.20% features are saved.
+        # 2022-08-02 17:48:35 INFO build: # true feature_num: 53 万个参数
+
         # 当 feature_trim = 60 时，特征数
         # 2022-08-02 17:48:21 INFO build: # orig feature num: 24741032
         # 2022-08-02 17:48:35 INFO build: # 86.80% features are saved.

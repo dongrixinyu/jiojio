@@ -15,8 +15,7 @@ import json
 import yaml
 from collections import Counter
 
-from jiojio.util import unzip_file
-from jiojio import logging, TimeIt, zip_file, \
+from jiojio import logging, TimeIt, \
     read_file_by_iter, write_file_by_line
 
 from jiojio.pre_processor import PreProcessor
@@ -814,9 +813,9 @@ class POSFeatureExtractor(object):
         feature_path = os.path.join(model_dir, 'features.json')
 
         with open(feature_path, 'w', encoding='utf-8') as f_w:
-            json.dump(data, f_w, ensure_ascii=False, indent=4, separators=(',', ':'))
+            json.dump(data, f_w, ensure_ascii=False)
 
-        zip_file(feature_path)
+        # zip_file(feature_path)
 
     @classmethod
     def load(cls, config, model_dir=None):
@@ -827,9 +826,9 @@ class POSFeatureExtractor(object):
         feature_path = os.path.join(model_dir, 'features.json')
         zip_feature_path = os.path.join(model_dir, 'features.zip')
 
-        if (not os.path.exists(feature_path)) and os.path.exists(zip_feature_path):
-            logging.info('\n\tunzip `{}`\n\tto `{}`.'.format(zip_feature_path, feature_path))
-            unzip_file(zip_feature_path)
+        # if (not os.path.exists(feature_path)) and os.path.exists(zip_feature_path):
+        #     logging.info('\n\tunzip `{}`\n\tto `{}`.'.format(zip_feature_path, feature_path))
+        #     unzip_file(zip_feature_path)
 
         if os.path.exists(feature_path):
             with open(feature_path, 'r', encoding='utf8') as reader:

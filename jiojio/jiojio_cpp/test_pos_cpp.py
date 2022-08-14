@@ -528,14 +528,3 @@ print("if the same: ", res == res1)
 print(index)
 print(res)
 print(res1)
-
-
-
-# 100000 次计算耗时对比:
-# c: 0.920   py: 15.572
-# c: 0.950   py: 15.786
-# c: 0.909   py: 15.557
-# 修改一条 else 逻辑部分
-# c: 0.787   py: 11.118
-# c: 0.773   py: 11.722
-# c: 0.788   py: 10.676
