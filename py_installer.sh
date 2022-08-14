@@ -12,7 +12,7 @@
 source ~/.bashrc
 
 # should designate jiojio version and python version
-jiojio_version="1.1.5"
+jiojio_version="1.2.1"
 py3_min_version="6"
 py3_max_version="10"
 
@@ -81,4 +81,4 @@ cd dist & auditwheel repair jiojio*39*whl
 
 # 上传
 pip install twine
-twine upload wheelhouse/*
+twine upload wheelhouse/jiojio-${jiojio_version}*

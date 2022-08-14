@@ -1,15 +1,15 @@
 # **jiojio**
-### - 基于CPU的高性能、持续迭代、简便中文分词器
+### - 基于CPU的高性能、持续迭代模型、简便中文分词器
 ### a convenient Chinese word segmentation tool
 <p align="center">
     <a alt="License">
         <img src="https://img.shields.io/github/license/dongrixinyu/jiojio?color=crimson" /></a>
     <a alt="Size">
-        <img src="https://img.shields.io/badge/size-30.1m-orange" /></a>
+        <img src="https://img.shields.io/badge/size-82.1m-orange" /></a>
     <a alt="Downloads">
         <img src="https://pepy.tech/badge/jiojio/month" /></a>
     <a alt="Version">
-        <img src="https://img.shields.io/badge/version-1.1.9-green" /></a>
+        <img src="https://img.shields.io/badge/version-1.2.1-green" /></a>
     <a href="https://github.com/dongrixinyu/jiojio/pulse" alt="Activity">
         <img src="https://img.shields.io/github/commit-activity/m/dongrixinyu/jiojio?color=blue" /></a>
 </p>
@@ -59,14 +59,14 @@ $ pip install .
     - [**分词-调整 Viterbi 算子**](../../wiki/jiojio-使用说明文档#user-content-分词-调整-viterbi-算子)
     - [**词性标注**](../../wiki/jiojio-使用说明文档#user-content-词性标注)
     - [**词性标注-添加正则**](../../wiki/jiojio-使用说明文档#user-content-词性标注-添加正则)
-    - [**词性标注-调整 Viterbi 算子**](../../wiki/jiojio-使用说明文档#user-content-词性标注-调整-viterbi-算子)
 
 # 关于 jiojio 分词器的一些问答
 - [与jiojio有关的问答](../../wiki/关于jiojio分词器的一些问答)
 
 # TODO
 
-- 对分词器效果做**长期优化**
+- 对分词器效果做**标注数据更新**，模型**长期优化**
 
-# 欢迎加入自然语言处理NLP交流群，扫以下码即可入群
+# 欢迎加入自然语言处理NLP交流群，搜索wx公众号“一个Bug”，或扫以下码即可入群
+
 ![image](https://github.com/dongrixinyu/JioNLP/blob/master/image/qrcode_for_gh.jpg)

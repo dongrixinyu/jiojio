@@ -10,7 +10,7 @@
 build
 tmp/
 data/
-features.json
+# features.json
 *.txt_bak
 *stats
 jiojio/models/test_cws_model/
