@@ -342,26 +342,6 @@ def get_log_Y_YY(sequence_feature_list, node_weight, dtype=np.float32):
     return node_score
 
 
-def get_log_Y_YY_for_pos(sequence_feature, tag_num, node_weight, dtype=np.float32):
-    """根据模型的参数，以及 x 序列，匹配得到特征值，计算得到两个矩阵
-    node_score 和 transition_score，即每个节点，对应各个标签的得分。
-
-    get_log_Y_YY 的针对 POS 任务的简化版本，仅用于预测阶段。
-
-    Args:
-        sequence_feature_list: 一个词汇的特征值索引号，如 [0, 8, 10293, 29801]
-        tag_num: 标签个数，比如，B、I，其标签数为 2
-        node_weight: 模型参数 节点部分
-
-    """
-    # 每个节点的得分
-    # node_score = np.empty((1, tag_num), dtype=dtype)
-
-    node_score = np.sum(node_weight[sequence_feature], axis=0)
-    pdb.set_trace()
-    return node_score
-
-
 def mask_Y(tags, node_num, tag_num, Y):
     """将前向计算得到的 Y 序列，根据标注的标签序列，做掩码，并返回。
 
