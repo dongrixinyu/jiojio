@@ -68,6 +68,8 @@ $ pip install .
 
 - 对分词器效果做**标注数据更新**，模型**长期优化**
 
-# 欢迎加入自然语言处理NLP交流群，搜索wx公众号“一个Bug”，或扫以下码即可入群
+# 交流群聊
+
+- 欢迎加入自然语言处理NLP交流群，搜索wx公众号“一个Bug”，或扫以下码即可入群
 
 ![image](https://github.com/dongrixinyu/JioNLP/blob/master/image/qrcode_for_gh.jpg)

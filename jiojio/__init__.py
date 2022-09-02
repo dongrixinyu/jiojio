@@ -78,7 +78,17 @@ def help():
           'available to raise an issue. http://www.jionlp.com/ is used to try it online.')
 
 
-def add_word(word, weight=1.):
+def add_word(word, weight=3.):
+    """ 为分词模型增加一个词典词汇。
+    该方法必须在 cws_user_dict 参数被指定为 True 或 有词典路径的情况下才可以生效。
+
+    Args:
+        word(str): 要添加的词汇。
+        weight(float): 为该词汇指定一个权重，权重值越高，则该词越容易被识别出。
+            默认为 3，该值是一个相对较高的容易识别的值
+
+    """
+
     global jiojio_cws_dict_obj
 
     if jiojio_cws_dict_obj is not None:
@@ -90,6 +100,15 @@ def add_word(word, weight=1.):
 
 
 def add_word_pos(word, pos_type):
+    """ 为词性标注模型增加一个词典词汇。
+    该方法必须在 pos 参数被指定为 True 的情况下才可以生效。
+
+    Args:
+        word(str): 要添加的词汇。
+        pos_type(str): 为该词汇指定一个词性类别，类别种类参考 `pos_types()`
+
+    """
+
     global jiojio_pos_dict_obj
 
     if jiojio_pos_dict_obj is not None:
@@ -117,18 +136,17 @@ def init(cws_model_dir=None, cws_user_dict=None, pos=False,
         cws_model_dir(str): 分词模型名称，若为 None，则加载默认模型 default_cws_model；
             若自训练模型，则建议填写为模型目录的绝对路径，若仅仅为目录名（相对路径），如
             “self_train_cws_model” ，则加载时默认该模型目录存储在 “jiojio/models” 目录下。
-        cws_user_dict(str): 指定加载分词的用户自定义词典文件的绝对路径，若不指定则不加载，
-            默认不加载。该词典采用软性权重方式为词汇标记词性。
+        cws_user_dict(str|bool): 指定加载分词的用户自定义词典文件的绝对路径，若不指定则不加载，
+            默认为 None 不加载；若指定 cws_user_dict 为 True，则可以动态通过 `jiojio.add_word`
+            添加词典词汇。该词典采用软性权重方式为词汇标记词性。
         pos(bool): 是否加载词性标注，默认为 False。
+            当 pos 为 True 时，则可以使用 `jiojio.add_word_pos` 添加词性标注动态词典。
         pos_model_dir(str): 词性标注模型名称，若为 None，则加载默认模型 default_pos_model；
             若自训练模型，则建议填写为模型目录的绝对路径，若仅仅为目录名（相对路径），如
             “self_train_pos_model” ，则加载时默认该模型目录存储在 “jiojio/models” 目录下。
             在 pos 为 True 时生效。
         pos_user_dict(str): 指定加载词性标注用户自定义词典文件的绝对路径，若不指定则不加载，
             默认不加载。在 pos 为 True 时生效。该词典采用软性权重方式为词汇标记词性。
-        cws_with_viterbi(bool): 是否在推断时采用 viterbi 解码。默认为 False。该参数原因在于
-            分词模型由于 node_weight 参数强力的表达能力，以及转移参数过少导致的不可泛化，
-            bi_ratio 参数值往往极小，此时可以考虑不经过 viterbi 转码，以节省推断时间。
         cws_rule(bool): 是否返回由规则切分词汇，默认为 False。规则词性类型包括：email、
             身份证号(id)、ip地址(ip)、日文(jp)、俄文(ru)、韩文(ko)、url。这些类型绝大多数
             并非由 CWS 模型返回，而是在模型返回结果基础上，再次套用规则计算得到。
@@ -170,7 +188,7 @@ def init(cws_model_dir=None, cws_user_dict=None, pos=False,
 
 
 def cut(text):
-    """ 对文本进行分词和词性标注 """
+    """ 对文本进行 分词 和 词性标注 """
     if jiojio_pos_flag:
         words, norm_words, word_pos_map = jiojio_cws_obj.cut_with_pos(text)
         tags = jiojio_pos_obj.cut(norm_words, word_pos_map=word_pos_map)
