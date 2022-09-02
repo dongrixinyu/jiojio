@@ -14,10 +14,10 @@
         <img src="https://img.shields.io/github/commit-activity/m/dongrixinyu/jiojio?color=blue" /></a>
 </p>
 
-# 适用场景
+## 适用场景
 - 基于 **CPU** 的**高性能**、**持续优化** 中文分词器。
 
-# 功能
+## 功能
 - 基于 C 优化的 Python 接口分词器，单进程运行性能达 **5.2 万字/秒**，[**多个分词工具性能对比**](https://github.com/dongrixinyu/jiojio/wiki/多种常见开源分词工具的性能对比)
 
 - 网页版 [**JioNLP源站**](http://www.jionlp.com)，可快速试用分词、词性标注功能
@@ -28,7 +28,7 @@
 - 将规则加入模型，有效克服某些类型文本受限于模型处理的情况，[**分词-添加正则**](../../wiki/jiojio-使用说明文档#user-content-分词-添加正则)
 - 支持词性标注功能，与 [**JioNLP**](https://github.com/dongrixinyu/JioNLP) 联合实现**关键短语抽取**、**新闻地域识别** 等功能
 
-# 安装
+## 安装
 - pip 方式（稳定版本）
 ```
 $ pip install jiojio
@@ -41,7 +41,7 @@ $ cd jiojio
 $ pip install .
 ```
 
-# 使用
+## 使用
 - 基础方式
 ```
 >>> import jiojio
@@ -61,15 +61,15 @@ $ pip install .
     - [**词性标注-添加正则**](../../wiki/jiojio-使用说明文档#user-content-词性标注-添加正则)
     - [**词性标注-增加动态词典**](../../wiki/jiojio-使用说明文档#user-content-词性标注-增加动态词典)
 
-# 关于 jiojio 分词器的一些问答
+## 关于 jiojio 分词器的一些问答
 - [与jiojio有关的问答](../../wiki/关于jiojio分词器的一些问答)
 
-# TODO
+## TODO
 
 - 对分词器效果做**标注数据更新**，模型**长期优化**
 
-# 交流群聊
+## 交流群聊
 
-- 欢迎加入自然语言处理NLP交流群，搜索wx公众号“一个Bug”，或扫以下码即可入群
+- 欢迎加入自然语言处理NLP交流群，搜索**wx公众号“一个Bug”**，或扫以下码即可入群
 
 ![image](https://github.com/dongrixinyu/JioNLP/blob/master/image/qrcode_for_gh.jpg)

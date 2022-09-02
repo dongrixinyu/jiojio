@@ -175,7 +175,18 @@ class CWSPredictText(object):
         start_flag = False
         end_flag = False
 
-        if len(rule_res_list) == 1:
+        _rule_res_list = sorted(rule_res_list, key=lambda item: item['o'][0])
+
+        # 将错误的信息进行过滤，连续两个正则抽取部分有重叠
+        rule_res_list = [_rule_res_list[0]]
+        for item in _rule_res_list[1:]:
+            if item['o'][0] < rule_res_list[-1]['o'][1]:
+                continue
+            rule_res_list.append(item)
+
+        rule_res_length = len(rule_res_list)
+
+        if rule_res_length == 1:
             # 单独处理仅一个正则匹配的情况，用以节省处理时间
             seg_list = []
             item = rule_res_list[0]['o']
@@ -188,20 +199,8 @@ class CWSPredictText(object):
                 seg_list.append(text[item[1]:])
             else:
                 end_flag = True
-            # pdb.set_trace()
+
             return seg_list, rule_res_list, start_flag, end_flag
-
-        else:
-            _rule_res_list = sorted(rule_res_list, key=lambda item: item['o'][0])
-
-            # 将错误的信息进行过滤，连续两个正则抽取部分有重叠
-            rule_res_list = [_rule_res_list[0]]
-            for item in _rule_res_list[1:]:
-                if item['o'][0] < rule_res_list[-1]['o'][1]:
-                    continue
-                rule_res_list.append(item)
-
-            rule_res_length = len(rule_res_list)
 
         seg_list = []
         for idx in range(rule_res_length):
