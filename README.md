@@ -9,7 +9,7 @@
     <a alt="Downloads">
         <img src="https://pepy.tech/badge/jiojio/month" /></a>
     <a alt="Version">
-        <img src="https://img.shields.io/badge/version-1.2.1-green" /></a>
+        <img src="https://img.shields.io/badge/version-1.2.2-green" /></a>
     <a href="https://github.com/dongrixinyu/jiojio/pulse" alt="Activity">
         <img src="https://img.shields.io/github/commit-activity/m/dongrixinyu/jiojio?color=blue" /></a>
 </p>
@@ -24,7 +24,7 @@
 
 - 基于 CRF 算法，精细优化的 **字符特征工程**，[**模型特征说明**](https://github.com/dongrixinyu/jiojio/wiki/jiojio-分词CRF特征总结)
 - 对模型文件的尽力压缩，**500万特征参数，模型文件大小30M**，方便 pip 安装
-- 将词典加入模型，共同预测分词序列，流程一致性强，[**词典配置说明**](https://github.com/dongrixinyu/jiojio/wiki/向分词模型添加自定义词典)
+- 将词典**静态、动态**加入模型，共同预测分词序列，流程一致性强，[**词典配置说明**](https://github.com/dongrixinyu/jiojio/wiki/向分词模型添加自定义词典)
 - 将规则加入模型，有效克服某些类型文本受限于模型处理的情况，[**分词-添加正则**](../../wiki/jiojio-使用说明文档#user-content-分词-添加正则)
 - 支持词性标注功能，与 [**JioNLP**](https://github.com/dongrixinyu/JioNLP) 联合实现**关键短语抽取**、**新闻地域识别** 等功能
 
@@ -55,10 +55,11 @@ $ pip install .
 
 - 其它参数与设置
     - [**分词-添加正则**](../../wiki/jiojio-使用说明文档#user-content-分词-添加正则)
-    - [**分词-增加词典**](../../wiki/jiojio-使用说明文档#user-content-分词-增加词典)
-    - [**分词-调整 Viterbi 算子**](../../wiki/jiojio-使用说明文档#user-content-分词-调整-viterbi-算子)
+    - [**分词-增加静态词典**](../../wiki/jiojio-使用说明文档#user-content-分词-增加静态词典)
+    - [**分词-增加动态词典**](../../wiki/jiojio-使用说明文档#user-content-分词-增加动态词典)
     - [**词性标注**](../../wiki/jiojio-使用说明文档#user-content-词性标注)
     - [**词性标注-添加正则**](../../wiki/jiojio-使用说明文档#user-content-词性标注-添加正则)
+    - [**词性标注-增加动态词典**](../../wiki/jiojio-使用说明文档#user-content-词性标注-增加动态词典)
 
 # 关于 jiojio 分词器的一些问答
 - [与jiojio有关的问答](../../wiki/关于jiojio分词器的一些问答)

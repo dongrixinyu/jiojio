@@ -59,6 +59,8 @@ class CWSAddDict2Model(object):
     def __init__(self, user_dict_path=None):
         if user_dict_path is None:
             self.trie_tree_obj = None
+        elif user_dict_path is True:
+            self.trie_tree_obj = TrieTree()
         else:
             assert type(user_dict_path) is str
             self._add_dict(user_dict_path)
@@ -105,7 +107,6 @@ class CWSAddDict2Model(object):
             # pointer = pointer_orig.lower()  # 不需要，因预处理已处理过 TODO
             step, val = self.trie_tree_obj.search(pointer)
             if val is not None:
-                # pdb.set_trace()
                 node_states[i, 0] += val
                 node_states[i + 1: i + step, 1] += val
 

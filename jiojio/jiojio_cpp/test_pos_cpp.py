@@ -477,10 +477,8 @@ pdb.set_trace()
 
 
 sys.exit()
-# pdb.set_trace()
+
 index = 1
-# print('before:', sys.gettotalrefcount())
-# with jio.TimeIt('c ', no_print=True) as ti:
 
 for i in range(times):
     # index = i % len(word_list)
@@ -494,22 +492,6 @@ for i in range(times):
 pdb.set_trace()
 #     c_cost_time = ti.break_point()
 
-'''
-163M 47868 18356
-164M 48464 18824
-596 字节
-
-163M 47900 18392
-164M 48468 18860
-
-163M 47736 18228
-163M 47736 18228
-
-163M 47572 18060
-164M 48132 18520
-
-
-'''
 
 print(res)
 pdb.set_trace()

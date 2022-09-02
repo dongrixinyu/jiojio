@@ -9,7 +9,7 @@
 
 
 __doc__ = 'jiojio: for fast Chinese Word Segmentation(CWS) and Part of Speech(POS) based on CPU.'
-__version__ = '1.2.1'
+__version__ = '1.2.2'
 
 
 import os
@@ -52,9 +52,11 @@ import jiojio.cws.trainer as cws_trainer
 import jiojio.pos.trainer as pos_trainer
 
 
-__all__ = ['init', 'cut', 'train', 'test', 'help']
+__all__ = ['init', 'cut', 'train', 'test', 'help',
+           'add_word', 'add_word_pos']
 
 global jiojio_cws_obj, jiojio_pos_obj, jiojio_pos_flag
+global jiojio_cws_dict_obj, jiojio_pos_dict_obj
 
 
 def help():
@@ -74,6 +76,32 @@ def help():
 
     print('    If you have any questions, Github(https://github.com/dongrixinyu/jiojio) is\n' \
           'available to raise an issue. http://www.jionlp.com/ is used to try it online.')
+
+
+def add_word(word, weight=1.):
+    global jiojio_cws_dict_obj
+
+    if jiojio_cws_dict_obj is not None:
+        jiojio_cws_dict_obj.add_node(word, weight)
+    else:
+        raise ValueError(
+            'You have to set `cws_user_dict` like `jiojio.init(cws_user_dict=True)` '\
+            'or `jiojio.init(cws_user_dict=/path/to/dict.txt)`')
+
+
+def add_word_pos(word, pos_type):
+    global jiojio_pos_dict_obj
+
+    if jiojio_pos_dict_obj is not None:
+
+        if word in jiojio_pos_dict_obj:
+            jiojio_pos_dict_obj[word] = pos_type
+        else:
+            jiojio_pos_dict_obj.update({word: pos_type})
+
+    else:
+        raise ValueError(
+            'You have to set param `pos` like `jiojio.init(pos=True)`')
 
 
 def init(cws_model_dir=None, cws_user_dict=None, pos=False,
@@ -113,6 +141,7 @@ def init(cws_model_dir=None, cws_user_dict=None, pos=False,
 
     """
     global jiojio_cws_obj, jiojio_pos_obj, jiojio_pos_flag
+    global jiojio_cws_dict_obj, jiojio_pos_dict_obj
 
     if pos_rule and pos:
         cws_rule = True
@@ -121,14 +150,23 @@ def init(cws_model_dir=None, cws_user_dict=None, pos=False,
         model_dir=cws_model_dir, user_dict=cws_user_dict,
         with_viterbi=cws_with_viterbi, rule_extractor=cws_rule)
 
+    if cws_user_dict is not None:
+        jiojio_cws_dict_obj = jiojio_cws_obj.user_dict.trie_tree_obj
+    else:
+        jiojio_cws_dict_obj = None
+
     if pos:
         jiojio_pos_flag = True
         jiojio_pos_obj = POSPredictText(
             model_dir=pos_model_dir, user_dict=pos_user_dict,
             pos_rule_types=pos_rule)
+
+        jiojio_pos_dict_obj = jiojio_pos_obj.word_pos_default_dict
+
     else:
         jiojio_pos_flag = False
         jiojio_pos_obj = None
+        jiojio_pos_dict_obj = None
 
 
 def cut(text):
