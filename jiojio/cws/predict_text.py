@@ -327,8 +327,8 @@ class CWSPredictText(object):
                     norm_words_list.extend(norm_seg_res_list[idx])
 
                 if end_flag:
-                    words_list.append(rule_res_list[-1])
-                    norm_words_list.append(rule_res_list[-1])
+                    words_list.append(rule_res_list[-1]['s'])
+                    norm_words_list.append(rule_res_list[-1]['s'])
 
             else:
                 for idx in range(len(rule_res_list)):
