@@ -9,7 +9,7 @@
 
 
 __doc__ = 'jiojio: for fast Chinese Word Segmentation(CWS) and Part of Speech(POS) based on CPU.'
-__version__ = '1.2.2'
+__version__ = '1.2.3'
 
 
 import os
