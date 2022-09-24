@@ -7,8 +7,6 @@ import sys
 import ctypes
 import pdb
 import json
-# import jionlp as jio
-# from jiojio.tag_words_converter import tag2word
 
 
 def get_slice_str(iterator_obj, start, length, all_len):
@@ -257,44 +255,3 @@ tag2word_c.restype = ctypes.py_object
 # tag2word.argtypes = [ctypes.POINTER(ctypes.c_wchar), ctypes.py_object]  # ctypes.data_as(c_void_p)]
 array_1d_int8 = npct.ndpointer(dtype=np.int8, ndim=1, flags='CONTIGUOUS')
 # tag2word.argtypes = [ctypes.POINTER(ctypes.c_wchar)] # , array_1d_int8, ctypes.c_long]
-
-
-states = np.array(
-    [0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0,
-     1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0,
-     0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1,
-     0, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0,
-     0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,
-     0, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0,
-     1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0,
-     1, 0, 1, 0, 0, 1, 1], dtype=np.int8)
-text = '刚刚接触Cmake的时候，对于find_package的用法以及nc背后的原理经常一头雾水，官方文档比较晦涩难懂，网上的博客也都讲解的比较片面。这里通过实战代码案例进行一下详细的总结讲解。帮助自己加深理解的同时，也希望帮到更多的初学者。 此处所有代码均可在我的github项目中找到，欢迎star。后续内容我也会持续更新。'
-
-print(states, type(states))
-print(text)
-
-# pdb.set_trace()
-
-# 100000 次计算耗时对比:
-# c: 0.920   py: 15.572
-# c: 0.950   py: 15.786
-# c: 0.909   py: 15.557
-# 修改一条 else 逻辑部分
-# c: 0.787   py: 11.118
-# c: 0.773   py: 11.722
-# c: 0.788   py: 10.676
-
-
-times = 10000
-with jio.TimeIt('c '):
-    for i in range(times):
-        res = tag2word_c(text, states.ctypes.data_as(ctypes.c_void_p), len(states))
-# res = tag2word(text, states, len(states))
-print('###c: ', tag2word_c(text, states.ctypes.data_as(ctypes.c_void_p), len(states)))
-# pdb.set_trace()
-with jio.TimeIt('py '):
-    for i in range(times):
-        res1 = tag2word(text, states)
-
-print("if the same: ", res == res1)
-# '''

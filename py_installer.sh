@@ -12,7 +12,7 @@
 source ~/.bashrc
 
 # should designate jiojio version and python version
-jiojio_version="1.2.1"
+jiojio_version="1.2.3"
 py3_min_version="6"
 py3_max_version="10"
 
@@ -54,6 +54,7 @@ do
 done
 
 pip install twine
+ls -lth ./wheelhouse/ | grep ${jiojio_version}
 twine upload wheelhouse/jiojio-${jiojio_version}*whl
 
 echo "finished!"

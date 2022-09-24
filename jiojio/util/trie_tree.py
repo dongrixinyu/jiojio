@@ -37,6 +37,7 @@ class TrieTree(object):
                 else:
                     tree[char] = dict()
                     tree = tree[char]
+
             if depth > self.depth:
                 self.depth = depth
             if '_t' in tree and tree['_t'] != typing:
