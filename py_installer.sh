@@ -11,8 +11,14 @@
 
 source ~/.bashrc
 
-# should designate jiojio version and python version
-jiojio_version="1.2.3"
+# get the latest jiojio version
+current_dir_path=$(pwd)
+echo "Current directory: $current_dir_path"
+
+jiojio_version=`cat ${current_dir_path}/jiojio/__init__.py | grep -iPo "(?<=(__version__ = \'))([0-9]{1,2}.[0-9]{1,2}.[0-9]{1,2})"`
+echo "jiojio version: ${jiojio_version}"
+
+# should designate python version
 py3_min_version="6"
 py3_max_version="10"
 
@@ -80,6 +86,7 @@ conda remove -n py39 --all -y
 pip install auditwheel
 cd dist & auditwheel repair jiojio*39*whl
 
+ls -lth wheelhouse/ | grep "${jiojio_version}"
 # 上传
 pip install twine
 twine upload wheelhouse/jiojio-${jiojio_version}*
