@@ -17,7 +17,7 @@ import ctypes
 import numpy as np
 
 from jiojio.pre_processor import PreProcessor
-from jiojio.inference import get_log_Y_YY, viterbi
+from jiojio.inference import get_log_Y_YY
 from jiojio.model import Model
 from jiojio import Extractor
 
@@ -30,13 +30,10 @@ from .add_dict_to_model import CWSAddDict2Model
 
 class CWSPredictText(object):
     """ 预测文本，用于对外暴露接口 """
-    def __init__(self, model_dir=None, user_dict=None, with_viterbi=False,
-                 rule_extractor=False):
+    def __init__(self, model_dir=None, user_dict=None, rule_extractor=False):
         """初始化函数，加载模型及用户词典"""
         default_model_dir = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'models')
-
-        self.with_viterbi = with_viterbi
 
         # 采用规则将某些内容抽取出
         if rule_extractor:
@@ -112,12 +109,7 @@ class CWSPredictText(object):
         if self.user_dict.trie_tree_obj is not None:
             self.user_dict(text, Y)
 
-        if self.with_viterbi:
-            tags_idx = viterbi(
-                Y, self.model.edge_weight, bi_ratio=self.model.bi_ratio,
-                dtype=np.float16)
-        else:
-            tags_idx = Y.argmax(axis=1).astype(np.int8)
+        tags_idx = Y.argmax(axis=1).astype(np.int8)
 
         # print(tags_idx)
         # pdb.set_trace()
@@ -148,12 +140,7 @@ class CWSPredictText(object):
         if self.user_dict.trie_tree_obj is not None:
             self.user_dict(text, Y)
 
-        if self.with_viterbi:
-            tags_idx = viterbi(
-                Y, self.model.edge_weight, bi_ratio=self.model.bi_ratio,
-                dtype=np.float16)
-        else:
-            tags_idx = Y.argmax(axis=1).astype(np.int8)
+        tags_idx = Y.argmax(axis=1).astype(np.int8)
 
         # print(tags_idx)
         # pdb.set_trace()

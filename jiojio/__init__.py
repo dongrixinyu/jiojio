@@ -125,12 +125,12 @@ def add_word_pos(word, pos_type):
 
 def init(cws_model_dir=None, cws_user_dict=None, pos=False,
          pos_model_dir=None, pos_user_dict=None,
-         cws_with_viterbi=False,
          cws_rule=False, pos_rule=False):
     """ 初始化模型，包括分别初始化分词模型与词性标注模型。
 
     注意：
-        1、词性标注模型不支持 viterbi 解码，原因该解码效用极为有限，且影响处理速度。
+        1、分词和词性标注模型不支持 viterbi 解码，原因该解码效用极为有限，且影响处理速度。
+            Viterbi 解码在 CRF 模型的处理效用主要体现在转移概率有明确为 0 的情况下。
 
     Args:
         cws_model_dir(str): 分词模型名称，若为 None，则加载默认模型 default_cws_model；
@@ -166,7 +166,7 @@ def init(cws_model_dir=None, cws_user_dict=None, pos=False,
 
     jiojio_cws_obj = CWSPredictText(
         model_dir=cws_model_dir, user_dict=cws_user_dict,
-        with_viterbi=cws_with_viterbi, rule_extractor=cws_rule)
+        rule_extractor=cws_rule)
 
     if cws_user_dict is not None:
         jiojio_cws_dict_obj = jiojio_cws_obj.user_dict.trie_tree_obj
