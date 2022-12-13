@@ -70,6 +70,6 @@ $ pip install .
 
 ## 交流群聊
 
-- 欢迎加入自然语言处理NLP交流群，搜索**wx公众号“一个Bug”**，或扫以下码即可入群
+- 欢迎加入自然语言处理NLP交流群，搜索**wx公众号“JioNLP”**，或扫以下码即可入群
 
 ![image](https://github.com/dongrixinyu/JioNLP/blob/master/image/qrcode_for_gh.jpg)
