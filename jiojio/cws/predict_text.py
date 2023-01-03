@@ -350,7 +350,7 @@ class CWSPredictText(object):
                     norm_text, tags.ctypes.data_as(ctypes.c_void_p), len(tags))
 
             else:
-                tags = self._cut_py(norm_segment)
+                tags = self._cut_py(norm_text)
 
                 words_list = tag2word(text, tags)
                 norm_words_list = tag2word(norm_text, tags)
