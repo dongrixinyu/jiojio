@@ -80,53 +80,21 @@ class CWSPredictText(object):
         self.tag2word_c = cws_tag2word_c
         self.cws_feature2idx_c = cws_feature2idx_c
         self.cws_cut_c = cws_cut_c
-        pdb.set_trace()
+
         if (self.get_node_features_c is not None) and (self.tag2word_c is not None) and \
                 (self.cws_feature2idx_c is not None) and (self.cws_cut_c is not None):
             self.C_flag = True
         else:
             self.C_flag = False
 
-    def cut_C(self, text):
-        length = len(text)
-        all_features = []
-
-        # 每个节点的得分
-        # Y = np.empty((length, 2), dtype=np.float16)
-        for idx in range(length):
-
-            node_features = self.get_node_features_c(
-                idx, text, length, self.feature_extractor.unigram,
-                self.feature_extractor.bigram)
-
-            node_feature_idx = self.cws_feature2idx_c(
-                node_features, self.feature_extractor.feature_to_idx)
-
-            all_features.append(node_feature_idx)
-            # Y[idx] = np.sum(node_weight[node_feature_idx], axis=0)
-
-        Y = get_log_Y_YY(all_features, self.model.node_weight, dtype=np.float16)
-
-        # 添加词典
-        if self.user_dict.trie_tree_obj is not None:
-            self.user_dict(text, Y)
-
-        tags_idx = Y.argmax(axis=1).astype(np.int8)
-
-        # print(tags_idx)
-        # pdb.set_trace()
-        return tags_idx
-
     def _cut_C(self, text):
         length = len(text)
-        all_features = []
 
         all_features = self.cws_cut_c(
             text, length, self.feature_extractor.unigram,
             self.feature_extractor.bigram,
             self.feature_extractor.feature_to_idx)
 
-        pdb.set_trace()
         Y = get_log_Y_YY(all_features, self.model.node_weight, dtype=np.float16)
 
         # 添加词典
@@ -135,8 +103,6 @@ class CWSPredictText(object):
 
         tags_idx = Y.argmax(axis=1).astype(np.int8)
 
-        # print(tags_idx)
-        # pdb.set_trace()
         return tags_idx
 
     def _cut_py(self, text):

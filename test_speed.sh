@@ -1,12 +1,12 @@
 #!/bin/bash
 
 python test.py \
-    --file_path=/home/ubuntu/datasets/test_cctv.txt \
+    --file_path=/home/cuichengyu/github/jiojio/cctv_news.txt \
     --times=1 \
-    --pos \
     --line_num=1000 \
-    --pkuseg \
-    --jieba
+    # --pkuseg \
+    # --jieba
+#    --pos \
 #    --rule \
 #     --dict
 #     --print=false \
