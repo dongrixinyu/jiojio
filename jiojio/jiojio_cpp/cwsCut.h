@@ -3,12 +3,10 @@
 
 #include "Python.h"
 #include <stdio.h>
+// #include "numpy/ndarrayobject.h"
+#include "cwsFeatureToIndex.h"
 
-// #include "cwsFeatureExtractor.h"
-// #include "cwsFeatureToIndex.h"
-
-
-struct Marker {
+typedef const struct Marker {
     const wchar_t *startFeature;
     const wchar_t *endFeature;
     const wchar_t *delim;
@@ -32,35 +30,19 @@ struct Marker {
     const wchar_t *wordNext;    // w1.
     const wchar_t *word2Left;   // ww.l.
     const wchar_t *word2Right;  // ww.r.
-};
+} Marker;
+
+wchar_t *getSliceStr(wchar_t *text, int start, int length,
+                     int all_len, wchar_t *emptyStr);
 
 PyObject *getCwsNodeFeature(
     int idx, wchar_t *text, int nodeNum,
     struct Marker marker, PyObject *unigram, PyObject *bigram);
 
-PyObject *getFeatureIndex(PyObject *nodeFeature, PyObject *featureToIndex);
+// PyObject *getFeatureIndex(PyObject *nodeFeature, PyObject *featureToIndex);
 
 PyObject *cwsCut(
-    int idx, wchar_t *text, int nodeNum,
-    PyObject *unigram, PyObject *bigram, PyObject *featureToIdx, PyObject *nodeWeight);
-
-        // length = len(text)
-        // all_features = []
-
-        // # 每个节点的得分
-        // # Y = np.empty((length, 2), dtype=np.float16)
-        // for idx in range(length):
-
-        //     node_features = self.get_node_features_c(
-        //         idx, text, length, self.feature_extractor.unigram,
-        //         self.feature_extractor.bigram)
-
-        //     node_feature_idx = self.cws_feature2idx_c(
-        //         node_features, self.feature_extractor.feature_to_idx)
-
-        //     all_features.append(node_feature_idx)
-        //     # Y[idx] = np.sum(node_weight[node_feature_idx], axis=0)
-
-        // Y = get_log_Y_YY(all_features, self.model.node_weight, dtype=np.float16)
+    wchar_t *text, int nodeNum,
+    PyObject *unigram, PyObject *bigram, PyObject *featureToIdx);
 
 #endif

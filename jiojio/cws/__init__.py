@@ -16,6 +16,29 @@ import traceback
 dir_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                         'jiojio_cpp')
 
+# load `cws_cut_c`，加载分词的切词 C 优化函数
+try:
+    file_list = os.listdir(os.path.join(dir_path, 'build'))
+    file_name = ''
+    for _file_name in file_list:
+        if 'libcwsCut' in _file_name and _file_name.endswith('.so'):
+            file_name = _file_name
+            break
+
+    cws_cut = ctypes.PyDLL(os.path.join(dir_path, 'build', file_name))
+    cws_cut_c = cws_cut.cwsCut
+    cws_cut_c.argtypes = [
+        ctypes.c_wchar_p, ctypes.c_int,
+        ctypes.py_object, ctypes.py_object, ctypes.py_object]
+    cws_cut_c.restype = ctypes.py_object
+
+    # print('# Successfully load C func `cws_cut_c`.')
+
+except Exception:
+    cws_cut_c = None
+    pdb.set_trace()
+
+
 # load `cws_get_node_features_c`，加载分词的特征抽取 C 优化函数
 try:
     file_list = os.listdir(os.path.join(dir_path, 'build'))

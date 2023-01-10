@@ -21,7 +21,7 @@ from jiojio.inference import get_log_Y_YY
 from jiojio.model import Model
 from jiojio import Extractor
 
-from . import cws_get_node_features_c, cws_tag2word_c, cws_feature2idx_c
+from . import cws_get_node_features_c, cws_tag2word_c, cws_feature2idx_c, cws_cut_c
 from .config import Config
 from .tag_words_converter import tag2word
 from .feature_extractor import CWSFeatureExtractor
@@ -79,13 +79,15 @@ class CWSPredictText(object):
         self.get_node_features_c = cws_get_node_features_c
         self.tag2word_c = cws_tag2word_c
         self.cws_feature2idx_c = cws_feature2idx_c
-
-        if (self.get_node_features_c is not None) and (self.tag2word_c is not None) and (self.cws_feature2idx_c is not None):
+        self.cws_cut_c = cws_cut_c
+        pdb.set_trace()
+        if (self.get_node_features_c is not None) and (self.tag2word_c is not None) and \
+                (self.cws_feature2idx_c is not None) and (self.cws_cut_c is not None):
             self.C_flag = True
         else:
             self.C_flag = False
 
-    def _cut_C(self, text):
+    def cut_C(self, text):
         length = len(text)
         all_features = []
 
@@ -103,6 +105,28 @@ class CWSPredictText(object):
             all_features.append(node_feature_idx)
             # Y[idx] = np.sum(node_weight[node_feature_idx], axis=0)
 
+        Y = get_log_Y_YY(all_features, self.model.node_weight, dtype=np.float16)
+
+        # 添加词典
+        if self.user_dict.trie_tree_obj is not None:
+            self.user_dict(text, Y)
+
+        tags_idx = Y.argmax(axis=1).astype(np.int8)
+
+        # print(tags_idx)
+        # pdb.set_trace()
+        return tags_idx
+
+    def _cut_C(self, text):
+        length = len(text)
+        all_features = []
+
+        all_features = self.cws_cut_c(
+            text, length, self.feature_extractor.unigram,
+            self.feature_extractor.bigram,
+            self.feature_extractor.feature_to_idx)
+
+        pdb.set_trace()
         Y = get_log_Y_YY(all_features, self.model.node_weight, dtype=np.float16)
 
         # 添加词典
