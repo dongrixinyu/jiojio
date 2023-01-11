@@ -5,6 +5,7 @@
 #include <stdio.h>
 // #include "numpy/ndarrayobject.h"
 #include "cwsFeatureToIndex.h"
+#include "cwsFeatureExtractor.h"
 
 typedef const struct Marker {
     const wchar_t *startFeature;
@@ -32,10 +33,10 @@ typedef const struct Marker {
     const wchar_t *word2Right;  // ww.r.
 } Marker;
 
-wchar_t *getSliceStr(wchar_t *text, int start, int length,
-                     int all_len, wchar_t *emptyStr);
+// wchar_t *getSliceStr(wchar_t *text, int start, int length,
+                    //  int all_len, wchar_t *emptyStr);
 
-PyObject *getCwsNodeFeature(
+PyObject *getCwsNodeFeatureStruct(
     int idx, wchar_t *text, int nodeNum,
     struct Marker marker, PyObject *unigram, PyObject *bigram);
 

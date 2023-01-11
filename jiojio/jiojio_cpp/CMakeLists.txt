@@ -18,7 +18,7 @@ add_library(tagWordsConverter SHARED ${PROJECT_SOURCE_DIR}/tagWordsConverter.c)
 add_library(cwsFeatureExtractor SHARED ${PROJECT_SOURCE_DIR}/cwsFeatureExtractor.c)
 add_library(cwsFeatureToIndex SHARED ${PROJECT_SOURCE_DIR}/cwsFeatureToIndex.c)
 add_library(posFeatureExtractor SHARED ${PROJECT_SOURCE_DIR}/posFeatureExtractor.c)
-add_library(cwsCut SHARED ${PROJECT_SOURCE_DIR}/cwsCut.c ${PROJECT_SOURCE_DIR}/cwsFeatureToIndex.c)
+add_library(cwsCut SHARED ${PROJECT_SOURCE_DIR}/cwsCut.c ${PROJECT_SOURCE_DIR}/cwsFeatureToIndex.c ${PROJECT_SOURCE_DIR}/cwsFeatureExtractor.c)
 
 target_link_libraries(tagWordsConverter ${PYTHON_LIBRARIES})
 target_link_libraries(cwsFeatureExtractor ${PYTHON_LIBRARIES})

@@ -8,27 +8,7 @@
 #endif
 
 
-wchar_t *getSliceStr(wchar_t *text, int start, int length, int all_len, wchar_t *emptyStr)
-{
-    if (start < 0 || start >= all_len)
-    {
-        return emptyStr;
-    }
-    if (start + length > all_len)
-    {
-        return emptyStr;
-    }
-
-    // 返回相应的子字符串
-    // printf("the length is %d string is %ls.\n", length, text + start);
-    wchar_t *resStr = malloc((length + 1) * sizeof(wchar_t));
-    wcsncpy(resStr, text + start, length);
-    wcsncpy(resStr + length, emptyStr, 1);
-    // printf("the length of slice: %ld. %ls\n\n", wcslen(resStr), resStr);
-    return resStr;
-}
-
-PyObject *getCwsNodeFeature(
+PyObject *getCwsNodeFeatureStruct(
     int idx, wchar_t *text, int nodeNum,
     struct Marker marker, PyObject *unigram, PyObject *bigram)
 {
@@ -464,40 +444,41 @@ API PyObject *cwsCut(
     PyObject *unigram, PyObject *bigram, PyObject *featureToIdx)
 {
 
-    struct Marker marker = {
-        .startFeature = L"[START]",
-        .endFeature = L"[END]",
-        .delim = L".",
+    // struct Marker marker = {
+    //     .startFeature = L"[START]",
+    //     .endFeature = L"[END]",
+    //     .delim = L".",
 
-        // 字符以 c 为中心，前后，z、a、b、c、d、e、f 依次扩展开
-        .charCurrent = L"c",
-        .charBefore = L"b",          // c-1.
-        .charNext = L"d",            // c1.
-        .charBefore2 = L"a",         // c-2.
-        .charNext2 = L"e",           // c2.
-        .charBefore3 = L"z",         // c-3.
-        .charNext3 = L"f",           // c3.
-        .charBeforeCurrent = L"bc",  // c-1c.
-        .charBefore2Current = L"ac", // c-2c.
-        .charBefore3Current = L"zc", // c-3c.
-        .charCurrentNext = L"cd",    // cc1.
-        .charCurrentNext2 = L"ce",   // cc2.
-        .charCurrentNext3 = L"cf",   // cc3.
+    //     // 字符以 c 为中心，前后，z、a、b、c、d、e、f 依次扩展开
+    //     .charCurrent = L"c",
+    //     .charBefore = L"b",          // c-1.
+    //     .charNext = L"d",            // c1.
+    //     .charBefore2 = L"a",         // c-2.
+    //     .charNext2 = L"e",           // c2.
+    //     .charBefore3 = L"z",         // c-3.
+    //     .charNext3 = L"f",           // c3.
+    //     .charBeforeCurrent = L"bc",  // c-1c.
+    //     .charBefore2Current = L"ac", // c-2c.
+    //     .charBefore3Current = L"zc", // c-3c.
+    //     .charCurrentNext = L"cd",    // cc1.
+    //     .charCurrentNext2 = L"ce",   // cc2.
+    //     .charCurrentNext3 = L"cf",   // cc3.
 
-        .wordBefore = L"v",  // w-1.
-        .wordNext = L"x",    // w1.
-        .word2Left = L"wl",  // ww.l.
-        .word2Right = L"wr" // ww.r.
-    };
+    //     .wordBefore = L"v",  // w-1.
+    //     .wordNext = L"x",    // w1.
+    //     .word2Left = L"wl",  // ww.l.
+    //     .word2Right = L"wr" // ww.r.
+    // };
 
     PyObject *allIndexList = PyList_New(0);
     // numpy 初始化
     for (int idx = 0; idx < nodeNum; idx++)
     {
         PyObject *nodeFeature = getCwsNodeFeature(
-            idx, text, nodeNum, marker, unigram, bigram);
+            idx, text, nodeNum, unigram, bigram);
 
         PyObject *featureIdx = getFeatureIndex(nodeFeature, featureToIdx);
+
         int ret = PyList_Append(allIndexList, featureIdx);
         // numpy 统计指标，返回 numpy.Array
         // PyObject *PyArray_Sum(PyArrayObject *self, int axis, int rtype, PyArrayObject *out)

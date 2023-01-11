@@ -94,7 +94,7 @@ class CWSPredictText(object):
             text, length, self.feature_extractor.unigram,
             self.feature_extractor.bigram,
             self.feature_extractor.feature_to_idx)
-
+        # pdb.set_trace()
         Y = get_log_Y_YY(all_features, self.model.node_weight, dtype=np.float16)
 
         # 添加词典

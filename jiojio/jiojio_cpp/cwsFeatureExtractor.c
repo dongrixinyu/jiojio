@@ -496,33 +496,33 @@ API PyObject *getCwsNodeFeature(int idx, wchar_t *text, int nodeNum,
     return featureList;
 }
 
-int main()
-{
-    int index = 8;
-    int ret = -1;
-    const wchar_t *origText = L"所谓本质（essence）";
-    wchar_t *text = malloc(sizeof(wchar_t) * 14);
-    wcsncpy(text, origText, 14);
-    int textLen = 13;
+// int main()
+// {
+//     int index = 8;
+//     int ret = -1;
+//     const wchar_t *origText = L"所谓本质（essence）";
+//     wchar_t *text = malloc(sizeof(wchar_t) * 14);
+//     wcsncpy(text, origText, 14);
+//     int textLen = 13;
 
-    Py_Initialize();
-    PyObject *unigrams1 = PySet_New(0);
-    PyObject *bigrams1 = PySet_New(0);
-    // ret = PySet_Add(unigrams1, PyUnicode_FromWideChar(L"据", 1));
-    // ret = PySet_Add(unigrams1, PyUnicode_FromWideChar(L"nc", 2));
-    // ret = PySet_Add(unigrams1, PyUnicode_FromWideChar(L"ckd", 3));
-    // ret = PySet_Add(unigrams1, PyUnicode_FromWideChar(L"nc.3e", 5));
+//     Py_Initialize();
+//     PyObject *unigrams1 = PySet_New(0);
+//     PyObject *bigrams1 = PySet_New(0);
+//     // ret = PySet_Add(unigrams1, PyUnicode_FromWideChar(L"据", 1));
+//     // ret = PySet_Add(unigrams1, PyUnicode_FromWideChar(L"nc", 2));
+//     // ret = PySet_Add(unigrams1, PyUnicode_FromWideChar(L"ckd", 3));
+//     // ret = PySet_Add(unigrams1, PyUnicode_FromWideChar(L"nc.3e", 5));
 
-    PyObject *res = getCwsNodeFeature(index, text, textLen,
-                                      unigrams1, bigrams1);
+//     PyObject *res = getCwsNodeFeature(index, text, textLen,
+//                                       unigrams1, bigrams1);
 
-    Py_DECREF(bigrams1);
-    Py_DECREF(unigrams1);
-    Py_DECREF(res);
-    free(text);
-    text = NULL;
-    printf("ref count: %ld", Py_REFCNT(res));
+//     Py_DECREF(bigrams1);
+//     Py_DECREF(unigrams1);
+//     Py_DECREF(res);
+//     free(text);
+//     text = NULL;
+//     printf("ref count: %ld", Py_REFCNT(res));
 
-    Py_Finalize();
-    return 0;
-}
+//     Py_Finalize();
+//     return 0;
+// }
