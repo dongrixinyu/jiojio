@@ -20,7 +20,7 @@ import argparse
 import jieba
 import cProfile
 import jiojio
-from LAC import LAC
+# from LAC import LAC
 
 
 def test(args):
