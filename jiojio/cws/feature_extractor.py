@@ -532,21 +532,6 @@ class CWSFeatureExtractor(object):
         if self.config.label_num == 2:
             B = B_single = "B"
             I_first = I = I_end = "I"
-        elif self.config.label_num == 3:
-            B = B_single = "B"
-            I_first = I = "I"
-            I_end = "I_end"
-        elif self.config.label_num == 4:
-            B = "B"
-            B_single = "B_single"
-            I_first = I = "I"
-            I_end = "I_end"
-        elif self.config.label_num == 5:
-            B = "B"
-            B_single = "B_single"
-            I_first = "I_first"
-            I = "I"
-            I_end = "I_end"
 
         return B, B_single, I_first, I, I_end
 
