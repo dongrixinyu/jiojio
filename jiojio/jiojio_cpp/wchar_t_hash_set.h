@@ -6,6 +6,8 @@
 #include <time.h>
 #include <math.h>
 #include <locale.h>
+#include <wchar.h>
+#include <string.h>
 
 #ifdef _WIN32
 #define API __declspec(dllexport)

@@ -6,6 +6,8 @@
 #include <time.h>
 #include <math.h>
 #include <locale.h>
+#include <wchar.h>
+#include <string.h>
 
 #ifdef _WIN32
 #define API __declspec(dllexport)
@@ -29,6 +31,6 @@ void dict_hash_table_insert(
 void dict_hash_table_remove(DictHashNode **dictHashTable, const wchar_t *skey, int hashTableMaxSize);
 int dict_hash_table_lookup(DictHashNode **dictHashTable, const wchar_t *skey, int hashTableMaxSize);
 void dict_hash_table_release(DictHashNode **dictHashTable, int hashTableMaxSize);
+void dict_distribution_statistics(DictHashNode **dictHashTable, int hashTableMaxSize, int hashTableSize);
 
-
-#endif _WCHAR_T_HASH_DICT_H
+#endif

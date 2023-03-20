@@ -21,7 +21,8 @@ from jiojio.inference import get_log_Y_YY
 from jiojio.model import Model
 from jiojio import Extractor
 
-from . import cws_get_node_features_c, cws_tag2word_c, cws_feature2idx_c
+from . import cws_get_node_features_c, cws_tag2word_c, \
+    cws_feature2idx_c, cws_prediction_lib
 from .config import Config
 from .tag_words_converter import tag2word
 from .feature_extractor import CWSFeatureExtractor
@@ -75,10 +76,44 @@ class CWSPredictText(object):
             normalize_num_letter=cws_config.normalize_num_letter,
             convert_exception=cws_config.convert_exception)
 
+        self._prepare_C_func()
+
+    def _prepare_C_func(self):
         # C 方式调用
         self.get_node_features_c = cws_get_node_features_c
         self.tag2word_c = cws_tag2word_c
         self.cws_feature2idx_c = cws_feature2idx_c
+
+        self.cws_prediction_handle = ctypes.c_void_p(None)
+
+
+        cws_prediction_lib.init.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_int, ctypes.py_object,
+            ctypes.c_int, ctypes.py_object,
+            ctypes.c_int, ctypes.py_object]
+
+        cws_prediction_lib.new_cws_prediction.restype = ctypes.c_void_p
+        cws_prediction_lib.init.restype = ctypes.c_int32
+        cws_prediction_lib.cut.restype = ctypes.py_object
+
+        # initialization of new_cws_prediction
+        self.cws_prediction_handle = ctypes.c_void_p(
+            cws_prediction_lib.new_cws_prediction())
+
+        unigram_list = list(self.feature_extractor.unigram)
+        bigram_list = list(self.feature_extractor.bigram)
+        feature_to_idx_list = list(self.feature_extractor.feature_to_idx.keys())
+
+        # res = cws_prediction_lib.cut(self.cws_prediction_handle, '你好呀')
+
+        # pdb.set_trace()
+        ret = cws_prediction_lib.init(
+            self.cws_prediction_handle,
+            20000, unigram_list,
+            50000, bigram_list,
+            1000000, feature_to_idx_list)
+        pdb.set_trace()
 
         if (self.get_node_features_c is not None) and (self.tag2word_c is not None) and (self.cws_feature2idx_c is not None):
             self.C_flag = True
