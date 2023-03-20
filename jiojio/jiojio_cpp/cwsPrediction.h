@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include "Python.h"
 #include <wchar.h>
+
 #include "wchar_t_hash_set.h"
 #include "wchar_t_hash_dict.h"
 
@@ -74,6 +75,7 @@ typedef struct _CCwsPrediction
 ConstLabels *newConstLabels();
 CwsPrediction *newCwsPrediction();
 
+
 int InitFile(CwsPrediction *cwsPredictionObj,
          int unigramSetHashTableMaxSize,
          const char *unigramFilePath,
@@ -81,6 +83,7 @@ int InitFile(CwsPrediction *cwsPredictionObj,
          const char *bigramFilePath,
          int featureToIdxDictHashTableMaxSize,
          const char *featureToIdxFilePath);
+
 
 int Init(
     CwsPrediction *cwsPredictionObj,
@@ -96,6 +99,7 @@ PyObject *Cut(CwsPrediction *cwsPredictionObj, const wchar_t *text);
 wchar_t *getSliceStr(const wchar_t *text, int start, int length, int all_len, wchar_t *emptyStr);
 wchar_t **getCwsNodeFeature(CwsPrediction *cwsPredictionObj,
                             int idx, const wchar_t *text, int nodeNum);
+
 
 PyObject *getFeatureIndex(CwsPrediction *cwsPredictionObj,
                           wchar_t **featureList);

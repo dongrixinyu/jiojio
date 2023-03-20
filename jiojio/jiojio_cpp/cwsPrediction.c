@@ -38,7 +38,6 @@ ConstLabels *newConstLabels(){
 CwsPrediction *newCwsPrediction()
 {
     // initialize
-    printf("# C start initialization.\n");
     CwsPrediction *cwsPredictionObj = NULL;
     cwsPredictionObj = (CwsPrediction *)malloc(sizeof(CwsPrediction));
     if (cwsPredictionObj == NULL) {
@@ -63,6 +62,7 @@ CwsPrediction *newCwsPrediction()
 
     return cwsPredictionObj;
 }
+
 
 int InitFile(
     CwsPrediction *cwsPredictionObj,
@@ -164,6 +164,7 @@ int InitFile(
                                  cwsPredictionObj->featureToIdxDictHashTableItemSize);
     return 1;
 }
+
 
 int Init(
     CwsPrediction *cwsPredictionObj,
@@ -292,6 +293,7 @@ PyObject *Cut(CwsPrediction *cwsPredictionObj, const wchar_t *text)
 
     return featureList;
 }
+
 
 wchar_t *getSliceStr(const wchar_t *text, int start, int length, int all_len, wchar_t *emptyStr)
 {
@@ -741,6 +743,7 @@ PyObject *getFeatureIndex(CwsPrediction *cwsPredictionObj,
 
     return indexList;
 }
+
 
 // int main() {
 
