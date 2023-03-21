@@ -86,61 +86,62 @@ class CWSPredictText(object):
 
         self.cws_prediction_handle = ctypes.c_void_p(None)
 
-
         cws_prediction_lib.init.argtypes = [
-            ctypes.c_void_p,
             ctypes.c_int, ctypes.py_object,
             ctypes.c_int, ctypes.py_object,
             ctypes.c_int, ctypes.py_object]
 
-        cws_prediction_lib.new_cws_prediction.restype = ctypes.c_void_p
-        cws_prediction_lib.init.restype = ctypes.c_int32
+        # cws_prediction_lib.new_cws_prediction.restype = ctypes.c_void_p
+        cws_prediction_lib.init.restype = ctypes.c_void_p
         cws_prediction_lib.cut.restype = ctypes.py_object
-
-        # initialization of new_cws_prediction
-        self.cws_prediction_handle = ctypes.c_void_p(
-            cws_prediction_lib.new_cws_prediction())
 
         unigram_list = list(self.feature_extractor.unigram)
         bigram_list = list(self.feature_extractor.bigram)
         feature_to_idx_list = list(self.feature_extractor.feature_to_idx.keys())
-
-        # res = cws_prediction_lib.cut(self.cws_prediction_handle, '你好呀')
-
         # pdb.set_trace()
-        ret = cws_prediction_lib.init(
-            self.cws_prediction_handle,
-            20000, unigram_list,
-            50000, bigram_list,
-            1000000, feature_to_idx_list)
-        pdb.set_trace()
+        ratio = 0.8
+        # initialization of new_cws_prediction
+        self.cws_prediction_handle = ctypes.c_void_p(
+            cws_prediction_lib.init(
+                70000, unigram_list,
+                120000, bigram_list,
+                2000000, feature_to_idx_list))
 
-        if (self.get_node_features_c is not None) and (self.tag2word_c is not None) and (self.cws_feature2idx_c is not None):
+        del unigram_list
+        del bigram_list
+        del feature_to_idx_list
+
+        if cws_prediction_lib:
             self.C_flag = True
         else:
             self.C_flag = False
 
     def _cut_C(self, text):
-        length = len(text)
-        all_features = []
+        # old method:
 
-        # 每个节点的得分
-        # Y = np.empty((length, 2), dtype=np.float16)
-        for idx in range(length):
+        # length = len(text)
+        # all_features = []
 
-            node_features = self.get_node_features_c(
-                idx, text, length, self.feature_extractor.unigram,
-                self.feature_extractor.bigram)
+        # # the score for every node
+        # for idx in range(length):
 
-            node_feature_idx = self.cws_feature2idx_c(
-                node_features, self.feature_extractor.feature_to_idx)
+        #     node_features = self.get_node_features_c(
+        #         idx, text, length, self.feature_extractor.unigram,
+        #         self.feature_extractor.bigram)
 
-            all_features.append(node_feature_idx)
-            # Y[idx] = np.sum(node_weight[node_feature_idx], axis=0)
+        #     node_feature_idx = self.cws_feature2idx_c(
+        #         node_features, self.feature_extractor.feature_to_idx)
 
+        #     all_features.append(node_feature_idx)
+
+        # new method:
+        all_features = cws_prediction_lib.cut(self.cws_prediction_handle, text)
+        # print('pure C: ', res)
+        # print('pipe C: ', all_features)
+        # pdb.set_trace()
         Y = get_log_Y_YY(all_features, self.model.node_weight, dtype=np.float16)
 
-        # 添加词典
+        # add dictionary
         if self.user_dict.trie_tree_obj is not None:
             self.user_dict(text, Y)
 

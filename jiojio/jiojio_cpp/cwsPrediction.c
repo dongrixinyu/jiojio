@@ -1,5 +1,6 @@
 #include "cwsPrediction.h"
 
+
 ConstLabels *newConstLabels(){
     ConstLabels *constLabelsObj = NULL;
     constLabelsObj = (ConstLabels *)malloc(sizeof(ConstLabels));
@@ -9,7 +10,7 @@ ConstLabels *newConstLabels(){
     constLabelsObj->delim = L".";
 
     // 字符以 c 为中心，前后，z、a、b、c、d、e、f 依次扩展开
-    constLabelsObj->charCurrent = L"c";
+    constLabelsObj->charCurrent = L"c";         // c.
     constLabelsObj->charBefore = L"b";          // c-1.
     constLabelsObj->charNext = L"d";            // c1.
     constLabelsObj->charBefore2 = L"a";         // c-2.
@@ -175,22 +176,23 @@ int Init(
     int featureToIdxDictHashTableMaxSize,
     PyObject *featureToIdxPyList)
 {
-    printf("### start allocate memory!");
-    cwsPredictionObj->unigramSetHashTableMaxSize = unigramSetHashTableMaxSize;
 
-    cwsPredictionObj->UnigramSetHashTable = (SetHashNode **)malloc(sizeof(SetHashNode) * unigramSetHashTableMaxSize);
+    cwsPredictionObj->unigramSetHashTableMaxSize = unigramSetHashTableMaxSize;
+    cwsPredictionObj->UnigramSetHashTable = (SetHashNode **)malloc(
+        sizeof(SetHashNode) * unigramSetHashTableMaxSize);
     memset(cwsPredictionObj->UnigramSetHashTable, 0,
            sizeof(SetHashNode *) * unigramSetHashTableMaxSize);
 
     cwsPredictionObj->bigramSetHashTableMaxSize = bigramSetHashTableMaxSize;
 
-    cwsPredictionObj->BigramSetHashTable = (SetHashNode **)malloc(sizeof(SetHashNode) * unigramSetHashTableMaxSize);
+    cwsPredictionObj->BigramSetHashTable = (SetHashNode **)malloc(
+        sizeof(SetHashNode) * bigramSetHashTableMaxSize);
     memset(cwsPredictionObj->BigramSetHashTable, 0,
            sizeof(SetHashNode *) * bigramSetHashTableMaxSize);
 
     cwsPredictionObj->featureToIdxDictHashTableMaxSize = featureToIdxDictHashTableMaxSize;
-
-    cwsPredictionObj->featureToIdxDictHashTable = (DictHashNode **)malloc(sizeof(DictHashNode) * featureToIdxDictHashTableMaxSize);
+    cwsPredictionObj->featureToIdxDictHashTable = (DictHashNode **)malloc(
+        sizeof(DictHashNode) * featureToIdxDictHashTableMaxSize);
     memset(cwsPredictionObj->featureToIdxDictHashTable, 0,
            sizeof(SetHashNode *) * featureToIdxDictHashTableMaxSize);
 
@@ -204,7 +206,7 @@ int Init(
     {
         PyObject *curWord = PyList_GetItem(unigramPyList, i);
         Py_ssize_t ret = PyUnicode_AsWideChar(curWord, buff, 30);
-        printf("cur word: %ls\n", buff);
+
         set_hash_table_insert(
             cwsPredictionObj->UnigramSetHashTable,
             buff,
@@ -227,7 +229,7 @@ int Init(
     {
         PyObject *curWord = PyList_GetItem(bigramPyList, i);
         Py_ssize_t ret = PyUnicode_AsWideChar(curWord, buff, 30);
-        printf("cur word: %ls\n", buff);
+
         set_hash_table_insert(
             cwsPredictionObj->BigramSetHashTable,
             buff,
@@ -249,7 +251,7 @@ int Init(
     {
         PyObject *curWord = PyList_GetItem(featureToIdxPyList, i);
         Py_ssize_t ret = PyUnicode_AsWideChar(curWord, buff, 30);
-        printf("cur word: %ls\n", buff);
+
         dict_hash_table_insert(
             cwsPredictionObj->featureToIdxDictHashTable,
             buff,
@@ -264,6 +266,7 @@ int Init(
     dict_distribution_statistics(cwsPredictionObj->featureToIdxDictHashTable,
                                  cwsPredictionObj->featureToIdxDictHashTableMaxSize,
                                  cwsPredictionObj->featureToIdxDictHashTableItemSize);
+
     return 1;
 }
 
@@ -277,18 +280,23 @@ PyObject *Cut(CwsPrediction *cwsPredictionObj, const wchar_t *text)
     {
         wchar_t **featureObj = getCwsNodeFeature(
             cwsPredictionObj, i, text, textLength);
+
         PyObject *featureIdxList = getFeatureIndex(
             cwsPredictionObj, featureObj);
         ret = PyList_Size(featureIdxList);
-        printf("idx len: %d\n", ret);
 
-        // release memory
-        while(*featureObj) {
-            free(*featureObj);
-            featureObj = featureObj + 1;
+        // release memory of featureObj
+        wchar_t **tmpFeatureObj = featureObj;
+        while (*tmpFeatureObj)
+        {
+            // printf("tmpfeatureObj: %ls\n", *tmpFeatureObj);
+            free(*tmpFeatureObj);
+            tmpFeatureObj = tmpFeatureObj + 1;
         }
+        free(featureObj);
 
         ret = PyList_Append(featureList, featureIdxList);
+        Py_DECREF(featureIdxList);
     }
 
     return featureList;
@@ -306,11 +314,10 @@ wchar_t *getSliceStr(const wchar_t *text, int start, int length, int all_len, wc
         return emptyStr;
     }
 
-    // 返回相应的子字符串
     wchar_t *resStr = malloc((length + 1) * sizeof(wchar_t));
     wcsncpy(resStr, text + start, length);
     wcsncpy(resStr + length, emptyStr, 1);
-    // printf("the length of slice: %ld. %ls\n\n", wcslen(resStr), resStr);
+
     return resStr;
 }
 
@@ -332,8 +339,8 @@ wchar_t **getCwsNodeFeature(CwsPrediction *cwsPredictionObj,
     // setlocale(LC_ALL, "en_US.UTF-8");
 
     // 添加当前字特征
-    wchar_t *charCurrentFeature = malloc(3 * sizeof(wchar_t)); // 默认为 2，如 “c佛”
-    wcsncpy(charCurrentFeature, cwsPredictionObj->constLabels->charCurrent, 1);
+    wchar_t *charCurrentFeature = malloc(3 * sizeof(wchar_t)); // 默认为 3，如 “c佛”
+    wcsncpy(charCurrentFeature, L"c", 1);
     wcsncpy(charCurrentFeature + 1, curC, 1);
     wcsncpy(charCurrentFeature + 2, emptyStr, 1);
     *(featureList + featureIdx) = charCurrentFeature;
@@ -343,7 +350,7 @@ wchar_t **getCwsNodeFeature(CwsPrediction *cwsPredictionObj,
     {
         // 添加前一字特征
         wchar_t *charBeforeFeature = malloc(3 * sizeof(wchar_t)); // 默认为 2，如 “b租”
-        wcsncpy(charBeforeFeature, cwsPredictionObj->constLabels->charBefore, 1);
+        wcsncpy(charBeforeFeature, L"b", 1);
         wcsncpy(charBeforeFeature + 1, beforeC, 1);
         wcsncpy(charBeforeFeature + 2, emptyStr, 1);
         *(featureList + featureIdx) = charBeforeFeature;
@@ -351,9 +358,9 @@ wchar_t **getCwsNodeFeature(CwsPrediction *cwsPredictionObj,
 
         // 添加当前字和前一字特征
         wchar_t *charBeforeCurrentFeature = malloc(6 * sizeof(wchar_t)); // 默认为 5，如 “bc佛.祖”
-        wcsncpy(charBeforeCurrentFeature, cwsPredictionObj->constLabels->charBeforeCurrent, 2);
+        wcsncpy(charBeforeCurrentFeature, L"bc", 2);
         wcsncpy(charBeforeCurrentFeature + 2, beforeC, 1);
-        wcsncpy(charBeforeCurrentFeature + 3, cwsPredictionObj->constLabels->delim, 1);
+        wcsncpy(charBeforeCurrentFeature + 3, L".", 1);
         wcsncpy(charBeforeCurrentFeature + 4, curC, 1);
         wcsncpy(charBeforeCurrentFeature + 5, emptyStr, 1);
 
@@ -363,8 +370,8 @@ wchar_t **getCwsNodeFeature(CwsPrediction *cwsPredictionObj,
     else
     {
         // 添加起始位特征
-        wchar_t *startFeature = malloc(8 * sizeof(wchar_t)); // 默认为 2，如 “b租”
-        wcsncpy(startFeature, cwsPredictionObj->constLabels->startFeature, 8);
+        wchar_t *startFeature = malloc(8 * sizeof(wchar_t));
+        wcsncpy(startFeature, L"[START]", 8);
         *(featureList + featureIdx) = startFeature;
         featureIdx++;
     }
@@ -373,7 +380,7 @@ wchar_t **getCwsNodeFeature(CwsPrediction *cwsPredictionObj,
     {
         // 添加后一字特征
         wchar_t *charNextFeature = malloc(3 * sizeof(wchar_t)); // 默认为 2，如 “d租”
-        wcsncpy(charNextFeature, cwsPredictionObj->constLabels->charNext, 1);
+        wcsncpy(charNextFeature, L"d", 1);
         wcsncpy(charNextFeature + 1, nextC, 1);
         wcsncpy(charNextFeature + 2, emptyStr, 1);
         *(featureList + featureIdx) = charNextFeature;
@@ -381,9 +388,9 @@ wchar_t **getCwsNodeFeature(CwsPrediction *cwsPredictionObj,
 
         // 添加当前字和后一字特征
         wchar_t *charCurrentNextFeature = malloc(6 * sizeof(wchar_t)); // 默认为 2，如 “cd佛.祖”
-        wcsncpy(charCurrentNextFeature, cwsPredictionObj->constLabels->charCurrentNext, 2);
+        wcsncpy(charCurrentNextFeature, L"cd", 2);
         wcsncpy(charCurrentNextFeature + 2, curC, 1);
-        wcsncpy(charCurrentNextFeature + 3, cwsPredictionObj->constLabels->delim, 1);
+        wcsncpy(charCurrentNextFeature + 3, L".", 1);
         wcsncpy(charCurrentNextFeature + 4, nextC, 1);
         wcsncpy(charCurrentNextFeature + 5, emptyStr, 1);
         *(featureList + featureIdx) = charCurrentNextFeature;
@@ -393,7 +400,7 @@ wchar_t **getCwsNodeFeature(CwsPrediction *cwsPredictionObj,
     {
         // 添加文本终止符特征
         wchar_t *endFeature = malloc(6 * sizeof(wchar_t));
-        wcsncpy(endFeature, cwsPredictionObj->constLabels->endFeature, 6);
+        wcsncpy(endFeature, L"[END]", 6);
         *(featureList + featureIdx) = endFeature;
         featureIdx++;
     }
@@ -404,17 +411,17 @@ wchar_t **getCwsNodeFeature(CwsPrediction *cwsPredictionObj,
 
         // 添加前第二字特征
         wchar_t *charBeforeC2Feature = malloc(3 * sizeof(wchar_t)); // 默认为 2，如 “a租”
-        wcsncpy(charBeforeC2Feature, cwsPredictionObj->constLabels->charBefore2, 1);
+        wcsncpy(charBeforeC2Feature, L"a", 1);
         wcsncpy(charBeforeC2Feature + 1, beforeC2, 1);
         wcsncpy(charBeforeC2Feature + 2, emptyStr, 1);
         *(featureList + featureIdx) = charBeforeC2Feature;
         featureIdx++;
 
         // 添加前第二字和当前字组合特征
-        wchar_t *charBefore2CurrentFeature = malloc(6 * sizeof(wchar_t)); // 默认为 5，如 “sc佛.在”
-        wcsncpy(charBefore2CurrentFeature, cwsPredictionObj->constLabels->charBefore2Current, 2);
+        wchar_t *charBefore2CurrentFeature = malloc(6 * sizeof(wchar_t)); // 默认为 5，如 “ac佛.在”
+        wcsncpy(charBefore2CurrentFeature, L"ac", 2);
         wcsncpy(charBefore2CurrentFeature + 2, beforeC2, 1);
-        wcsncpy(charBefore2CurrentFeature + 3, cwsPredictionObj->constLabels->delim, 1);
+        wcsncpy(charBefore2CurrentFeature + 3, L".", 1);
         wcsncpy(charBefore2CurrentFeature + 4, curC, 1);
         wcsncpy(charBefore2CurrentFeature + 5, emptyStr, 1);
         *(featureList + featureIdx) = charBefore2CurrentFeature;
@@ -427,7 +434,7 @@ wchar_t **getCwsNodeFeature(CwsPrediction *cwsPredictionObj,
 
         // 添加后第二字特征
         wchar_t *charNextC2Feature = malloc(3 * sizeof(wchar_t)); // 默认为 2，如 “e租”
-        wcsncpy(charNextC2Feature, cwsPredictionObj->constLabels->charNext2, 1);
+        wcsncpy(charNextC2Feature, L"e", 1);
         wcsncpy(charNextC2Feature + 1, nextC2, 1);
         wcsncpy(charNextC2Feature + 2, emptyStr, 1);
         *(featureList + featureIdx) = charNextC2Feature;
@@ -435,9 +442,9 @@ wchar_t **getCwsNodeFeature(CwsPrediction *cwsPredictionObj,
 
         // 添加当前字和后第二字组合特征
         wchar_t *charCurrentNext2Feature = malloc(6 * sizeof(wchar_t)); // 默认为 5，如 “ce大.寺”
-        wcsncpy(charCurrentNext2Feature, cwsPredictionObj->constLabels->charCurrentNext2, 2);
+        wcsncpy(charCurrentNext2Feature, L"ce", 2);
         wcsncpy(charCurrentNext2Feature + 2, curC, 1);
-        wcsncpy(charCurrentNext2Feature + 3, cwsPredictionObj->constLabels->delim, 1);
+        wcsncpy(charCurrentNext2Feature + 3, L".", 1);
         wcsncpy(charCurrentNext2Feature + 4, nextC2, 1);
         wcsncpy(charCurrentNext2Feature + 5, emptyStr, 1);
         *(featureList + featureIdx) = charCurrentNext2Feature;
@@ -449,8 +456,8 @@ wchar_t **getCwsNodeFeature(CwsPrediction *cwsPredictionObj,
         wchar_t *beforeC3 = text + idx - 3;
 
         // 添加前第三字特征
-        wchar_t *charBeforeC3Feature = malloc(3 * sizeof(wchar_t)); // 默认为 2，如 “z租”
-        wcsncpy(charBeforeC3Feature, cwsPredictionObj->constLabels->charBefore3, 1);
+        wchar_t *charBeforeC3Feature = malloc(3 * sizeof(wchar_t)); // 默认为 3，如 “z租”
+        wcsncpy(charBeforeC3Feature, L"z", 1);
         wcsncpy(charBeforeC3Feature + 1, beforeC3, 1);
         wcsncpy(charBeforeC3Feature + 2, emptyStr, 1);
         *(featureList + featureIdx) = charBeforeC3Feature;
@@ -458,9 +465,9 @@ wchar_t **getCwsNodeFeature(CwsPrediction *cwsPredictionObj,
 
         // 添加前第三字和当前字组合特征
         wchar_t *charBefore3CurrentFeature = malloc(6 * sizeof(wchar_t)); // 默认为 5，如 “zc佛.在”
-        wcsncpy(charBefore3CurrentFeature, cwsPredictionObj->constLabels->charBefore3Current, 2);
+        wcsncpy(charBefore3CurrentFeature, L"zc", 2);
         wcsncpy(charBefore3CurrentFeature + 2, beforeC3, 1);
-        wcsncpy(charBefore3CurrentFeature + 3, cwsPredictionObj->constLabels->delim, 1);
+        wcsncpy(charBefore3CurrentFeature + 3, L".", 1);
         wcsncpy(charBefore3CurrentFeature + 4, curC, 1);
         wcsncpy(charBefore3CurrentFeature + 5, emptyStr, 1);
         *(featureList + featureIdx) = charBefore3CurrentFeature;
@@ -473,7 +480,7 @@ wchar_t **getCwsNodeFeature(CwsPrediction *cwsPredictionObj,
 
         // 添加后第三字特征
         wchar_t *charNextC3Feature = malloc(3 * sizeof(wchar_t)); // 默认为 2，如 “f租”
-        wcsncpy(charNextC3Feature, cwsPredictionObj->constLabels->charNext3, 1);
+        wcsncpy(charNextC3Feature, L"f", 1);
         wcsncpy(charNextC3Feature + 1, nextC3, 1);
         wcsncpy(charNextC3Feature + 2, emptyStr, 1);
         *(featureList + featureIdx) = charNextC3Feature;
@@ -481,15 +488,16 @@ wchar_t **getCwsNodeFeature(CwsPrediction *cwsPredictionObj,
 
         // 添加当前字和后第二字组合特征
         wchar_t *charCurrentNext3Feature = malloc(6 * sizeof(wchar_t)); // 默认为 5，如 “cf大.寺”
-        wcsncpy(charCurrentNext3Feature, cwsPredictionObj->constLabels->charCurrentNext3, 2);
+        wcsncpy(charCurrentNext3Feature, L"cf", 2);
         wcsncpy(charCurrentNext3Feature + 2, curC, 1);
-        wcsncpy(charCurrentNext3Feature + 3, cwsPredictionObj->constLabels->delim, 1);
+        wcsncpy(charCurrentNext3Feature + 3, L".", 1);
         wcsncpy(charCurrentNext3Feature + 4, nextC3, 1);
         wcsncpy(charCurrentNext3Feature + 5, emptyStr, 1);
         *(featureList + featureIdx) = charCurrentNext3Feature;
         featureIdx++;
     }
 
+    const wchar_t *wordLength = L"234";
     int preInFlag = 0; // 不仅指示是否进行双词匹配，也指示了匹配到的词汇的长度
     int preExFlag = 0;
     int postInFlag = 0;
@@ -498,7 +506,7 @@ wchar_t **getCwsNodeFeature(CwsPrediction *cwsPredictionObj,
     wchar_t *preEx = NULL;
     wchar_t *postIn = NULL;
     wchar_t *postEx = NULL;
-    for (int l = cwsPredictionObj->constLabels->wordMax; l > cwsPredictionObj->constLabels->wordMin - 1; l--)
+    for (int l = 4; l > 1; l--)
     {
         if (preInFlag == 0)
         {
@@ -513,7 +521,7 @@ wchar_t **getCwsNodeFeature(CwsPrediction *cwsPredictionObj,
                 {
                     // 添加前一词特征
                     wchar_t *wordBeforeFeature = malloc((2 + l) * sizeof(wchar_t)); // 长度不定，如 “v中国”
-                    wcsncpy(wordBeforeFeature, cwsPredictionObj->constLabels->wordBefore, 1);
+                    wcsncpy(wordBeforeFeature, L"v", 1);
                     wcsncpy(wordBeforeFeature + 1, preInTmp, l);
                     wcsncpy(wordBeforeFeature + 1 + l, emptyStr, 1);
                     *(featureList + featureIdx) = wordBeforeFeature;
@@ -545,7 +553,7 @@ wchar_t **getCwsNodeFeature(CwsPrediction *cwsPredictionObj,
                 {
                     // 添加后一词特征
                     wchar_t *wordNextFeature = malloc((2 + l) * sizeof(wchar_t)); // 长度不定，如 “x中国”
-                    wcsncpy(wordNextFeature, cwsPredictionObj->constLabels->wordNext, 1);
+                    wcsncpy(wordNextFeature, L"x", 1);
                     wcsncpy(wordNextFeature + 1, postInTmp, l);
                     wcsncpy(wordNextFeature + 1 + l, emptyStr, 1);
                     *(featureList + featureIdx) = wordNextFeature;
@@ -613,7 +621,7 @@ wchar_t **getCwsNodeFeature(CwsPrediction *cwsPredictionObj,
         // printf("## add wl length feature %d %d.\n", preExFlag, postInFlag);
         wchar_t *bigramTmp = malloc((preExFlag + postInFlag + 2) * sizeof(wchar_t));
         wcsncpy(bigramTmp, preEx, preExFlag);
-        wcsncpy(bigramTmp + preExFlag, cwsPredictionObj->constLabels->delim, 1);
+        wcsncpy(bigramTmp + preExFlag, L".", 1);
         wcsncpy(bigramTmp + 1 + preExFlag, postIn, postInFlag);
         wcsncpy(bigramTmp + 1 + preExFlag + postInFlag, emptyStr, 1);
 
@@ -624,7 +632,7 @@ wchar_t **getCwsNodeFeature(CwsPrediction *cwsPredictionObj,
         if (ret == 1)
         {
             wchar_t *bigramLeft = malloc((preExFlag + postInFlag + 4) * sizeof(wchar_t));
-            wcsncpy(bigramLeft, cwsPredictionObj->constLabels->word2Left, 2);
+            wcsncpy(bigramLeft, L"wl", 2);
             wcsncpy(bigramLeft + 2, bigramTmp, preExFlag + postInFlag + 1);
             wcsncpy(bigramLeft + 3 + preExFlag + postInFlag, emptyStr, 1);
 
@@ -637,9 +645,9 @@ wchar_t **getCwsNodeFeature(CwsPrediction *cwsPredictionObj,
 
         // 添加词长特征
         wchar_t *bigramLeftLength = malloc(5 * sizeof(wchar_t));
-        wcsncpy(bigramLeftLength, cwsPredictionObj->constLabels->word2Left, 2);
-        wcsncpy(bigramLeftLength + 2, cwsPredictionObj->constLabels->wordLength + preExFlag - 2, 1);
-        wcsncpy(bigramLeftLength + 3, cwsPredictionObj->constLabels->wordLength + postInFlag - 2, 1);
+        wcsncpy(bigramLeftLength, L"wl", 2);
+        wcsncpy(bigramLeftLength + 2, wordLength + preExFlag - 2, 1);
+        wcsncpy(bigramLeftLength + 3, wordLength + postInFlag - 2, 1);
         wcsncpy(bigramLeftLength + 4, emptyStr, 1);
         *(featureList + featureIdx) = bigramLeftLength;
         featureIdx++;
@@ -647,10 +655,9 @@ wchar_t **getCwsNodeFeature(CwsPrediction *cwsPredictionObj,
 
     if ((preInFlag != 0) && (postExFlag != 0))
     {
-        // printf("## add wr length feature %d %d.\n", preInFlag, postExFlag);
         wchar_t *bigramTmp = malloc((preInFlag + postExFlag + 2) * sizeof(wchar_t));
         wcsncpy(bigramTmp, preIn, preInFlag);
-        wcsncpy(bigramTmp + preInFlag, cwsPredictionObj->constLabels->delim, 1);
+        wcsncpy(bigramTmp + preInFlag, L".", 1);
         wcsncpy(bigramTmp + 1 + preInFlag, postEx, postExFlag);
         wcsncpy(bigramTmp + 1 + preInFlag + postExFlag, emptyStr, 1);
 
@@ -658,11 +665,10 @@ wchar_t **getCwsNodeFeature(CwsPrediction *cwsPredictionObj,
             cwsPredictionObj->BigramSetHashTable, bigramTmp,
             cwsPredictionObj->bigramSetHashTableMaxSize);
 
-        // printf("wr bigramTmp: %ls %d\n", bigramTmp, ret);
         if (ret == 1)
         {
             wchar_t *bigramRight = malloc((preInFlag + postExFlag + 4) * sizeof(wchar_t));
-            wcsncpy(bigramRight, cwsPredictionObj->constLabels->word2Right, 2);
+            wcsncpy(bigramRight, L"wr", 2);
             wcsncpy(bigramRight + 2, bigramTmp, preInFlag + postExFlag + 1);
             wcsncpy(bigramRight + 3 + preInFlag + postExFlag, emptyStr, 1);
 
@@ -675,10 +681,11 @@ wchar_t **getCwsNodeFeature(CwsPrediction *cwsPredictionObj,
 
         // 添加词长特征
         wchar_t *bigramRightLength = malloc(5 * sizeof(wchar_t));
-        wcsncpy(bigramRightLength, cwsPredictionObj->constLabels->word2Right, 2);
-        wcsncpy(bigramRightLength + 2, cwsPredictionObj->constLabels->wordLength + preInFlag - 2, 1);
-        wcsncpy(bigramRightLength + 3, cwsPredictionObj->constLabels->wordLength + postExFlag - 2, 1);
+        wcsncpy(bigramRightLength, L"wr", 2);
+        wcsncpy(bigramRightLength + 2, wordLength + preInFlag - 2, 1);
+        wcsncpy(bigramRightLength + 3, wordLength + postExFlag - 2, 1);
         wcsncpy(bigramRightLength + 4, emptyStr, 1);
+
         *(featureList + featureIdx) = bigramRightLength;
         featureIdx++;
     }
@@ -723,65 +730,27 @@ PyObject *getFeatureIndex(CwsPrediction *cwsPredictionObj,
             cwsPredictionObj->featureToIdxDictHashTable,
             *featureList,
             cwsPredictionObj->featureToIdxDictHashTableMaxSize);
-        PyObject *pyIndex = PyLong_FromLong(index);
+
         if (index != -1)
         {
+            PyObject *pyIndex = PyLong_FromLong(index);
             ret = PyList_Append(indexList, pyIndex);
+            Py_DECREF(pyIndex);
         }
         else
         {
             flag = 1;
         }
         featureList = featureList + 1;
+
     }
 
     if (flag == 1)
     {
         PyObject *pyIndex = PyLong_FromLong(0);
         ret = PyList_Append(indexList, pyIndex);
+        Py_DECREF(pyIndex);
     }
 
     return indexList;
 }
-
-
-// int main() {
-
-//     Py_Initialize();
-//     // unsigned int res = set_hash_table_hash_str(L"一下子");
-//     PyObject *tmpList = PyList_New(0);
-//     PyObject *tmp;
-//     int ret;
-//     tmp = PyUnicode_FromWideChar(L"一个", -1);
-//     ret = PyList_Append(tmpList, tmp);
-//     tmp = PyUnicode_FromWideChar(L"美好", -1);
-//     ret = PyList_Append(tmpList, tmp);
-//     tmp = PyUnicode_FromWideChar(L"真实", -1);
-//     ret = PyList_Append(tmpList, tmp);
-//     tmp = PyUnicode_FromWideChar(L"qqqqq", -1);
-//     ret = PyList_Append(tmpList, tmp);
-
-//     Py_ssize_t length = PyList_Size(tmpList);
-//     for (int i = 0; i < length; i++) {
-//         PyObject *curWord = PyList_GetItem(tmpList, i);
-//         wchar_t buff[30];
-//         Py_ssize_t ret = PyUnicode_AsWideChar(curWord, buff, 20);
-//         printf("cur word: %ls\n", buff);
-//     }
-
-//     unsigned int pos = dict_hash_table_hash_str(L"[END]") % 200000;
-//     CwsPrediction *cwsPredictionObj = newCwsPrediction();
-//     // Init(cwsPredictionObj, 10000,
-//     //      "/home/cuichengyu/github/jiojio/jiojio/models/default_cws_model/unigram.txt",
-//     //      20000,
-//     //      "/home/cuichengyu/github/jiojio/jiojio/models/default_cws_model/bigram.txt",
-//     //      1000000,
-//     //      "/home/cuichengyu/github/jiojio/jiojio/models/default_cws_model/feature_to_idx.txt");
-
-//     const wchar_t *text = L"中国人真的很勤奋。";
-//     int textLength = wcslen(text);
-//     PyObject *featureList = Cut(cwsPredictionObj, text);
-
-//     Py_Finalize();
-//     return 0;
-// }

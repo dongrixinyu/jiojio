@@ -1,14 +1,4 @@
-/*
- * Author: puresky
- * Date: 2011/01/08
- * Purpose: a simple implementation of HashTable in C
- */
-
 #include "wchar_t_hash_set.h"
-
-/*=================hash table start=========================================*/
-
-// SetHashNode *setHashTable[HASH_TABLE_MAX_SIZE]; // hash table data strcutrue
 
 // initialize hash table
 SetHashNode **set_hash_table_init(int hashTableMaxSize)
@@ -103,15 +93,15 @@ int set_hash_table_lookup(SetHashNode **setHashTable, const wchar_t *skey, int h
 {
     unsigned int pos = set_hash_table_hash_str(skey) % hashTableMaxSize;
     SetHashNode *pHead = *(setHashTable + pos);
-    // SetHashNode *pHead = temp;
+
     while (pHead)
     {
         if (wcscmp(skey, pHead->sKey) == 0)
-            return 0;
+            return 1;
 
         pHead = pHead->pNext;
     }
-    return 1;
+    return 0;
 }
 
 double kl_divergence(int count_table[], int hashTableMaxSize, int hashTableSize)

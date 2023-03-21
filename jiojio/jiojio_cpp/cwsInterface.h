@@ -4,10 +4,8 @@
 #include "Python.h"
 #include "cwsPrediction.h"
 
-void *new_cws_prediction();
 
-int init(
-    void *voidObj,
+void *init(
     int unigramSetHashTableMaxSize,
     PyObject *unigramPyList,
     int bigramSetHashTableMaxSize,

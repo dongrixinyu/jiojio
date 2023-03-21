@@ -53,6 +53,8 @@ typedef struct _ConstLabels
 
 typedef struct _CCwsPrediction
 {
+    // const wchar_t *charCurrent;
+
     int unigramSetHashTableItemSize;
     int unigramSetHashTableMaxSize;
     SetHashNode **UnigramSetHashTable;

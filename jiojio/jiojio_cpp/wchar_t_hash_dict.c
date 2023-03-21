@@ -1,9 +1,3 @@
-/*
- * Author: puresky
- * Date: 2011/01/08
- * Purpose: a simple implementation of HashTable in C
- */
-
 #include "wchar_t_hash_dict.h"
 
 #ifdef _WIN32
@@ -11,7 +5,6 @@
 #else
 #define API
 #endif
-/*=================hash table start=========================================*/
 
 
 DictHashNode **dict_hash_table_init(int hashTableMaxSize)
