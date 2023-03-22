@@ -166,7 +166,6 @@ int InitFile(
     return 1;
 }
 
-
 int Init(
     CwsPrediction *cwsPredictionObj,
     int unigramSetHashTableMaxSize,
@@ -174,7 +173,8 @@ int Init(
     int bigramSetHashTableMaxSize,
     PyObject *bigramPyList,
     int featureToIdxDictHashTableMaxSize,
-    PyObject *featureToIdxPyList)
+    PyObject *featureToIdxPyList,
+    PyObject *pyModelWeightList)
 {
 
     cwsPredictionObj->unigramSetHashTableMaxSize = unigramSetHashTableMaxSize;
@@ -267,7 +267,42 @@ int Init(
                                  cwsPredictionObj->featureToIdxDictHashTableMaxSize,
                                  cwsPredictionObj->featureToIdxDictHashTableItemSize);
 
+    // initialize model weight with shape (5040000, 2)
+    float **modelWeightObj = initModelWeight(pyModelWeightList);
+    cwsPredictionObj->modelWeightObj = modelWeightObj;
+
     return 1;
+}
+
+float **initModelWeight(PyObject *pyModelWeightList)
+{
+    import_array();
+    Py_ssize_t weightLength = PyList_Size(pyModelWeightList);
+
+    // malloc memory for initialization of model weight
+    float **modelWeightObj = (float **)malloc(weightLength * sizeof(float *));
+    // memset(modelWeightObj);
+
+    for (int i = 0; i < weightLength; i++)
+    {
+        float *curWeightPair = malloc(2 * sizeof(float));
+        PyObject *curPyWeightPair = PyList_GetItem(pyModelWeightList, i);
+
+        PyObject *firstPyWeight = PyList_GetItem(curPyWeightPair, 0);
+        PyObject *secondPyWeight = PyList_GetItem(curPyWeightPair, 1);
+
+        // cast double to float forcefully may cause error
+        float firstWeight = PyFloat_AsDouble(firstPyWeight);
+        float secondWeight = PyFloat_AsDouble(secondPyWeight);
+
+        *curWeightPair = firstWeight;
+        *(curWeightPair + 1) = secondWeight;
+
+        // printf("first weight: %f, second weight: %f\n", *curWeightPair, *(curWeightPair + 1));
+        *(modelWeightObj + i) = curWeightPair;
+    }
+
+    return modelWeightObj;
 }
 
 PyObject *Cut(CwsPrediction *cwsPredictionObj, const wchar_t *text)
@@ -276,32 +311,62 @@ PyObject *Cut(CwsPrediction *cwsPredictionObj, const wchar_t *text)
     int textLength = wcslen(text);
     int ret;
 
+    // initialization of np.empty with dtype=np.float32
+    npy_intp dims[2] = {textLength, 2};
+    int ndim = 2;
+
+
+    PyArray_Descr *descr = PyArray_DescrFromType(NPY_FLOAT32); // designate np.float32
+    if (descr == NULL)
+    {
+        printf("ERROR: can not set descr !\n");
+    }
+
+    PyObject *array = PyArray_Empty(ndim, dims, descr, 0);
+    PyArrayObject *arrayPtr = (PyArrayObject *)array;
+
+    float *data = (float *)PyArray_DATA(arrayPtr);
+
+    // start compute
     for (int i = 0; i < textLength; i++)
     {
+
         wchar_t **featureObj = getCwsNodeFeature(
             cwsPredictionObj, i, text, textLength);
 
-        PyObject *featureIdxList = getFeatureIndex(
+        int *featureIdxObj = getFeatureIndex(
             cwsPredictionObj, featureObj);
-        ret = PyList_Size(featureIdxList);
 
         // release memory of featureObj
         wchar_t **tmpFeatureObj = featureObj;
         while (*tmpFeatureObj)
         {
-            // printf("tmpfeatureObj: %ls\n", *tmpFeatureObj);
             free(*tmpFeatureObj);
             tmpFeatureObj = tmpFeatureObj + 1;
         }
-        free(featureObj);
 
-        ret = PyList_Append(featureList, featureIdxList);
-        Py_DECREF(featureIdxList);
+        free(featureObj);
+        featureObj = NULL;
+
+        float *curNodeWeight = computeNodeWeight(
+            cwsPredictionObj->modelWeightObj, featureIdxObj);
+
+        free(featureIdxObj);
+        featureIdxObj = NULL;
+
+        PyObject *firstSum = PyFloat_FromDouble((double)(*curNodeWeight));
+        PyObject *secondSum = PyFloat_FromDouble((double)(*(curNodeWeight + 1)));
+
+        free(curNodeWeight);
+        curNodeWeight = NULL;
+
+        PyArray_SETITEM(arrayPtr, data + 2 * i, firstSum);
+        PyArray_SETITEM(arrayPtr, data + 2 * i + 1, secondSum);
+
     }
 
-    return featureList;
+    return array;
 }
-
 
 wchar_t *getSliceStr(const wchar_t *text, int start, int length, int all_len, wchar_t *emptyStr)
 {
@@ -333,8 +398,8 @@ wchar_t **getCwsNodeFeature(CwsPrediction *cwsPredictionObj,
     wchar_t *nextC = text + idx + 1;   // 后一个字符
 
     int featureIdx = 0;
-    wchar_t **featureList = (wchar_t **)malloc(20 * sizeof(wchar_t *));
-    memset(featureList, 0, sizeof(wchar_t *) * 20);
+    wchar_t **featureList = (wchar_t **)malloc(DEFAULT_FEATURE_LENGTH * sizeof(wchar_t *));
+    memset(featureList, 0, sizeof(wchar_t *) * DEFAULT_FEATURE_LENGTH);
 
     // setlocale(LC_ALL, "en_US.UTF-8");
 
@@ -716,16 +781,18 @@ wchar_t **getCwsNodeFeature(CwsPrediction *cwsPredictionObj,
     return featureList;
 }
 
-PyObject *getFeatureIndex(CwsPrediction *cwsPredictionObj,
-                          wchar_t **featureList)
+int *getFeatureIndex(CwsPrediction *cwsPredictionObj,
+                     wchar_t **featureList)
 {
     int ret, index;
     int flag = 0;
+    int cursor = 0;
 
-    PyObject *indexList = PyList_New(0);
-    int nodeFeatureLength = 0;
+    int *indexArray = malloc(sizeof(int) * DEFAULT_FEATURE_LENGTH);
+    memset(indexArray, -1, sizeof(int) * DEFAULT_FEATURE_LENGTH);
 
-    while (*featureList) {
+    while (*featureList)
+    {
         index = dict_hash_table_lookup(
             cwsPredictionObj->featureToIdxDictHashTable,
             *featureList,
@@ -733,24 +800,46 @@ PyObject *getFeatureIndex(CwsPrediction *cwsPredictionObj,
 
         if (index != -1)
         {
-            PyObject *pyIndex = PyLong_FromLong(index);
-            ret = PyList_Append(indexList, pyIndex);
-            Py_DECREF(pyIndex);
+            *(indexArray + cursor) = index;
         }
         else
         {
             flag = 1;
         }
-        featureList = featureList + 1;
 
+        featureList = featureList + 1;
+        cursor++;
     }
 
     if (flag == 1)
     {
-        PyObject *pyIndex = PyLong_FromLong(0);
-        ret = PyList_Append(indexList, pyIndex);
-        Py_DECREF(pyIndex);
+        *(indexArray + cursor) = 0;
     }
 
-    return indexList;
+    return indexArray;
+}
+
+/**
+ * featureIdx: list of several idx list with size
+ */
+float *computeNodeWeight(float **modelWeightObj, int *featureIdxList)
+{
+    int ret;
+    int curFeatureIdx;
+
+    float *sumNum = malloc(sizeof(float) * 2);
+    memset(sumNum, 0.0, sizeof(float) * 2);
+
+    while (*featureIdxList != -1)
+    {
+
+        curFeatureIdx = *featureIdxList;
+
+        *sumNum += **(modelWeightObj + curFeatureIdx);
+        *(sumNum + 1) += *(*(modelWeightObj + curFeatureIdx) + 1);
+
+        featureIdxList++;
+    }
+
+    return sumNum;
 }

@@ -6,10 +6,12 @@
 #include <stdio.h>
 #include "Python.h"
 #include <wchar.h>
+#include "numpy/arrayobject.h"
 
 #include "wchar_t_hash_set.h"
 #include "wchar_t_hash_dict.h"
 
+#define DEFAULT_FEATURE_LENGTH 20
 // #include <locale.h>
 
 typedef struct _CCwsPrediction CwsPrediction;
@@ -69,6 +71,8 @@ typedef struct _CCwsPrediction
 
     ConstLabels *constLabels;
 
+    float **modelWeightObj;
+
     fptrInit _Init;
     fptrCut _Cut;
 
@@ -86,7 +90,6 @@ int InitFile(CwsPrediction *cwsPredictionObj,
          int featureToIdxDictHashTableMaxSize,
          const char *featureToIdxFilePath);
 
-
 int Init(
     CwsPrediction *cwsPredictionObj,
     int unigramSetHashTableMaxSize,
@@ -94,7 +97,10 @@ int Init(
     int bigramSetHashTableMaxSize,
     PyObject *bigramPyList,
     int featureToIdxDictHashTableMaxSize,
-    PyObject *featureToIdxPyList);
+    PyObject *featureToIdxPyList,
+    PyObject *pyModelWeightList);
+
+float **initModelWeight(PyObject *pyModelWeightList);
 
 PyObject *Cut(CwsPrediction *cwsPredictionObj, const wchar_t *text);
 
@@ -102,8 +108,9 @@ wchar_t *getSliceStr(const wchar_t *text, int start, int length, int all_len, wc
 wchar_t **getCwsNodeFeature(CwsPrediction *cwsPredictionObj,
                             int idx, const wchar_t *text, int nodeNum);
 
+int *getFeatureIndex(CwsPrediction *cwsPredictionObj,
+                     wchar_t **featureList);
 
-PyObject *getFeatureIndex(CwsPrediction *cwsPredictionObj,
-                          wchar_t **featureList);
+float *computeNodeWeight(float **modelWeightObj, int *featureIdxList);
 
 #endif

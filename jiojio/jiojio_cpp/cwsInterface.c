@@ -6,13 +6,14 @@
 #define API
 #endif
 
-
 void *init(int unigramSetHashTableMaxSize,
            PyObject *unigramPyList,
            int bigramSetHashTableMaxSize,
            PyObject *bigramPyList,
            int featureToIdxDictHashTableMaxSize,
-           PyObject *featureToIdxPyList) {
+           PyObject *featureToIdxPyList,
+           PyObject *pyModelWeightList)
+{
 
     CwsPrediction *cwsPredictionObj = newCwsPrediction();
     if (cwsPredictionObj == NULL)
@@ -27,7 +28,8 @@ void *init(int unigramSetHashTableMaxSize,
                    bigramSetHashTableMaxSize,
                    bigramPyList,
                    featureToIdxDictHashTableMaxSize,
-                   featureToIdxPyList);
+                   featureToIdxPyList,
+                   pyModelWeightList);
 
     return cwsPredictionObj;
 }
@@ -67,7 +69,7 @@ int main()
     }
 
     unsigned int pos = dict_hash_table_hash_str(L"[END]") % 200000;
-    CwsPrediction *cwsPredictionObj = init(3, tmpList, 6, tmpList, 10, tmpList);
+    // CwsPrediction *cwsPredictionObj = init(3, tmpList, 6, tmpList, 10, tmpList);
 
     // Init(cwsPredictionObj, 10000,
     //      "/home/cuichengyu/github/jiojio/jiojio/models/default_cws_model/unigram.txt",
@@ -78,7 +80,7 @@ int main()
 
     const wchar_t *text = L"中国人真的很勤奋。";
     int textLength = wcslen(text);
-    PyObject *featureList = cut(cwsPredictionObj, text);
+    // PyObject *featureList = cut(cwsPredictionObj, text);
 
     Py_Finalize();
     return 0;

@@ -89,7 +89,7 @@ class CWSPredictText(object):
         cws_prediction_lib.init.argtypes = [
             ctypes.c_int, ctypes.py_object,
             ctypes.c_int, ctypes.py_object,
-            ctypes.c_int, ctypes.py_object]
+            ctypes.c_int, ctypes.py_object, ctypes.py_object]
 
         # cws_prediction_lib.new_cws_prediction.restype = ctypes.c_void_p
         cws_prediction_lib.init.restype = ctypes.c_void_p
@@ -98,18 +98,20 @@ class CWSPredictText(object):
         unigram_list = list(self.feature_extractor.unigram)
         bigram_list = list(self.feature_extractor.bigram)
         feature_to_idx_list = list(self.feature_extractor.feature_to_idx.keys())
-        # pdb.set_trace()
-        ratio = 0.8
+        model_weight_list = self.model.node_weight.tolist()
+
         # initialization of new_cws_prediction
         self.cws_prediction_handle = ctypes.c_void_p(
             cws_prediction_lib.init(
                 70000, unigram_list,
                 120000, bigram_list,
-                2000000, feature_to_idx_list))
+                2000000, feature_to_idx_list,
+                model_weight_list))
 
         del unigram_list
         del bigram_list
         del feature_to_idx_list
+        del model_weight_list
 
         if cws_prediction_lib:
             self.C_flag = True
@@ -134,12 +136,15 @@ class CWSPredictText(object):
 
         #     all_features.append(node_feature_idx)
 
-        # new method:
-        all_features = cws_prediction_lib.cut(self.cws_prediction_handle, text)
-        # print('pure C: ', res)
-        # print('pipe C: ', all_features)
+        # Y = get_log_Y_YY(all_features, self.model.node_weight, dtype=np.float16)
+
+        # # new method:
+        Y = cws_prediction_lib.cut(self.cws_prediction_handle, text)
+        # print('pure C: ', _Y)
+        # print('pipe C: ', Y)
+
         # pdb.set_trace()
-        Y = get_log_Y_YY(all_features, self.model.node_weight, dtype=np.float16)
+
 
         # add dictionary
         if self.user_dict.trie_tree_obj is not None:
