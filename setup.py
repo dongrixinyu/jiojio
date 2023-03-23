@@ -59,6 +59,11 @@ with open(os.path.join(DIR_PATH, 'requirements.txt'),
 
 
 def setup_package():
+    try:
+        import numpy as np
+    except:
+        print('Sorry, you should execute `pip install numpy` first.')
+
     if sys.platform == 'linux':
         extensions = [
             Extension(
@@ -76,6 +81,18 @@ def setup_package():
             Extension(
                 'jiojio.jiojio_cpp.build.libposFeatureExtractor',
                 ['jiojio/jiojio_cpp/posFeatureExtractor.c'],
+                language='c'),
+            Extension(
+                'jiojio.jiojio_cpp.build.libcwsInterface',
+                sources=['jiojio/jiojio_cpp/wchar_t_hash_set.c',
+                 'jiojio/jiojio_cpp/wchar_t_hash_dict.c',
+                 'jiojio/jiojio_cpp/cwsPrediction.c',
+                 'jiojio/jiojio_cpp/cwsInterface.c'],
+                include_dirs=[np.get_include()],
+                # library_dirs=[os.path.dirname(np.get_include())],
+                libraries=[os.path.dirname(np.get_include()) + '/' + \
+                           [name for name in os.listdir(os.path.dirname(np.get_include()))
+                            if '_multiarray_umath.' in name and name.endswith('.so')][0]],
                 language='c'),
         ]
     else:
