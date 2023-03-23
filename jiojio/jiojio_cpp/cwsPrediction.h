@@ -11,7 +11,7 @@
 #include "wchar_t_hash_set.h"
 #include "wchar_t_hash_dict.h"
 
-#define DEFAULT_FEATURE_LENGTH 20
+#define DEFAULT_FEATURE_LENGTH 18
 // #include <locale.h>
 
 typedef struct _CCwsPrediction CwsPrediction;

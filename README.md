@@ -18,7 +18,7 @@
 - 基于 **CPU** 的**高性能**、**持续优化** 中文分词器。
 
 ## 功能
-- 基于 C 优化的 Python 接口分词器，单进程运行性能达 **5.2 万字/秒**，[**多个分词工具性能对比**](https://github.com/dongrixinyu/jiojio/wiki/多种常见开源分词工具的性能对比)
+- 基于 C 的 Python 接口分词器，CPU 单进程运行性能达 **13.4 万字/秒**，[**多个分词工具性能对比**](https://github.com/dongrixinyu/jiojio/wiki/多种常见开源分词工具的性能对比)
 
 - 网页版 [**JioNLP源站**](http://www.jionlp.com)，可快速试用分词、词性标注功能
 

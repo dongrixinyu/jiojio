@@ -16,10 +16,21 @@ import setuptools
 
 if sys.platform == 'linux':
     from setuptools import Extension
-    from distutils.command.build_ext import build_ext
+    from distutils.command.build_ext import build_ext as _build_ext
 
 
-    class build_ext(build_ext):
+    class build_ext(_build_ext):
+
+        def finalize_options(self):
+            _build_ext.finalize_options(self)
+            __builtins__.__NUMPY_SETUP__ = False
+
+            import numpy
+            self.include_dirs.append(numpy.get_include())
+            self.libraries=[
+                os.path.dirname(numpy.get_include()) + '/' + \
+                [name for name in os.listdir(os.path.dirname(numpy.get_include()))
+                 if '_multiarray_umath.' in name and name.endswith('.so')][0]]
 
         def build_extension(self, ext):
             self._ctypes = isinstance(ext, CTypes)
@@ -40,6 +51,7 @@ if sys.platform == 'linux':
         pass
 
 
+# get version tag
 DIR_PATH = os.path.dirname(os.path.abspath(__file__))
 
 with open(os.path.join(DIR_PATH, 'README.md'), 'r', encoding='utf-8') as f:
@@ -59,10 +71,6 @@ with open(os.path.join(DIR_PATH, 'requirements.txt'),
 
 
 def setup_package():
-    try:
-        import numpy as np
-    except:
-        print('Sorry, you should execute `pip install numpy` first.')
 
     if sys.platform == 'linux':
         extensions = [
@@ -88,11 +96,11 @@ def setup_package():
                  'jiojio/jiojio_cpp/wchar_t_hash_dict.c',
                  'jiojio/jiojio_cpp/cwsPrediction.c',
                  'jiojio/jiojio_cpp/cwsInterface.c'],
-                include_dirs=[np.get_include()],
-                # library_dirs=[os.path.dirname(np.get_include())],
-                libraries=[os.path.dirname(np.get_include()) + '/' + \
-                           [name for name in os.listdir(os.path.dirname(np.get_include()))
-                            if '_multiarray_umath.' in name and name.endswith('.so')][0]],
+                # include_dirs=[np.get_include()],
+                # # library_dirs=[os.path.dirname(np.get_include())],
+                # libraries=[os.path.dirname(np.get_include()) + '/' + \
+                #            [name for name in os.listdir(os.path.dirname(np.get_include()))
+                #             if '_multiarray_umath.' in name and name.endswith('.so')][0]],
                 language='c'),
         ]
     else:
@@ -125,7 +133,8 @@ def setup_package():
         install_requires=requirements,
         ext_modules=extensions,
         zip_safe=False,
-        cmdclass={'build_ext': build_ext} if sys.platform == 'linux' else {}
+        cmdclass={'build_ext': build_ext} if sys.platform == 'linux' else {},
+        setup_requires=['numpy'],
     )
 
 
