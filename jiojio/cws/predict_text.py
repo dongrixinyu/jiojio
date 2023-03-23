@@ -21,8 +21,8 @@ from jiojio.inference import get_log_Y_YY
 from jiojio.model import Model
 from jiojio import Extractor
 
-from . import cws_get_node_features_c, cws_tag2word_c, \
-    cws_feature2idx_c, cws_prediction_lib
+from . import cws_tag2word_c, \
+    cws_prediction_lib
 from .config import Config
 from .tag_words_converter import tag2word
 from .feature_extractor import CWSFeatureExtractor
@@ -80,41 +80,46 @@ class CWSPredictText(object):
 
     def _prepare_C_func(self):
         # C 方式调用
-        self.get_node_features_c = cws_get_node_features_c
         self.tag2word_c = cws_tag2word_c
-        self.cws_feature2idx_c = cws_feature2idx_c
 
         self.cws_prediction_handle = ctypes.c_void_p(None)
 
-        cws_prediction_lib.init.argtypes = [
-            ctypes.c_int, ctypes.py_object,
-            ctypes.c_int, ctypes.py_object,
-            ctypes.c_int, ctypes.py_object, ctypes.py_object]
+        if cws_prediction_lib is not None:
+            cws_prediction_lib.init.argtypes = [
+                ctypes.c_int, ctypes.py_object,
+                ctypes.c_int, ctypes.py_object,
+                ctypes.c_int, ctypes.py_object,
+                ctypes.py_object, ctypes.c_int]
 
-        # cws_prediction_lib.new_cws_prediction.restype = ctypes.c_void_p
-        cws_prediction_lib.init.restype = ctypes.c_void_p
-        cws_prediction_lib.cut.restype = ctypes.py_object
+            cws_prediction_lib.init.restype = ctypes.c_void_p
+            cws_prediction_lib.cut.restype = ctypes.py_object
 
-        unigram_list = list(self.feature_extractor.unigram)
-        bigram_list = list(self.feature_extractor.bigram)
-        feature_to_idx_list = list(self.feature_extractor.feature_to_idx.keys())
-        model_weight_list = self.model.node_weight.tolist()
+            unigram_list = list(self.feature_extractor.unigram)
+            bigram_list = list(self.feature_extractor.bigram)
+            feature_to_idx_list = list(self.feature_extractor.feature_to_idx.keys())
+            model_weight_list = self.model.node_weight.tolist()
 
-        # initialization of new_cws_prediction
-        self.cws_prediction_handle = ctypes.c_void_p(
-            cws_prediction_lib.init(
-                70000, unigram_list,
-                120000, bigram_list,
-                2000000, feature_to_idx_list,
-                model_weight_list))
+            # initialization of new_cws_prediction
+            self.cws_prediction_handle = ctypes.c_void_p(
+                cws_prediction_lib.init(
+                    70000, unigram_list,
+                    120000, bigram_list,
+                    2000000, feature_to_idx_list,
+                    model_weight_list,
+                    0))  # 1 means to print init process log, 0 means not
 
-        del unigram_list
-        del bigram_list
-        del feature_to_idx_list
-        del model_weight_list
+            del unigram_list
+            del bigram_list
+            del feature_to_idx_list
+            del model_weight_list
 
-        if cws_prediction_lib:
+        if (cws_prediction_lib is not None) and (self.tag2word_c is not None):
             self.C_flag = True
+
+            # save memory alloc
+            self.model = None
+            self.feature_extractor = None
+
         else:
             self.C_flag = False
 
@@ -138,13 +143,10 @@ class CWSPredictText(object):
 
         # Y = get_log_Y_YY(all_features, self.model.node_weight, dtype=np.float16)
 
-        # # new method:
+        # new method:
         Y = cws_prediction_lib.cut(self.cws_prediction_handle, text)
         # print('pure C: ', _Y)
         # print('pipe C: ', Y)
-
-        # pdb.set_trace()
-
 
         # add dictionary
         if self.user_dict.trie_tree_obj is not None:
@@ -328,11 +330,12 @@ class CWSPredictText(object):
                 norm_segment = self.pre_processor(segment)
                 if self.C_flag:
                     tags = self._cut_C(norm_segment)
+                    tags_length = len(tags)
 
                     words_list = self.tag2word_c(
-                        segment, tags.ctypes.data_as(ctypes.c_void_p), len(tags))
+                        segment, tags.ctypes.data_as(ctypes.c_void_p), tags_length)
                     norm_words_list = self.tag2word_c(
-                        norm_segment, tags.ctypes.data_as(ctypes.c_void_p), len(tags))
+                        norm_segment, tags.ctypes.data_as(ctypes.c_void_p), tags_length)
 
                 else:
                     tags = self._cut_py(norm_segment)
@@ -384,11 +387,12 @@ class CWSPredictText(object):
             norm_text = self.pre_processor(text)
             if self.C_flag:
                 tags = self._cut_C(norm_text)
+                tags_length = len(tags)
 
                 words_list = self.tag2word_c(
-                    text, tags.ctypes.data_as(ctypes.c_void_p), len(tags))
+                    text, tags.ctypes.data_as(ctypes.c_void_p), tags_length)
                 norm_words_list = self.tag2word_c(
-                    norm_text, tags.ctypes.data_as(ctypes.c_void_p), len(tags))
+                    norm_text, tags.ctypes.data_as(ctypes.c_void_p), tags_length)
 
             else:
                 tags = self._cut_py(norm_text)

@@ -174,7 +174,8 @@ int Init(
     PyObject *bigramPyList,
     int featureToIdxDictHashTableMaxSize,
     PyObject *featureToIdxPyList,
-    PyObject *pyModelWeightList)
+    PyObject *pyModelWeightList,
+    int printing)
 {
 
     cwsPredictionObj->unigramSetHashTableMaxSize = unigramSetHashTableMaxSize;
@@ -216,10 +217,13 @@ int Init(
     }
 
     end = clock();
-    printf("build unigram hash table   time=%f\n", (double)(end - start) / CLOCKS_PER_SEC);
-    distribution_statistics(cwsPredictionObj->UnigramSetHashTable,
-                            cwsPredictionObj->unigramSetHashTableMaxSize,
-                            cwsPredictionObj->unigramSetHashTableItemSize);
+    if (printing > 0) {
+        printf("build unigram hash table   time=%f\n",
+               (double)(end - start) / CLOCKS_PER_SEC);
+        distribution_statistics(cwsPredictionObj->UnigramSetHashTable,
+                                cwsPredictionObj->unigramSetHashTableMaxSize,
+                                cwsPredictionObj->unigramSetHashTableItemSize);
+    }
 
     // read bigram Python List and build bigram_set_hash_table
     start = clock();
@@ -239,10 +243,13 @@ int Init(
     }
 
     end = clock();
-    printf("build bigram hash table    time=%f\n", (double)(end - start) / CLOCKS_PER_SEC);
-    distribution_statistics(cwsPredictionObj->BigramSetHashTable,
-                            cwsPredictionObj->bigramSetHashTableMaxSize,
-                            cwsPredictionObj->bigramSetHashTableItemSize);
+    if (printing > 0) {
+        printf("build bigram hash table    time=%f\n",
+               (double)(end - start) / CLOCKS_PER_SEC);
+        distribution_statistics(cwsPredictionObj->BigramSetHashTable,
+                                cwsPredictionObj->bigramSetHashTableMaxSize,
+                                cwsPredictionObj->bigramSetHashTableItemSize);
+    }
 
     // read file and build feature_to_idx_dict_hash_table
     start = clock();
@@ -262,10 +269,14 @@ int Init(
     }
 
     end = clock();
-    printf("build feature_to_idx hash table    time=%f\n", (double)(end - start) / CLOCKS_PER_SEC);
-    dict_distribution_statistics(cwsPredictionObj->featureToIdxDictHashTable,
-                                 cwsPredictionObj->featureToIdxDictHashTableMaxSize,
-                                 cwsPredictionObj->featureToIdxDictHashTableItemSize);
+    if (printing > 0)
+    {
+        printf("build feature_to_idx hash table   time=%f\n",
+               (double)(end - start) / CLOCKS_PER_SEC);
+        dict_distribution_statistics(cwsPredictionObj->featureToIdxDictHashTable,
+                                     cwsPredictionObj->featureToIdxDictHashTableMaxSize,
+                                     cwsPredictionObj->featureToIdxDictHashTableItemSize);
+    }
 
     // initialize model weight with shape (5040000, 2)
     float **modelWeightObj = initModelWeight(pyModelWeightList);
@@ -281,7 +292,6 @@ float **initModelWeight(PyObject *pyModelWeightList)
 
     // malloc memory for initialization of model weight
     float **modelWeightObj = (float **)malloc(weightLength * sizeof(float *));
-    // memset(modelWeightObj);
 
     for (int i = 0; i < weightLength; i++)
     {
@@ -298,7 +308,6 @@ float **initModelWeight(PyObject *pyModelWeightList)
         *curWeightPair = firstWeight;
         *(curWeightPair + 1) = secondWeight;
 
-        // printf("first weight: %f, second weight: %f\n", *curWeightPair, *(curWeightPair + 1));
         *(modelWeightObj + i) = curWeightPair;
     }
 
@@ -307,24 +316,21 @@ float **initModelWeight(PyObject *pyModelWeightList)
 
 PyObject *Cut(CwsPrediction *cwsPredictionObj, const wchar_t *text)
 {
-    PyObject *featureList = PyList_New(0);
     int textLength = wcslen(text);
     int ret;
 
     // initialization of np.empty with dtype=np.float32
     npy_intp dims[2] = {textLength, 2};
-    int ndim = 2;
-
+    // int ndim = 2;
 
     PyArray_Descr *descr = PyArray_DescrFromType(NPY_FLOAT32); // designate np.float32
-    if (descr == NULL)
-    {
-        printf("ERROR: can not set descr !\n");
-    }
+    // if (descr == NULL)
+    // {
+    //     printf("ERROR: can not set descr !\n");
+    // }
 
-    PyObject *array = PyArray_Empty(ndim, dims, descr, 0);
+    PyObject *array = PyArray_Empty(2, dims, descr, 0);  // the first arg is ndim
     PyArrayObject *arrayPtr = (PyArrayObject *)array;
-
     float *data = (float *)PyArray_DATA(arrayPtr);
 
     // start compute
@@ -363,12 +369,15 @@ PyObject *Cut(CwsPrediction *cwsPredictionObj, const wchar_t *text)
         PyArray_SETITEM(arrayPtr, data + 2 * i, firstSum);
         PyArray_SETITEM(arrayPtr, data + 2 * i + 1, secondSum);
 
+        Py_DECREF(firstSum);
+        Py_DECREF(secondSum);
     }
 
     return array;
 }
 
-wchar_t *getSliceStr(const wchar_t *text, int start, int length, int all_len, wchar_t *emptyStr)
+wchar_t *getSliceStr(const wchar_t *text, int start, int length,
+                     int all_len, wchar_t *emptyStr)
 {
     if (start < 0 || start >= all_len)
     {
@@ -824,7 +833,6 @@ int *getFeatureIndex(CwsPrediction *cwsPredictionObj,
  */
 float *computeNodeWeight(float **modelWeightObj, int *featureIdxList)
 {
-    int ret;
     int curFeatureIdx;
 
     float *sumNum = malloc(sizeof(float) * 2);
@@ -840,6 +848,6 @@ float *computeNodeWeight(float **modelWeightObj, int *featureIdxList)
 
         featureIdxList++;
     }
-
+    // *(sumNum + 1) = - (*sumNum);
     return sumNum;
 }

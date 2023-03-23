@@ -12,7 +12,8 @@ void *init(int unigramSetHashTableMaxSize,
            PyObject *bigramPyList,
            int featureToIdxDictHashTableMaxSize,
            PyObject *featureToIdxPyList,
-           PyObject *pyModelWeightList)
+           PyObject *pyModelWeightList,
+           int printing)
 {
 
     CwsPrediction *cwsPredictionObj = newCwsPrediction();
@@ -21,7 +22,6 @@ void *init(int unigramSetHashTableMaxSize,
         return 0;
     }
 
-    // CwsPrediction *cwsPredictionObj = (CwsPrediction *)voidObj;
     int ret = Init(cwsPredictionObj,
                    unigramSetHashTableMaxSize,
                    unigramPyList,
@@ -29,7 +29,8 @@ void *init(int unigramSetHashTableMaxSize,
                    bigramPyList,
                    featureToIdxDictHashTableMaxSize,
                    featureToIdxPyList,
-                   pyModelWeightList);
+                   pyModelWeightList,
+                   printing);
 
     return cwsPredictionObj;
 }

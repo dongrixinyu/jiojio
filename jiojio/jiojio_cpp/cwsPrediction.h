@@ -98,7 +98,8 @@ int Init(
     PyObject *bigramPyList,
     int featureToIdxDictHashTableMaxSize,
     PyObject *featureToIdxPyList,
-    PyObject *pyModelWeightList);
+    PyObject *pyModelWeightList,
+    int printing);
 
 float **initModelWeight(PyObject *pyModelWeightList);
 

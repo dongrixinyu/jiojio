@@ -11,7 +11,8 @@ void *init(
     PyObject *bigramPyList,
     int featureToIdxDictHashTableMaxSize,
     PyObject *featureToIdxPyList,
-    PyObject *pyModelWeightList);
+    PyObject *pyModelWeightList,
+    int printing);
 
 PyObject *cut(void *cwsPredictionObj, const wchar_t *text);
 
