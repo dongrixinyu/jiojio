@@ -848,6 +848,6 @@ float *computeNodeWeight(float **modelWeightObj, int *featureIdxList)
 
         featureIdxList++;
     }
-    // *(sumNum + 1) = - (*sumNum);
+
     return sumNum;
 }
