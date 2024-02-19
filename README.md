@@ -23,8 +23,8 @@
 - 网页版 [**JioNLP源站**](http://www.jionlp.com)，可快速试用分词、词性标注功能
 
 - 基于 CRF 算法，精细优化的 **字符特征工程**，[**模型特征说明**](https://github.com/dongrixinyu/jiojio/wiki/jiojio-分词CRF特征总结)
-- 对模型文件的尽力压缩，**500万特征参数，模型文件大小30M**，方便 pip 安装
-- 将词典**静态、动态**加入模型，共同预测分词序列，流程一致性强，[**词典配置说明**](https://github.com/dongrixinyu/jiojio/wiki/向分词模型添加自定义词典)
+- 对模型文件的尽力压缩，使用 `np.float8` 精度类型，**500万特征参数，模型文件大小30M**，方便 pip 安装
+- 添加自定义词典兼容**静态、动态**两种方式，流程一致性强，[**词典配置说明**](https://github.com/dongrixinyu/jiojio/wiki/向分词模型添加自定义词典)
 - 将规则加入模型，有效克服某些类型文本受限于模型处理的情况，[**分词-添加正则**](../../wiki/jiojio-使用说明文档#user-content-分词-添加正则)
 - 支持词性标注功能，与 [**JioNLP**](https://github.com/dongrixinyu/JioNLP) 联合实现**关键短语抽取**、**新闻地域识别** 等功能
 
@@ -42,7 +42,7 @@ $ pip install .
 ```
 
 - 非 ubuntu 环境的 C 安装
-如使用 windows 或 mac 等操作系统或其它硬件，则没有直接可调用 C 的库，可以使用以下方式安装编译 C 库。以下方式仅供参考，在熟悉 C 语言后进行调试使用。
+如使用 windows 或 mac 等操作系统或其它硬件，则没有直接可调用 C 的库，程序默认直接调用纯 Python 进行分词，因此速度会慢。可以使用以下方式安装编译 C 库。以下方式仅供参考，在熟悉 C 语言后进行调试使用。
 ```
 $ git clone https://github.com/dongrixinyu/jiojio
 $ cd jiojio/jiojio/jiojio_cpp
