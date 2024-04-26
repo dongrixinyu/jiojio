@@ -20,7 +20,7 @@ echo "jiojio version: ${jiojio_version}"
 
 # should designate python version
 py3_min_version="6"
-py3_max_version="10"
+py3_max_version="11"
 
 orig_python_path=`which python`
 orig_pip_path=`which pip`
