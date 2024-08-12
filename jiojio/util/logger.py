@@ -75,7 +75,10 @@ def set_logger(level='INFO', log_dir_name='.jiojio_logs'):
         else:
             filename_directory = os.path.join(os.path.expanduser('~'), log_dir_name)
         if not os.path.exists(filename_directory):
-            os.makedirs(filename_directory)
+            try:
+                os.makedirs(filename_directory)
+            except:
+                pass
 
         # 文件输出控制器
         file_handler = TimedRotatingFileHandler(
