@@ -9,6 +9,7 @@
 
 import os
 import pdb
+import sys
 import ctypes
 import traceback
 
@@ -20,10 +21,16 @@ dir_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__
 try:
     file_list = os.listdir(os.path.join(dir_path, 'build'))
     file_name = ''
-    for _file_name in file_list:
-        if 'libcwsInterface' in _file_name and _file_name.endswith('.so'):
-            file_name = _file_name
-            break
+    if sys.platform == "linux":
+        for _file_name in file_list:
+            if 'libcwsInterface' in _file_name and _file_name.endswith('.so'):
+                file_name = _file_name
+                break
+    elif sys.platform == "win32":
+        for _file_name in file_list:
+            if 'libcwsInterface' in _file_name and _file_name.endswith('.dll'):
+                file_name = _file_name
+                break
 
     cws_prediction_lib = ctypes.PyDLL(os.path.join(dir_path, 'build', file_name))
 
@@ -36,10 +43,16 @@ except Exception:
 try:
     file_list = os.listdir(os.path.join(dir_path, 'build'))
     file_name = ''
-    for _file_name in file_list:
-        if 'libcwsFeatureExtractor' in _file_name and _file_name.endswith('.so'):
-            file_name = _file_name
-            break
+    if sys.platform == "linux":
+        for _file_name in file_list:
+            if 'libcwsFeatureExtractor' in _file_name and _file_name.endswith('.so'):
+                file_name = _file_name
+                break
+    elif sys.platform == "win32":
+        for _file_name in file_list:
+            if 'libcwsFeatureExtractor' in _file_name and _file_name.endswith('.dll'):
+                file_name = _file_name
+                break
 
     feature_extractor = ctypes.PyDLL(os.path.join(dir_path, 'build', file_name))
     cws_get_node_features_c = feature_extractor.getCwsNodeFeature
@@ -58,11 +71,17 @@ except Exception:
 try:
     file_list = os.listdir(os.path.join(dir_path, 'build'))
     file_name = ''
-    for _file_name in file_list:
-        if 'libtagWordsConverter' in _file_name and _file_name.endswith('.so'):
-            file_name = _file_name
-            break
-
+    if sys.platform == "linux":
+        for _file_name in file_list:
+            if 'libtagWordsConverter' in _file_name and _file_name.endswith('.so'):
+                file_name = _file_name
+                break
+    elif sys.platform == "win32":
+        for _file_name in file_list:
+            if 'libtagWordsConverter' in _file_name and _file_name.endswith('.dll'):
+                file_name = _file_name
+                break
+                
     tag_words_converter = ctypes.PyDLL(os.path.join(dir_path, 'build', file_name))
     cws_tag2word_c = tag_words_converter.tagWordsConverter
     # tag2word_c.argtypes = [ctypes.c_wchar_p, ctypes.py_object]
@@ -79,11 +98,17 @@ except Exception:
 try:
     file_list = os.listdir(os.path.join(dir_path, 'build'))
     file_name = ''
-    for _file_name in file_list:
-        if 'libcwsFeatureToIndex' in _file_name and _file_name.endswith('.so'):
-            file_name = _file_name
-            break
-
+    if sys.platform == "linux":
+        for _file_name in file_list:
+            if 'libcwsFeatureToIndex' in _file_name and _file_name.endswith('.so'):
+                file_name = _file_name
+                break
+    elif sys.platform == "win32":
+        for _file_name in file_list:
+            if 'libcwsFeatureToIndex' in _file_name and _file_name.endswith('.dll'):
+                file_name = _file_name
+                break
+                
     cws_feature_to_idx = ctypes.PyDLL(os.path.join(dir_path, 'build', file_name))
     cws_feature2idx_c = cws_feature_to_idx.getFeatureIndex
     cws_feature2idx_c.argtypes = [ctypes.py_object, ctypes.py_object]
