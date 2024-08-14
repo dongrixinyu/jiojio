@@ -42,7 +42,7 @@ $ pip install .
 ```
 
 - 非 ubuntu 环境的 C 安装
-如使用 windows 或 mac 等操作系统或其它硬件，则没有直接可调用 C 的库，程序默认直接调用纯 Python 进行分词，因此速度会慢。可以使用以下方式安装编译 C 库。以下方式仅供参考，在熟悉 C 语言后进行调试使用。
+如使用 windows 或 mac 等操作系统或其它硬件，则没有直接可调用 C 的库，程序默认直接调用纯 Python 进行分词，因此速度会慢。可以使用以下方式安装编译 C 库。以下方式仅供参考，在熟悉 C 语言后进行调试使用。[**关于windows平台的编译说明**](https://github.com/dongrixinyu/jiojio/wiki/%E5%85%B3%E4%BA%8E-Windows-%E5%B9%B3%E5%8F%B0%E7%BC%96%E8%AF%91%E7%9A%84%E8%AF%B4%E6%98%8E)
 ```
 $ git clone https://github.com/dongrixinyu/jiojio
 $ cd jiojio/jiojio/jiojio_cpp
