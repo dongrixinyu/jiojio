@@ -24,7 +24,8 @@ from multiprocessing import Process, Queue, get_start_method
 from .util import TimeIt, read_file_by_iter, \
     write_file_by_line, TrieTree, set_logger
 
-logging = set_logger(level='INFO', log_dir_name='.jiojio/jiojio_logs')
+# logging = set_logger(level='INFO', log_dir_name='.jiojio/jiojio_logs')
+import logging
 
 from .model import Model
 from .parse_rule_type import Extractor
