@@ -17,7 +17,7 @@ import pdb
 import yaml
 
 
-print('# jiojio - `http://www.jionlp.com/jionlp_online/cws_pos` is available for online trial.')
+# print('# jiojio - `http://www.jionlp.com/jionlp_online/cws_pos` is available for online trial.')
 
 from multiprocessing import Process, Queue, get_start_method
 
