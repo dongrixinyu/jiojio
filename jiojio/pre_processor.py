@@ -59,13 +59,13 @@ class PreProcessor(object):
         # 检查是否包含中文字符
         self.chinese_char_pattern = re.compile('[一-龥]')
         self.num_pattern = re.compile(
-            '^(\d+(,\d+)?(\.\d+)?(万|亿|万亿|万千|千万|千|点|亿千|兆)|[\d]+(%|％)?|'\
-            '([\d]+)?\.([\d]+)?(%|％)?|'\
-            '[\d]+\:[\d]+|'\
-            '[零一二三四五六七八九十百千万亿]{3,9})$')
+            r'^(\d+(,\d+)?(\.\d+)?(万|亿|万亿|万千|千万|千|点|亿千|兆)|[\d]+(%|％)?|'\
+            r'([\d]+)?\.([\d]+)?(%|％)?|'\
+            r'[\d]+\:[\d]+|'\
+            r'[零一二三四五六七八九十百千万亿]{3,9})$')
         self.pure_num_pattern = re.compile(
-            '^([\d]+(%|％)?|'\
-            '([\d]+)?\.([\d]+)?(%|％)?)$')
+            r'^([\d]+(%|％)?|'\
+            r'([\d]+)?\.([\d]+)?(%|％)?)$')
         self.percent_num_pattern = re.compile('(百分之)')
 
         # 检测是否为人名正则
@@ -75,7 +75,7 @@ class PreProcessor(object):
 
         # 检查应当剔除的时间的正则，这些由组合特征学习得到，不需要参与 unigrams
         self.time_pattern = re.compile(
-            '\d年|\d月(份)?|\d日|\d(小)?时|\d分|\d秒')
+            r'\d年|\d月(份)?|\d日|\d(小)?时|\d分|\d秒')
 
         # 预处理参数，用于控制预处理方式
         self.convert_num_letter = convert_num_letter
