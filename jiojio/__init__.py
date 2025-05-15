@@ -2,10 +2,10 @@
 # Library: jiojio
 # Author: dongrixinyu
 # License: GPL-3.0
-# Email: dongrixinyu.89@163.com
+# Email: dongrixinyu.66@gmail.com
 # Github: https://github.com/dongrixinyu/jiojio
 # Description: fast Chinese Word Segmentation(CWS) and Part of Speech(POS) based on CPU.'
-# Website: http://www.jionlp.com/
+# Website: https://www.jionlp.com/
 
 
 __doc__ = 'jiojio: for fast Chinese Word Segmentation(CWS) and Part of Speech(POS) based on CPU.'
